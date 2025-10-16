@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Matrix } from '@/utils/Matrix'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -11,11 +11,14 @@ import { Perlin2D, Perlin3D } from '@/views/NoiseView/Noise/Perlin'
 import PixelCanvas from './PixelCanvas.vue'
 import TabControl from '@/components/TabControl.vue'
 import { Worley2D, Worley3D } from '@/views/NoiseView/Noise/Worley'
+import CodeEditor from './CodeEditor.vue'
+import PanelButton from '@/components/PanelButton.vue'
+import { mdiPlay } from '@mdi/js'
 
 const resolution = ref(512)
 const grid_size = ref<powerOfTwo>(32)
 
-const code = ref(`/*
+const starter_code = `/*
  * Input coordinates: 
  * x and y range from 0 to grid size
  * 
@@ -26,14 +29,19 @@ const code = ref(`/*
  */
 
 const w = worley_2D.noise(x, y)
-const s = simplex_3D.noise(0.1 * x, 0.1 * y, 0)
+const s = simplex_3D.noise(
+    0.1 * x, 0.1 * y, 0
+)
 const n = 2 * w * Math.abs(s)
 
 return {
     red: 70 * n,
     green: 255 * n,
     blue: 70 * n,
-}`)
+}`
+
+const editor_code = ref(starter_code)
+const executable_code = ref(starter_code)
 
 const matrix = computed(() => {
     const black = { red: 0, green: 0, blue: 0 }
@@ -58,7 +66,7 @@ const matrix = computed(() => {
         'perlin_3D',
         'simplex_2D',
         'simplex_3D',
-        code.value,
+        executable_code.value,
     )
 
     const color_matrix = new Matrix<Color>(height_px, width_px, black)
@@ -105,8 +113,12 @@ const matrix = computed(() => {
                 v-model="grid_size"
             />
 
-            <p>Code your own pixel shader in JavaScript:</p>
-            <textarea :rows="30" class="code-editor" v-model="code" />
+            <PanelButton
+                :mdi-path="mdiPlay"
+                text="Run code"
+                @click="() => (executable_code = editor_code)"
+            />
+            <CodeEditor v-model="editor_code" />
         </TabControl>
         <PixelCanvas class="canvas" :matrix="matrix" />
     </div>
@@ -126,20 +138,5 @@ const matrix = computed(() => {
 
 .label-field {
     flex-grow: 1;
-}
-
-.code-editor {
-    width: 100%;
-    resize: none;
-    background-color: var(--bg-color);
-    border: var(--border);
-    border-radius: 1em;
-    font-size: inherit;
-    color: lime;
-    padding: 0.5em;
-}
-
-.code-editor:focus {
-    outline: var(--accent-border);
 }
 </style>
