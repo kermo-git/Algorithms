@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "path": ".",
+        },
+    ],
+    "settings": {
+        "explorer.fileNesting.enabled": true,
+        "explorer.fileNesting.patterns": {
+            "tsconfig.json": "tsconfig.*.json, env.d.ts",
+            "vite.config.*": "vitest.config.*",
+            "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*",
+            "eslint.config.ts": ".eslint*, *eslint",
+        },
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+        },
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.indentSize": 4,
+    },
+}
