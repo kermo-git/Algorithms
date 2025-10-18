@@ -11,8 +11,10 @@ import RangeInput from '@/components/RangeInput.vue'
 import type { ColorPoint } from './types'
 import { type Noise2D, type Noise3D, type powerOfTwo } from './Noise/Noise'
 import { Worley2D, Worley3D } from './Noise/Worley'
+import { Worley2ndClosest2D, Worley2ndClosest3D } from './Noise/Worley2ndClosest'
 import { Perlin2D, Perlin3D } from './Noise/Perlin'
 import { Simplex2D, Simplex3D } from './Noise/Simplex'
+import { Value2D, Value3D } from './Noise/Value'
 import ColorPanel from './ColorPanel.vue'
 import PixelCanvas from './PixelCanvas.vue'
 
@@ -37,17 +39,29 @@ const noise = computed<Noise2D | Noise3D>(() => {
         } else {
             return new Worley3D()
         }
+    } else if (algorithm.value === 'Worley (2nd closest)') {
+        if (dimension.value === '2D') {
+            return new Worley2ndClosest2D()
+        } else {
+            return new Worley2ndClosest3D()
+        }
     } else if (algorithm.value === 'Perlin') {
         if (dimension.value === '2D') {
             return new Perlin2D()
         } else {
             return new Perlin3D()
         }
+    } else if (algorithm.value == 'Simplex') {
+        if (dimension.value === '2D') {
+            return new Simplex2D()
+        } else {
+            return new Simplex3D()
+        }
     }
     if (dimension.value === '2D') {
-        return new Simplex2D()
+        return new Value2D()
     } else {
-        return new Simplex3D()
+        return new Value3D()
     }
 })
 
@@ -96,7 +110,7 @@ const activeTab = ref('Configuration')
                 <TextSingleSelect
                     text="Noise algorithm"
                     name="algorithm"
-                    :options="['Worley', 'Perlin', 'Simplex']"
+                    :options="['Worley', 'Worley (2nd closest)', 'Perlin', 'Simplex', 'Value']"
                     v-model="algorithm"
                 />
 
