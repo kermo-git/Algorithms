@@ -21,15 +21,15 @@ function applySyntaxHighlight(code: string) {
         .replace(/</g, '&lt;')
         .replace(/\n/g, '<br>')
         .replace(/\s/g, '&nbsp;')
-        .replace(/\/\/.*?<br>/g, (match) => `<span style="color: green;">${match}</span>`)
-        .replace(/\/\*.*?\*\//g, (match) => `<span style="color: green;">${match}</span>`)
+        .replace(/\/\/.*?<br>/g, (match) => `<span style="color: cyan;">${match}</span>`)
+        .replace(/\/\*.*?\*\//g, (match) => `<span style="color: cyan;">${match}</span>`)
         .replace(
-            /const|let|var|return/g,
-            (match) => `<span style="color: hotpink;">${match}</span>`,
+            /const|let|var|return|class|constructor/g,
+            (match) => `<span style="color: var(--accent-color);">${match}</span>`,
         )
         .replace(
             /([=*+-;,&<>()])(\d+\.?\d*)([=*+-;,&<>()])/g,
-            `$1<span style="color: cyan;">$2</span>$3`,
+            `$1<span style="color: #00CE00;">$2</span>$3`,
         )
 }
 
