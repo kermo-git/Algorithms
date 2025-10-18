@@ -53,6 +53,17 @@ export interface Noise3D {
     noise(x: number, y: number, z: number): number
 }
 
+// https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
+export function rotateDomain(noise: Noise3D, x: number, y: number, z: number): number {
+    const xz = x + z
+    const s2 = xz * -0.211324865405187
+    const yy = y * 0.577350269189626
+    const xr = x + (s2 + yy)
+    const zr = z + (s2 + yy)
+    const yr = xz * -0.577350269189626 + yy
+    return noise.noise(xr, yr, zr)
+}
+
 export function randUnitVector2D(): Vec2 {
     const phi = 2 * Math.PI * Math.random()
     return {

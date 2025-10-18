@@ -9,7 +9,7 @@ import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
 import type { ColorPoint } from './types'
-import { type Noise2D, type Noise3D, type powerOfTwo } from './Noise/Noise'
+import { rotateDomain, type Noise2D, type Noise3D, type powerOfTwo } from './Noise/Noise'
 import { Worley2D, Worley3D } from './Noise/Worley'
 import { Worley2ndClosest2D, Worley2ndClosest3D } from './Noise/Worley2ndClosest'
 import { Perlin2D, Perlin3D } from './Noise/Perlin'
@@ -26,6 +26,8 @@ const color_type = ref('Continuous')
 
 const algorithm = ref('Worley')
 const dimension = ref('2D')
+const domain_transform = ref('None')
+const domain_warp_strength = ref(2)
 const z_coord = ref(0)
 const resolution = ref(512)
 const grid_size = ref(16)
@@ -75,12 +77,30 @@ const matrix = computed(() => {
     let frequency_x = grid_size.value / width_px
     let frequency_y = grid_size.value / height_px
 
+    const noise_gen = noise.value
+    const warp_stregth = domain_warp_strength.value
+    const z = z_coord.value
+
+    let noise_fn = (x: number, y: number) => {
+        return noise_gen.noise(x, y, z)
+    }
+    if (dimension.value == '3D') {
+        if (domain_transform.value == 'Rotate') {
+            noise_fn = (x: number, y: number) => {
+                return rotateDomain(noise_gen, x, y, z)
+            }
+        } else if (domain_transform.value == 'Warp') {
+            noise_fn = (x: number, y: number) => {
+                return noise_gen.noise(x, y, noise_gen.noise(x, y, z) * warp_stregth)
+            }
+        }
+    }
     for (let i = 0; i < n_octaves.value; i++) {
         for (let i = 0; i < matrix_size; i++) {
             const row = Math.trunc(i / width_px)
             const col = i % width_px
 
-            const value = noise.value.noise(col * frequency_x, row * frequency_x, z_coord.value)
+            const value = noise_fn(col * frequency_x, row * frequency_x)
             matrix.data[i] += amplitude * value
         }
         amplitude *= persistence.value
@@ -135,6 +155,28 @@ const activeTab = ref('Configuration')
                         />
                         <p>1</p>
                     </PanelSection>
+
+                    <TextSingleSelect
+                        text="Domain transformation"
+                        name="domain_transform"
+                        :options="['None', 'Rotate', 'Warp']"
+                        v-model="domain_transform"
+                    />
+
+                    <template v-if="domain_transform === 'Warp'">
+                        <p>Warp strength: {{ domain_warp_strength }}</p>
+                        <PanelSection>
+                            <p>1</p>
+                            <RangeInput
+                                class="label-field"
+                                :min="1"
+                                :max="10"
+                                :step="0.5"
+                                v-model="domain_warp_strength"
+                            />
+                            <p>10</p>
+                        </PanelSection>
+                    </template>
                 </template>
 
                 <NumberSingleSelect
