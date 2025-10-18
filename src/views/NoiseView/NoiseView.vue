@@ -91,7 +91,7 @@ const matrix = computed(() => {
             }
         } else if (domain_transform.value == 'Warp') {
             noise_fn = (x: number, y: number) => {
-                return noise_gen.noise(x, y, noise_gen.noise(x, y, z) * warp_stregth)
+                return noise_gen.noise(x, y, z + noise_gen.noise(x, y, 0) * warp_stregth)
             }
         }
     }
