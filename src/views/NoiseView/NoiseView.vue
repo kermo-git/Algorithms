@@ -14,6 +14,7 @@ import { Worley2D, Worley3D } from './Noise/Worley'
 import { Worley2ndClosest2D, Worley2ndClosest3D } from './Noise/Worley2ndClosest'
 import { Perlin2D, Perlin3D } from './Noise/Perlin'
 import { Simplex2D, Simplex3D } from './Noise/Simplex'
+import { Cubic2D, Cubic3D } from './Noise/Cubic'
 import { Value2D, Value3D } from './Noise/Value'
 import ColorPanel from './ColorPanel.vue'
 import PixelCanvas from './PixelCanvas.vue'
@@ -58,6 +59,12 @@ const noise = computed<Noise2D | Noise3D>(() => {
             return new Simplex2D()
         } else {
             return new Simplex3D()
+        }
+    } else if (algorithm.value == 'Cubic') {
+        if (dimension.value === '2D') {
+            return new Cubic2D()
+        } else {
+            return new Cubic3D()
         }
     }
     if (dimension.value === '2D') {
@@ -130,7 +137,14 @@ const activeTab = ref('Configuration')
                 <TextSingleSelect
                     text="Noise algorithm"
                     name="algorithm"
-                    :options="['Worley', 'Worley (2nd closest)', 'Perlin', 'Simplex', 'Value']"
+                    :options="[
+                        'Worley',
+                        'Worley (2nd closest)',
+                        'Perlin',
+                        'Simplex',
+                        'Cubic',
+                        'Value',
+                    ]"
                     v-model="algorithm"
                 />
 
