@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="@webgpu/types" />
 
 // https://github.com/Pictogrammers/vue-icon/issues/10
 declare let SvgIcon: import('vue').DefineComponent<{

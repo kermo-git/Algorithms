@@ -9,6 +9,7 @@ import { RouterLink, RouterView } from 'vue-router'
             <RouterLink class="router-link" to="/nca">Neural Cellular Automata</RouterLink>
             <RouterLink class="router-link" to="/noise">Noise</RouterLink>
             <RouterLink class="router-link" to="/pixel-shader">Pixel Shader</RouterLink>
+            <RouterLink class="router-link" to="/gpu-noise">GPU noise (in progress)</RouterLink>
         </nav>
         <RouterView />
     </div>
