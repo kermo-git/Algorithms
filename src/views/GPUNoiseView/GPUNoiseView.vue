@@ -6,7 +6,7 @@ import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
-import type { ColorPoint } from './types'
+import type { ColorPoint } from './Utils'
 import ColorPanel from './ColorPanel.vue'
 import Display from './Display.vue'
 

@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
 import PanelButton from '@/components/PanelButton.vue'
-import { webGPUComputeTextureDemo } from './Utils'
+import { Perlin2D } from './Perlin'
 
 /* interface Props {
     shader: string
@@ -19,7 +19,9 @@ onMounted(async () => {
     if (!context) {
         throw Error('HTML canvas context not found!')
     }
-    webGPUComputeTextureDemo(context)
+    const renderer = new Perlin2D(10)
+    await renderer.init(context)
+    renderer.render()
 })
 
 // watch(props, draw)
