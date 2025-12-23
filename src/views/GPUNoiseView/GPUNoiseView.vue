@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
@@ -9,6 +9,7 @@ import RangeInput from '@/components/RangeInput.vue'
 import type { ColorPoint } from './Utils'
 import ColorPanel from './ColorPanel.vue'
 import Display from './Display.vue'
+import { Perlin2D } from './Perlin'
 
 const colors = ref<ColorPoint[]>([
     { color: '#FFFFFF', point: 0 },
@@ -24,6 +25,12 @@ const grid_size = ref(16)
 const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
+
+const renderer = new Perlin2D(grid_size.value)
+
+watch(grid_size, (_, new_grid_size) => {
+    renderer.setGridSize(new_grid_size)
+})
 </script>
 
 <template>
@@ -129,7 +136,7 @@ const activeTab = ref('Configuration')
                 <ColorPanel v-model="colors" />
             </template>
         </TabControl>
-        <Display class="canvas" vertex-shader="" fragment-shader="" />
+        <Display class="canvas" :renderer="renderer" />
     </div>
 </template>
 

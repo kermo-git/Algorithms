@@ -12,17 +12,13 @@ export class Perlin2D extends ComputeRenderer {
     override createShader(color_format: string): string {
         const n_gradients = 16
         const gradient_mask = n_gradients - 1
-        let gradient_array_shader = ''
+        const gradient_array_shader = []
 
         for (let i = 0; i < n_gradients; i++) {
             const phi = (2 * Math.PI * i) / n_gradients
-            const x = Math.cos(phi)
-            const y = Math.sin(phi)
-
-            gradient_array_shader += `vec2f(${x}, ${y})`
-            if (i < n_gradients - 1) {
-                gradient_array_shader += ', '
-            }
+            const x = Math.cos(phi).toFixed(3)
+            const y = Math.sin(phi).toFixed(3)
+            gradient_array_shader.push(`vec2f(${x}, ${y})`)
         }
 
         const hash_table = generateHashTable()
@@ -64,7 +60,7 @@ export class Perlin2D extends ComputeRenderer {
                 let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
                 let s = fade(local);
-                return 1.3 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+                return 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
             }
 
             @compute @workgroup_size(1)
@@ -107,6 +103,15 @@ export class Perlin2D extends ComputeRenderer {
                 },
             ],
         })
+    }
+
+    setGridSize(n_grid_cells_x: number) {
+        this.n_grid_cells_x = n_grid_cells_x
+
+        const data = new Float32Array([this.n_grid_cells_x])
+        this.device.queue.writeBuffer(this.grid_size_buffer, 0, data, 0, data.length)
+
+        this.render()
     }
 
     override cleanup() {

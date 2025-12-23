@@ -5,6 +5,7 @@ export interface ColorPoint {
 
 async function compileShader(device: GPUDevice, shader_code: string): Promise<GPUShaderModule> {
     const trimmed_code = shader_code.trim()
+
     const module = device.createShaderModule({
         code: trimmed_code,
     })
@@ -96,19 +97,24 @@ export class ComputeRenderer {
         })
     }
 
+    frame_id = 0
     render() {
-        const cmd_encoder = this.device.createCommandEncoder()
-        const pass_encoder = cmd_encoder.beginComputePass()
+        const render_callback = () => {
+            const cmd_encoder = this.device.createCommandEncoder()
+            const pass_encoder = cmd_encoder.beginComputePass()
 
-        pass_encoder.setPipeline(this.pipeline)
-        pass_encoder.setBindGroup(0, this.bindGroup)
-        pass_encoder.dispatchWorkgroups(this.texture.width, this.texture.height)
-        pass_encoder.end()
+            pass_encoder.setPipeline(this.pipeline)
+            pass_encoder.setBindGroup(0, this.bindGroup)
+            pass_encoder.dispatchWorkgroups(this.texture.width, this.texture.height)
+            pass_encoder.end()
 
-        this.device.queue.submit([cmd_encoder.finish()])
+            this.device.queue.submit([cmd_encoder.finish()])
+        }
+        this.frame_id = requestAnimationFrame(render_callback)
     }
 
     cleanup() {
+        cancelAnimationFrame(this.frame_id)
         this.texture.destroy()
         this.context.unconfigure()
     }

@@ -4,13 +4,13 @@ import { mdiFloppy } from '@mdi/js'
 
 import PanelButton from '@/components/PanelButton.vue'
 import { Perlin2D } from './Perlin'
+import type { ComputeRenderer } from './Utils'
 
-/* interface Props {
-    shader: string
+interface Props {
+    renderer: ComputeRenderer
 }
-const props = defineProps<Props>() */
+const props = defineProps<Props>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const renderer = new Perlin2D(10)
 
 onMounted(async () => {
     if (!canvasRef.value) {
@@ -20,15 +20,13 @@ onMounted(async () => {
     if (!context) {
         throw Error('HTML canvas context not found!')
     }
-    await renderer.init(context)
-    renderer.render()
+    await props.renderer.init(context)
+    props.renderer.render()
 })
 
 onUnmounted(() => {
-    renderer.cleanup()
+    props.renderer.cleanup()
 })
-
-// watch(props, draw)
 
 function download() {
     if (canvasRef.value) {
