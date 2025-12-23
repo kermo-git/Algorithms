@@ -26,9 +26,12 @@ export class ComputeRenderer {
     device!: GPUDevice
     pipeline!: GPUComputePipeline
     bindGroup!: GPUBindGroup
+    context!: GPUCanvasContext
     texture!: GPUTexture
 
     async init(context: GPUCanvasContext) {
+        this.context = context
+
         const adapter = await navigator.gpu.requestAdapter()
         if (!adapter) {
             throw Error('WebGPU not supported!')
@@ -103,6 +106,11 @@ export class ComputeRenderer {
         pass_encoder.end()
 
         this.device.queue.submit([cmd_encoder.finish()])
+    }
+
+    cleanup() {
+        this.texture.destroy()
+        this.context.unconfigure()
     }
 }
 

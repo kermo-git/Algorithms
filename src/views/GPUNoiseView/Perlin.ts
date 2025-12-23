@@ -2,7 +2,7 @@ import { generateHashTable, ComputeRenderer } from './Utils'
 
 export class Perlin2D extends ComputeRenderer {
     n_grid_cells_x: number
-    grid_size_buffer: GPUBuffer | null = null
+    grid_size_buffer!: GPUBuffer
 
     constructor(n_grid_cells_x: number) {
         super()
@@ -52,19 +52,19 @@ export class Perlin2D extends ComputeRenderer {
                 let p1 = (p0 + 1u) & vec2u(255, 255);
                 
                 let grad_00 = get_gradient(p0.x, p0.y);
-                let grad_01 = get_gradient(p0.x, p1.y);
                 let grad_10 = get_gradient(p1.x, p0.y);
+                let grad_01 = get_gradient(p0.x, p1.y);
                 let grad_11 = get_gradient(p1.x, p1.y);
                 
                 let local = global_pos - floor_pos;
 
                 let a = dot(grad_00, local);
-                let b = dot(grad_01, vec2f(local.x, 1 - local.y));
-                let c = dot(grad_10, vec2f(1 - local.x, local.y));
-                let d = dot(grad_11, vec2f(1 - local.x, 1 - local.y));
+                let b = dot(grad_10, vec2f(local.x - 1, local.y));
+                let c = dot(grad_01, vec2f(local.x, local.y - 1));
+                let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
                 let s = fade(local);
-                return lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+                return 1.3 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
             }
 
             @compute @workgroup_size(1)
@@ -75,7 +75,7 @@ export class Perlin2D extends ComputeRenderer {
                 let dims = vec2f(textureDimensions(texture));
                 let n_grid_cells = vec2f(n_grid_cells_x, n_grid_cells_x * dims.y / dims.x);
                 let noise_pos = n_grid_cells * vec2f(pos) / dims;
-                let noise_value = noise(noise_pos);
+                let noise_value = (noise(noise_pos) + 1.0) * 0.5;
 
                 textureStore(
                     texture, pos, 
@@ -107,5 +107,10 @@ export class Perlin2D extends ComputeRenderer {
                 },
             ],
         })
+    }
+
+    override cleanup() {
+        super.cleanup()
+        this.grid_size_buffer.destroy()
     }
 }

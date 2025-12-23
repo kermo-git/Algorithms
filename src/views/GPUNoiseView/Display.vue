@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
 import PanelButton from '@/components/PanelButton.vue'
@@ -10,6 +10,7 @@ import { Perlin2D } from './Perlin'
 }
 const props = defineProps<Props>() */
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const renderer = new Perlin2D(10)
 
 onMounted(async () => {
     if (!canvasRef.value) {
@@ -19,9 +20,12 @@ onMounted(async () => {
     if (!context) {
         throw Error('HTML canvas context not found!')
     }
-    const renderer = new Perlin2D(10)
     await renderer.init(context)
     renderer.render()
+})
+
+onUnmounted(() => {
+    renderer.cleanup()
 })
 
 // watch(props, draw)
