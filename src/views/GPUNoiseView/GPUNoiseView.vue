@@ -16,7 +16,7 @@ const colors = ref<ColorPoint[]>([
     { color: '#000000', point: 1 },
 ])
 const color_type = ref('Continuous')
-const algorithm = ref('Worley')
+const algorithm = ref('Perlin')
 const dimension = ref('2D')
 const domain_transform = ref('None')
 const domain_warp_strength = ref(2)
@@ -41,12 +41,12 @@ watch(grid_size, (_, new_grid_size) => {
                     text="Noise algorithm"
                     name="algorithm"
                     :options="[
-                        'Worley',
-                        'Worley (2nd closest)',
                         'Perlin',
                         'Simplex',
                         'Cubic',
                         'Value',
+                        'Worley',
+                        'Worley (2nd closest)',
                     ]"
                     v-model="algorithm"
                 />

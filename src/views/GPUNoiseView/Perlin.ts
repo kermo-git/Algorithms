@@ -26,8 +26,6 @@ export class Perlin2D extends ComputeRenderer {
         return /* wgsl */ `
             const hash_table = array<u32, ${hash_table.length}>(${hash_table});
             const gradients = array(${gradient_array_shader});
-            @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-            @group(0) @binding(1) var<uniform> n_grid_cells_x: f32;
 
             fn get_gradient(x: u32, y: u32) -> vec2f {
                 let hash = hash_table[hash_table[x] + y];
@@ -62,6 +60,9 @@ export class Perlin2D extends ComputeRenderer {
                 let s = fade(local);
                 return 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
             }
+
+            @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+            @group(0) @binding(1) var<uniform> n_grid_cells_x: f32;
 
             @compute @workgroup_size(1)
             fn main(
