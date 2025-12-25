@@ -3,8 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
 import PanelButton from '@/components/PanelButton.vue'
-import { Perlin2D } from './Perlin'
-import type { ComputeRenderer } from './Utils'
+import type ComputeRenderer from './ComputeRenderer'
 
 interface Props {
     renderer: ComputeRenderer
@@ -16,17 +15,19 @@ onMounted(async () => {
     if (!canvasRef.value) {
         throw Error('HTML canvas element not found!')
     }
-    const context = canvasRef.value.getContext('webgpu')
-    if (!context) {
-        throw Error('HTML canvas context not found!')
-    }
-    await props.renderer.init(context)
-    props.renderer.render()
+    await props.renderer.init(canvasRef.value)
 })
 
 onUnmounted(() => {
     props.renderer.cleanup()
 })
+
+/* watch(props.renderer, async () => {
+    if (!canvasRef.value) {
+        throw Error('HTML canvas element not found!')
+    }
+    await props.renderer.init(canvasRef.value)
+}) */
 
 function download() {
     if (canvasRef.value) {
@@ -54,7 +55,7 @@ function download() {
     <div class="main-container">
         <div class="canvas-container">
             <PanelButton class="save-button" :mdi-path="mdiFloppy" />
-            <canvas width="1000" height="1000" ref="canvasRef" />
+            <canvas ref="canvasRef" />
         </div>
         <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>
@@ -73,6 +74,7 @@ function download() {
 
 canvas {
     width: 100%;
+    aspect-ratio: 1;
     image-rendering: pixelated;
 }
 

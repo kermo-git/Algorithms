@@ -1,8 +1,3 @@
-export interface ColorPoint {
-    color: string
-    point: number
-}
-
 async function compileShader(device: GPUDevice, shader_code: string): Promise<GPUShaderModule> {
     const trimmed_code = shader_code.trim()
 
@@ -23,14 +18,25 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
     return module
 }
 
-export class ComputeRenderer {
+export default class ComputeRenderer {
     device!: GPUDevice
     pipeline!: GPUComputePipeline
-    bindGroup!: GPUBindGroup
+    bind_group: GPUBindGroup | null = null
     context!: GPUCanvasContext
-    texture!: GPUTexture
+    observer!: ResizeObserver
+    wg_x: number
+    wg_y: number
 
-    async init(context: GPUCanvasContext) {
+    constructor(wg_x: number, wg_y: number) {
+        this.wg_x = wg_x
+        this.wg_y = wg_y
+    }
+
+    async init(canvas: HTMLCanvasElement) {
+        const context = canvas.getContext('webgpu')
+        if (!context) {
+            throw Error('HTML Canvas not found!')
+        }
         this.context = context
 
         const adapter = await navigator.gpu.requestAdapter()
@@ -50,9 +56,8 @@ export class ComputeRenderer {
             format: color_format,
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
-        this.texture = context.getCurrentTexture()
 
-        const shader_code = this.createShader(color_format).trim()
+        const shader_code = this.createShader(color_format)
         const shader_module = await compileShader(this.device, shader_code)
 
         this.pipeline = this.device.createComputePipeline({
@@ -63,7 +68,22 @@ export class ComputeRenderer {
             },
         })
 
-        this.bindGroup = this.initBuffers()
+        this.bind_group = this.createBuffers()
+
+        this.observer = new ResizeObserver((entries) => {
+            entries.forEach((entry) => {
+                const width = entry.contentBoxSize[0].inlineSize
+                const height = entry.contentBoxSize[0].blockSize
+                const canvas = entry.target as HTMLCanvasElement
+
+                const max_size = this.device.limits.maxTextureDimension2D
+                canvas.width = Math.min(width, max_size)
+                canvas.height = Math.min(height, max_size)
+
+                this.render()
+            })
+        })
+        this.observer.observe(canvas)
     }
 
     createShader(color_format: string): string {
@@ -71,7 +91,7 @@ export class ComputeRenderer {
             @group(0) @binding(0)
             var out_texture: texture_storage_2d<${color_format}, write>;
 
-            @compute @workgroup_size(1)
+            @compute @workgroup_size(${this.wg_x}, ${this.wg_y})
             fn main(
                 @builtin(global_invocation_id)
                 id: vec3u
@@ -85,27 +105,36 @@ export class ComputeRenderer {
         `
     }
 
-    initBuffers(): GPUBindGroup {
-        return this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: this.texture.createView(),
-                },
-            ],
-        })
+    createBuffers(): GPUBindGroup | null {
+        return null
     }
+
+    bindBuffers(pass_encoder: GPUComputePassEncoder) {}
 
     frame_id = 0
     render() {
         const render_callback = () => {
+            const texture = this.context.getCurrentTexture()
+
+            const canvas_bind_group = this.device.createBindGroup({
+                layout: this.pipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: texture.createView(),
+                    },
+                ],
+            })
             const cmd_encoder = this.device.createCommandEncoder()
             const pass_encoder = cmd_encoder.beginComputePass()
 
             pass_encoder.setPipeline(this.pipeline)
-            pass_encoder.setBindGroup(0, this.bindGroup)
-            pass_encoder.dispatchWorkgroups(this.texture.width, this.texture.height)
+            pass_encoder.setBindGroup(0, canvas_bind_group)
+            pass_encoder.setBindGroup(1, this.bind_group)
+            pass_encoder.dispatchWorkgroups(
+                Math.ceil(texture.width / this.wg_x),
+                Math.ceil(texture.height / this.wg_y),
+            )
             pass_encoder.end()
 
             this.device.queue.submit([cmd_encoder.finish()])
@@ -115,26 +144,7 @@ export class ComputeRenderer {
 
     cleanup() {
         cancelAnimationFrame(this.frame_id)
-        this.texture.destroy()
         this.context.unconfigure()
+        this.observer.disconnect()
     }
-}
-
-export function generateHashTable() {
-    const size = 256
-    const hash_table = new Array(2 * size)
-
-    for (let i = 0; i < size; i++) {
-        hash_table[i] = i
-    }
-    for (let i = 0; i < 256; i++) {
-        const temp = hash_table[i]
-        const swap_index = Math.floor(Math.random() * size)
-        hash_table[i] = hash_table[swap_index]
-        hash_table[swap_index] = temp
-    }
-    for (let i = 0; i < size; i++) {
-        hash_table[size + i] = hash_table[i]
-    }
-    return hash_table
 }

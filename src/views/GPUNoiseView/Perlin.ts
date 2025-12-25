@@ -1,122 +1,130 @@
-import { generateHashTable, ComputeRenderer } from './Utils'
+import { generateHashTable } from './NoiseRenderer'
 
-export class Perlin2D extends ComputeRenderer {
-    n_grid_cells_x: number
-    grid_size_buffer!: GPUBuffer
+export function perlin2DShader(): string {
+    const n_gradients = 16
+    const gradient_mask = n_gradients - 1
+    const gradient_array_shader = []
 
-    constructor(n_grid_cells_x: number) {
-        super()
-        this.n_grid_cells_x = n_grid_cells_x
+    for (let i = 0; i < n_gradients; i++) {
+        const phi = (2 * Math.PI * i) / n_gradients
+        const x = Math.cos(phi).toFixed(3)
+        const y = Math.sin(phi).toFixed(3)
+        gradient_array_shader.push(`vec2f(${x}, ${y})`)
     }
 
-    override createShader(color_format: string): string {
-        const n_gradients = 16
-        const gradient_mask = n_gradients - 1
-        const gradient_array_shader = []
+    const hash_table = generateHashTable()
 
-        for (let i = 0; i < n_gradients; i++) {
-            const phi = (2 * Math.PI * i) / n_gradients
-            const x = Math.cos(phi).toFixed(3)
-            const y = Math.sin(phi).toFixed(3)
-            gradient_array_shader.push(`vec2f(${x}, ${y})`)
+    return /* wgsl */ `
+        const hash_table = array<u32, ${hash_table.length}>(${hash_table});
+        const gradients = array(${gradient_array_shader});
+
+        fn get_gradient(x: u32, y: u32) -> vec2f {
+            let hash = hash_table[hash_table[x] + y];
+            return gradients[hash & ${gradient_mask}];
         }
 
-        const hash_table = generateHashTable()
+        fn fade(t: vec2f) -> vec2f {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
 
-        return /* wgsl */ `
-            const hash_table = array<u32, ${hash_table.length}>(${hash_table});
-            const gradients = array(${gradient_array_shader});
+        fn lerp(t: f32, a: f32, b: f32) -> f32 {
+            return a + t * (b - a);
+        }
 
-            fn get_gradient(x: u32, y: u32) -> vec2f {
-                let hash = hash_table[hash_table[x] + y];
-                return gradients[hash & ${gradient_mask}];
-            }
+        fn noise(global_pos: vec2f) -> f32 {
+            let floor_pos = floor(global_pos);
+            let p0 = vec2u(floor_pos) & vec2u(255, 255);
+            let p1 = (p0 + 1u) & vec2u(255, 255);
+            
+            let grad_00 = get_gradient(p0.x, p0.y);
+            let grad_10 = get_gradient(p1.x, p0.y);
+            let grad_01 = get_gradient(p0.x, p1.y);
+            let grad_11 = get_gradient(p1.x, p1.y);
+            
+            let local = global_pos - floor_pos;
 
-            fn fade(t: vec2f) -> vec2f {
-                return t * t * t * (t * (t * 6 - 15) + 10);
-            }
+            let a = dot(grad_00, local);
+            let b = dot(grad_10, vec2f(local.x - 1, local.y));
+            let c = dot(grad_01, vec2f(local.x, local.y - 1));
+            let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
-            fn lerp(t: f32, a: f32, b: f32) -> f32 {
-                return a + t * (b - a);
-            }
+            let s = fade(local);
+            return 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+        }
+    `
+}
 
-            fn noise(global_pos: vec2f) -> f32 {
-                let floor_pos = floor(global_pos);
-                let p0 = vec2u(floor_pos) & vec2u(255, 255);
-                let p1 = (p0 + 1u) & vec2u(255, 255);
-                
-                let grad_00 = get_gradient(p0.x, p0.y);
-                let grad_10 = get_gradient(p1.x, p0.y);
-                let grad_01 = get_gradient(p0.x, p1.y);
-                let grad_11 = get_gradient(p1.x, p1.y);
-                
-                let local = global_pos - floor_pos;
+export function perlin3DShader(): string {
+    const n_gradients = 64
+    const gradient_mask = n_gradients - 1
+    const gradient_array_shader = []
 
-                let a = dot(grad_00, local);
-                let b = dot(grad_10, vec2f(local.x - 1, local.y));
-                let c = dot(grad_01, vec2f(local.x, local.y - 1));
-                let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
+    for (let i = 0; i < n_gradients; i++) {
+        const phi = 2 * Math.PI * Math.random()
+        const theta = Math.PI * Math.random()
 
-                let s = fade(local);
-                return 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
-            }
+        const sin_phi = Math.sin(phi)
+        const cos_phi = Math.cos(phi)
+        const sin_theta = Math.sin(theta)
+        const cos_theta = Math.cos(theta)
 
-            @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-            @group(0) @binding(1) var<uniform> n_grid_cells_x: f32;
+        const x = sin_theta * cos_phi
+        const y = sin_theta * sin_phi
+        const z = cos_theta
 
-            @compute @workgroup_size(1)
-            fn main(
-                @builtin(global_invocation_id) gid: vec3u
-            ) {
-                let pos = gid.xy;
-                let dims = vec2f(textureDimensions(texture));
-                let n_grid_cells = vec2f(n_grid_cells_x, n_grid_cells_x * dims.y / dims.x);
-                let noise_pos = n_grid_cells * vec2f(pos) / dims;
-                let noise_value = (noise(noise_pos) + 1.0) * 0.5;
-
-                textureStore(
-                    texture, pos, 
-                    vec4f(noise_value, noise_value, noise_value, 1)
-                );
-            }
-        `
+        gradient_array_shader.push(`vec3f(${x}, ${y}, ${z})`)
     }
 
-    override initBuffers(): GPUBindGroup {
-        this.grid_size_buffer = this.device.createBuffer({
-            size: 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        })
-        const data = new Float32Array([this.n_grid_cells_x])
+    const hash_table = generateHashTable()
 
-        this.device.queue.writeBuffer(this.grid_size_buffer, 0, data, 0, data.length)
+    return /* wgsl */ `
+        const hash_table = array<u32, ${hash_table.length}>(${hash_table});
+        const gradients = array(${gradient_array_shader});
 
-        return this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: this.texture.createView(),
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this.grid_size_buffer },
-                },
-            ],
-        })
-    }
+        fn get_gradient(x: u32, y: u32, z: u32) -> vec3f {
+            let hash = hash_table[hash_table[hash_table[x] + y] + z];
+            return gradients[hash & ${gradient_mask}];
+        }
 
-    setGridSize(n_grid_cells_x: number) {
-        this.n_grid_cells_x = n_grid_cells_x
+        fn fade(t: vec3f) -> vec3f {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
 
-        const data = new Float32Array([this.n_grid_cells_x])
-        this.device.queue.writeBuffer(this.grid_size_buffer, 0, data, 0, data.length)
+        fn lerp(t: f32, a: f32, b: f32) -> f32 {
+            return a + t * (b - a);
+        }
 
-        this.render()
-    }
+        fn noise(global_pos: vec3f) -> f32 {
+            let floor_pos = floor(global_pos);
+            let p0 = vec3u(floor_pos) & vec3u(255, 255, 255);
+            let p1 = (p0 + 1u) & vec3u(255, 255, 255);
+            
+            let grad_000 = get_gradient(p0.x, p0.y, p0.z);
+            let grad_100 = get_gradient(p1.x, p0.y, p0.z);
+            let grad_010 = get_gradient(p0.x, p1.y, p0.z);
+            let grad_110 = get_gradient(p1.x, p1.y, p0.z);
+            let grad_001 = get_gradient(p0.x, p0.y, p1.z);
+            let grad_101 = get_gradient(p1.x, p0.y, p1.z);
+            let grad_011 = get_gradient(p0.x, p1.y, p1.z);
+            let grad_111 = get_gradient(p1.x, p1.y, p1.z);
+            
+            let local = global_pos - floor_pos;
 
-    override cleanup() {
-        super.cleanup()
-        this.grid_size_buffer.destroy()
-    }
+            let a = dot(grad_000, local);
+            let b = dot(grad_100, vec3f(local.x - 1, local.yz));
+            let c = dot(grad_010, vec3f(local.x, local.y - 1, local.z));
+            let d = dot(grad_110, vec3f(local.x - 1, local.y - 1, local.z));
+            let e = dot(grad_001, vec3f(local.xy, local.z - 1));
+            let f = dot(grad_101, vec3f(local.x - 1, local.y, local.z - 1));
+            let g = dot(grad_011, vec3f(local.x, local.y - 1, local.z - 1));
+            let h = dot(grad_111, vec3f(local.x - 1, local.y - 1, local.z - 1));
+
+            let s = fade(local);
+            
+            return 1.55 * lerp(s.z,
+                lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d)),
+                lerp(s.y, lerp(s.x, e, f), lerp(s.x, g, h)),
+            );
+        }
+    `
 }

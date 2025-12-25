@@ -2,10 +2,14 @@
 import PanelSection from '@/components/PanelSection.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
-import type { ColorPoint } from './Utils'
 import PanelButton from '@/components/PanelButton.vue'
 import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
 import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
+
+interface ColorPoint {
+    color: string
+    point: number
+}
 
 interface Props {
     modelValue: ColorPoint[]

@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
-import type { ColorPoint } from './Utils'
 import ColorPanel from './ColorPanel.vue'
 import Display from './Display.vue'
-import { Perlin2D } from './Perlin'
+import NoiseRenderer from './NoiseRenderer'
+import { perlin2DShader, perlin3DShader } from './Perlin'
 
-const colors = ref<ColorPoint[]>([
+const colors = ref([
     { color: '#FFFFFF', point: 0 },
     { color: '#000000', point: 1 },
 ])
 const color_type = ref('Continuous')
 const algorithm = ref('Perlin')
-const dimension = ref('2D')
+const dimension = ref<'2D' | '3D'>('2D')
 const domain_transform = ref('None')
 const domain_warp_strength = ref(2)
 const z_coord = ref(0)
@@ -26,10 +26,16 @@ const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
-const renderer = new Perlin2D(grid_size.value)
+const renderer = new NoiseRenderer(perlin2DShader(), grid_size.value)
 
-watch(grid_size, (_, new_grid_size) => {
+watch(grid_size, (new_grid_size) => {
     renderer.setGridSize(new_grid_size)
+})
+
+watch(z_coord, (new_z_coord) => {
+    if (dimension.value == '3D') {
+        renderer.setZCoordinate(new_z_coord)
+    }
 })
 </script>
 
