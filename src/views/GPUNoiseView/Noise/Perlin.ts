@@ -44,7 +44,8 @@ export function perlin2DShader(): string {
             let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
             let s = fade(local);
-            return 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+            let n = 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+            return clamp((n + 1)*0.5, 0, 1);
         }
     `
 }
@@ -54,10 +55,10 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
     hash_table!: GPUBuffer
     gradients!: GPUBuffer
 
-    createShader(wg_x: number, wg_y: number, color_format: string): string {
+    createShader(color_format: GPUTextureFormat): string {
         return `
             ${perlin2DShader()}
-            ${noiseShader(false, true, color_format, wg_x, wg_y)}
+            ${noiseShader(false, color_format)}
         `
     }
 
@@ -144,10 +145,11 @@ export function perlin3DShader(): string {
 
             let s = fade(local);
             
-            return 1.55 * lerp(s.z,
+            let n = 1.55 * lerp(s.z,
                 lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d)),
                 lerp(s.y, lerp(s.x, e, f), lerp(s.x, g, h)),
             );
+            return clamp((n + 1)*0.5, 0, 1);
         }
     `
 }
@@ -158,10 +160,10 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
     hash_table!: GPUBuffer
     gradients!: GPUBuffer
 
-    createShader(wg_x: number, wg_y: number, color_format: string): string {
+    createShader(color_format: GPUTextureFormat): string {
         return `
             ${perlin3DShader()}
-            ${noiseShader(true, true, color_format, wg_x, wg_y)}
+            ${noiseShader(true, color_format)}
         `
     }
 

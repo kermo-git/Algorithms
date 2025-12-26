@@ -1,3 +1,5 @@
+import { WG_DIM } from './ShaderUtils'
+
 async function compileShader(device: GPUDevice, shader_code: string): Promise<GPUShaderModule> {
     const trimmed_code = shader_code.trim()
 
@@ -19,7 +21,7 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
 }
 
 export interface RenderLogic<UniformData> {
-    createShader(wg_x: number, wg_y: number, color_format: string): string
+    createShader(color_format: GPUTextureFormat): string
     createBuffers(data: UniformData, device: GPUDevice): GPUBindGroupEntry[]
     update(data: UniformData, device: GPUDevice): void
     cleanup(): void
@@ -34,13 +36,8 @@ export default class ComputeRenderer<UniformData> {
     context!: GPUCanvasContext
     observer!: ResizeObserver
 
-    wg_x: number
-    wg_y: number
-
-    constructor(logic: RenderLogic<UniformData>, wg_x: number = 8, wg_y: number = 8) {
+    constructor(logic: RenderLogic<UniformData>) {
         this.logic = logic
-        this.wg_x = wg_x
-        this.wg_y = wg_y
     }
 
     async init(canvas: HTMLCanvasElement, data: UniformData) {
@@ -68,7 +65,7 @@ export default class ComputeRenderer<UniformData> {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
 
-        const shader_code = this.logic.createShader(this.wg_x, this.wg_y, color_format)
+        const shader_code = this.logic.createShader(color_format)
         const shader_module = await compileShader(this.device, shader_code)
 
         this.pipeline = this.device.createComputePipeline({
@@ -126,8 +123,8 @@ export default class ComputeRenderer<UniformData> {
             pass_encoder.setBindGroup(0, canvas_bind_group)
             pass_encoder.setBindGroup(1, this.buffer_bind_group)
             pass_encoder.dispatchWorkgroups(
-                Math.ceil(texture.width / this.wg_x),
-                Math.ceil(texture.height / this.wg_y),
+                Math.ceil(texture.width / WG_DIM),
+                Math.ceil(texture.height / WG_DIM),
             )
             pass_encoder.end()
 

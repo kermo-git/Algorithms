@@ -1,3 +1,5 @@
+import { WG_DIM } from './ShaderUtils'
+
 export interface NoiseUniforms {
     n_grid_columns: number | null
     z_coord: number | null
@@ -83,13 +85,7 @@ export function shaderUnitVectors3D(n: number = 256) {
     return array
 }
 
-export function noiseShader(
-    is_3D: boolean,
-    normalize = false,
-    color_format: string = 'rgba8unorm',
-    wg_x: number = 8,
-    wg_y: number = 8,
-): string {
+export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): string {
     const only_2D = is_3D ? '//' : ''
     const only_3D = is_3D ? '' : '//'
 
@@ -98,7 +94,7 @@ export function noiseShader(
         @group(1) @binding(0) var<uniform> n_grid_columns: f32;
         ${only_3D} @group(1) @binding(1) var<uniform> z_coordinate: f32;
 
-        @compute @workgroup_size(${wg_x}, ${wg_y})
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
@@ -112,7 +108,7 @@ export function noiseShader(
             ${only_2D} let noise_pos = n_grid_cells * vec2f(gid.xy) / dims_f;
             ${only_3D} let noise_pos_2d = n_grid_cells * vec2f(gid.xy) / dims_f;
             ${only_3D} let noise_pos = vec3f(noise_pos_2d, z_coordinate);
-            let noise_value = ${normalize ? '(noise(noise_pos) + 1.0) * 0.5' : 'noise(noise_pos)'};
+            let noise_value = noise(noise_pos);
 
             textureStore(
                 texture, gid.xy, 

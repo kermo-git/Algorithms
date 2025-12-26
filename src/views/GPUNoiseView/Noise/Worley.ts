@@ -21,7 +21,7 @@ export function worley2DShader(second_closest = false): string {
         : /* wgsl */ `min_dist_sqr = min(min_dist_sqr, dist_sqr);`
 
     const return_value = second_closest ? 'min_2nd_dist_sqr' : 'min_dist_sqr'
-    const normalizer = second_closest ? 1 / 1.4 : 1 / 1.2
+    const normalizing_factor = second_closest ? 1 / 1.4 : 1 / 1.2
 
     return /* wgsl */ `
         @group(1) @binding(2) var<storage> hash_table: array<i32>;
@@ -45,7 +45,7 @@ export function worley2DShader(second_closest = false): string {
                     ${min_check_code}
                 }
             }
-            return clamp(sqrt(${return_value}) * ${normalizer}, 0, 1);
+            return clamp(sqrt(${return_value}) * ${normalizing_factor}, 0, 1);
         }
     `
 }
@@ -60,10 +60,10 @@ export class Worley2DRenderer implements RenderLogic<NoiseUniforms> {
         this.second_closest = second_closest
     }
 
-    createShader(wg_x: number, wg_y: number, color_format: string): string {
+    createShader(color_format: GPUTextureFormat): string {
         return `
             ${worley2DShader(this.second_closest)}
-            ${noiseShader(false, false, color_format, wg_x, wg_y)}
+            ${noiseShader(false, color_format)}
         `
     }
 
@@ -118,7 +118,7 @@ export function worley3DShader(second_closest = false): string {
         : /* wgsl */ `min_dist_sqr = min(min_dist_sqr, dist_sqr);`
 
     const return_value = second_closest ? 'min_2nd_dist_sqr' : 'min_dist_sqr'
-    const normalizer = second_closest ? 1 / 1.26 : 1 / 1.2
+    const normalizing_factor = second_closest ? 1 / 1.26 : 1 / 1.2
 
     return /* wgsl */ `
         @group(1) @binding(2) var<storage> hash_table: array<i32>;
@@ -146,7 +146,7 @@ export function worley3DShader(second_closest = false): string {
                     }
                 }
             }
-            return clamp(sqrt(${return_value}) * ${normalizer}, 0, 1);
+            return clamp(sqrt(${return_value}) * ${normalizing_factor}, 0, 1);
         }
     `
 }
@@ -162,10 +162,10 @@ export class Worley3DRenderer implements RenderLogic<NoiseUniforms> {
         this.second_closest = second_closest
     }
 
-    createShader(wg_x: number, wg_y: number, color_format: string): string {
+    createShader(color_format: GPUTextureFormat): string {
         return `
             ${worley3DShader(this.second_closest)}
-            ${noiseShader(true, false, color_format, wg_x, wg_y)}
+            ${noiseShader(true, color_format)}
         `
     }
 
