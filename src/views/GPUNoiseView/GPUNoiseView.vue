@@ -8,9 +8,8 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
-import { perlin2DShader, perlin3DShader } from './Perlin'
 import ComputeRenderer from './ComputeRenderer'
-import { Noise2DLogic, Noise3DLogic } from './NoiseRenderer'
+import { Perlin2DRenderer, Perlin3DRenderer } from './Perlin'
 
 const colors = ref([
     { color: '#FFFFFF', point: 0 },
@@ -28,8 +27,7 @@ const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
 let canvas_element: HTMLCanvasElement | null = null
-let logic = new Noise2DLogic(perlin2DShader())
-let renderer = new ComputeRenderer(logic)
+let renderer = new ComputeRenderer(new Perlin2DRenderer())
 
 function onCanvasReady(canvas: HTMLCanvasElement) {
     canvas_element = canvas
@@ -58,11 +56,9 @@ watch(dimension, (new_dimension) => {
         renderer.cleanup()
 
         if (new_dimension === '2D') {
-            logic = new Noise2DLogic(perlin2DShader())
-            renderer = new ComputeRenderer(logic)
+            renderer = new ComputeRenderer(new Perlin2DRenderer())
         } else {
-            logic = new Noise3DLogic(perlin3DShader())
-            renderer = new ComputeRenderer(logic)
+            renderer = new ComputeRenderer(new Perlin3DRenderer())
         }
         renderer.init(canvas_element, {
             n_grid_columns: grid_size.value,

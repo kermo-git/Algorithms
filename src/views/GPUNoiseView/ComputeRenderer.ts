@@ -18,15 +18,15 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
     return module
 }
 
-export interface RenderLogic<State> {
+export interface RenderLogic<UniformData> {
     createShader(wg_x: number, wg_y: number, color_format: string): string
-    createBuffers(initial_state: State, device: GPUDevice): GPUBindGroupEntry[]
-    update(new_state: State, device: GPUDevice): void
+    createBuffers(data: UniformData, device: GPUDevice): GPUBindGroupEntry[]
+    update(data: UniformData, device: GPUDevice): void
     cleanup(): void
 }
 
-export default class ComputeRenderer<State> {
-    logic: RenderLogic<State>
+export default class ComputeRenderer<UniformData> {
+    logic: RenderLogic<UniformData>
     buffer_bind_group!: GPUBindGroup
 
     device!: GPUDevice
@@ -37,13 +37,13 @@ export default class ComputeRenderer<State> {
     wg_x: number
     wg_y: number
 
-    constructor(logic: RenderLogic<State>, wg_x: number = 8, wg_y: number = 8) {
+    constructor(logic: RenderLogic<UniformData>, wg_x: number = 8, wg_y: number = 8) {
         this.logic = logic
         this.wg_x = wg_x
         this.wg_y = wg_y
     }
 
-    async init(canvas: HTMLCanvasElement, initial_state: State) {
+    async init(canvas: HTMLCanvasElement, data: UniformData) {
         const context = canvas.getContext('webgpu')
         if (!context) {
             throw Error('HTML Canvas not found!')
@@ -78,7 +78,7 @@ export default class ComputeRenderer<State> {
             },
         })
 
-        const buffers = this.logic.createBuffers(initial_state, this.device)
+        const buffers = this.logic.createBuffers(data, this.device)
         this.buffer_bind_group = this.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
             entries: buffers,
@@ -100,8 +100,8 @@ export default class ComputeRenderer<State> {
         this.observer.observe(canvas)
     }
 
-    update(new_state: State) {
-        this.logic.update(new_state, this.device)
+    update(data: UniformData) {
+        this.logic.update(data, this.device)
         this.render()
     }
 
