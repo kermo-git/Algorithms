@@ -57,7 +57,7 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
     createShader(wg_x: number, wg_y: number, color_format: string): string {
         return `
             ${perlin2DShader()}
-            ${noiseShader(false, color_format, wg_x, wg_y)}
+            ${noiseShader(false, true, color_format, wg_x, wg_y)}
         `
     }
 
@@ -161,7 +161,7 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
     createShader(wg_x: number, wg_y: number, color_format: string): string {
         return `
             ${perlin3DShader()}
-            ${noiseShader(true, color_format, wg_x, wg_y)}
+            ${noiseShader(true, true, color_format, wg_x, wg_y)}
         `
     }
 

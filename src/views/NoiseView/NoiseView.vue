@@ -121,6 +121,8 @@ const matrix = computed(() => {
         min_value = Math.min(min_value, matrix.data[i])
         max_value = Math.max(max_value, matrix.data[i])
     }
+    console.log(`Noise at z = ${z_coord.value}: (${min_value.toFixed(3)}, ${max_value.toFixed(3)})`)
+
     const multiplier = 1 / (max_value - min_value)
     for (let i = 0; i < matrix_size; i++) {
         matrix.data[i] = (matrix.data[i] - min_value) * multiplier

@@ -10,6 +10,7 @@ import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer from './ComputeRenderer'
 import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
+import { Worley2DRenderer, Worley3DRenderer } from './Noise/Worley'
 
 const colors = ref([
     { color: '#FFFFFF', point: 0 },
@@ -26,8 +27,25 @@ const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
+function createRenderer(algorithm: string, dimension: '2D' | '3D') {
+    if (algorithm.startsWith('Worley')) {
+        const second_closest = algorithm == 'Worley (2nd closest)'
+
+        if (dimension == '2D') {
+            return new ComputeRenderer(new Worley2DRenderer(second_closest))
+        } else {
+            return new ComputeRenderer(new Worley3DRenderer(second_closest))
+        }
+    } else {
+        if (dimension == '2D') {
+            return new ComputeRenderer(new Perlin2DRenderer())
+        } else {
+            return new ComputeRenderer(new Perlin3DRenderer())
+        }
+    }
+}
+let renderer = createRenderer(algorithm.value, dimension.value)
 let canvas_element: HTMLCanvasElement | null = null
-let renderer = new ComputeRenderer(new Perlin2DRenderer())
 
 function onCanvasReady(canvas: HTMLCanvasElement) {
     canvas_element = canvas
@@ -54,12 +72,18 @@ watch(z_coord, (new_z_coord) => {
 watch(dimension, (new_dimension) => {
     if (canvas_element !== null) {
         renderer.cleanup()
+        renderer = createRenderer(algorithm.value, new_dimension)
+        renderer.init(canvas_element, {
+            n_grid_columns: grid_size.value,
+            z_coord: z_coord.value,
+        })
+    }
+})
 
-        if (new_dimension === '2D') {
-            renderer = new ComputeRenderer(new Perlin2DRenderer())
-        } else {
-            renderer = new ComputeRenderer(new Perlin3DRenderer())
-        }
+watch(algorithm, (new_algorithm) => {
+    if (canvas_element !== null) {
+        renderer.cleanup()
+        renderer = createRenderer(new_algorithm, dimension.value)
         renderer.init(canvas_element, {
             n_grid_columns: grid_size.value,
             z_coord: z_coord.value,
