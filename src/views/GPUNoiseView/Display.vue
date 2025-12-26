@@ -1,33 +1,21 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, useTemplateRef } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
 import PanelButton from '@/components/PanelButton.vue'
-import type ComputeRenderer from './ComputeRenderer'
 
-interface Props {
-    renderer: ComputeRenderer
+interface Emits {
+    (e: 'canvasReady', canvas: HTMLCanvasElement): void
 }
-const props = defineProps<Props>()
-const canvasRef = ref<HTMLCanvasElement | null>(null)
+const canvasRef = useTemplateRef('canvas')
+const emit = defineEmits<Emits>()
 
-onMounted(async () => {
+onMounted(() => {
     if (!canvasRef.value) {
         throw Error('HTML canvas element not found!')
     }
-    await props.renderer.init(canvasRef.value)
+    emit('canvasReady', canvasRef.value)
 })
-
-onUnmounted(() => {
-    props.renderer.cleanup()
-})
-
-/* watch(props.renderer, async () => {
-    if (!canvasRef.value) {
-        throw Error('HTML canvas element not found!')
-    }
-    await props.renderer.init(canvasRef.value)
-}) */
 
 function download() {
     if (canvasRef.value) {
@@ -55,7 +43,7 @@ function download() {
     <div class="main-container">
         <div class="canvas-container">
             <PanelButton class="save-button" :mdi-path="mdiFloppy" />
-            <canvas ref="canvasRef" />
+            <canvas ref="canvas" />
         </div>
         <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>

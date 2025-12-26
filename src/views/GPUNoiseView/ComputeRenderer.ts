@@ -18,21 +18,32 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
     return module
 }
 
-export default class ComputeRenderer {
+export interface RenderLogic<State> {
+    createShader(wg_x: number, wg_y: number, color_format: string): string
+    createBuffers(initial_state: State, device: GPUDevice): GPUBindGroupEntry[]
+    update(new_state: State, device: GPUDevice): void
+    cleanup(): void
+}
+
+export default class ComputeRenderer<State> {
+    logic: RenderLogic<State>
+    buffer_bind_group!: GPUBindGroup
+
     device!: GPUDevice
     pipeline!: GPUComputePipeline
-    bind_group: GPUBindGroup | null = null
     context!: GPUCanvasContext
     observer!: ResizeObserver
+
     wg_x: number
     wg_y: number
 
-    constructor(wg_x: number, wg_y: number) {
+    constructor(logic: RenderLogic<State>, wg_x: number = 8, wg_y: number = 8) {
+        this.logic = logic
         this.wg_x = wg_x
         this.wg_y = wg_y
     }
 
-    async init(canvas: HTMLCanvasElement) {
+    async init(canvas: HTMLCanvasElement, initial_state: State) {
         const context = canvas.getContext('webgpu')
         if (!context) {
             throw Error('HTML Canvas not found!')
@@ -57,18 +68,21 @@ export default class ComputeRenderer {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
 
-        const shader_code = this.createShader(color_format)
+        const shader_code = this.logic.createShader(this.wg_x, this.wg_y, color_format)
         const shader_module = await compileShader(this.device, shader_code)
 
         this.pipeline = this.device.createComputePipeline({
             layout: 'auto',
             compute: {
                 module: shader_module,
-                entryPoint: 'main',
             },
         })
 
-        this.bind_group = this.createBuffers()
+        const buffers = this.logic.createBuffers(initial_state, this.device)
+        this.buffer_bind_group = this.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(1),
+            entries: buffers,
+        })
 
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
@@ -86,30 +100,10 @@ export default class ComputeRenderer {
         this.observer.observe(canvas)
     }
 
-    createShader(color_format: string): string {
-        return /* wgsl */ `
-            @group(0) @binding(0)
-            var out_texture: texture_storage_2d<${color_format}, write>;
-
-            @compute @workgroup_size(${this.wg_x}, ${this.wg_y})
-            fn main(
-                @builtin(global_invocation_id)
-                id: vec3u
-            ) {
-                let pos = id.xy;
-                let dims = textureDimensions(out_texture);
-                let uv = vec2f(pos) / vec2f(dims);
-                let color = vec4f(uv, 0, 1);
-                textureStore(out_texture, pos, color);
-            }
-        `
+    update(new_state: State) {
+        this.logic.update(new_state, this.device)
+        this.render()
     }
-
-    createBuffers(): GPUBindGroup | null {
-        return null
-    }
-
-    bindBuffers(pass_encoder: GPUComputePassEncoder) {}
 
     frame_id = 0
     render() {
@@ -130,7 +124,7 @@ export default class ComputeRenderer {
 
             pass_encoder.setPipeline(this.pipeline)
             pass_encoder.setBindGroup(0, canvas_bind_group)
-            pass_encoder.setBindGroup(1, this.bind_group)
+            pass_encoder.setBindGroup(1, this.buffer_bind_group)
             pass_encoder.dispatchWorkgroups(
                 Math.ceil(texture.width / this.wg_x),
                 Math.ceil(texture.height / this.wg_y),
@@ -146,5 +140,6 @@ export default class ComputeRenderer {
         cancelAnimationFrame(this.frame_id)
         this.context.unconfigure()
         this.observer.disconnect()
+        this.logic.cleanup()
     }
 }

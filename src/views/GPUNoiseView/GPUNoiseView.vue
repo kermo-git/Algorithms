@@ -8,8 +8,9 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import Display from './Display.vue'
-import NoiseRenderer from './NoiseRenderer'
 import { perlin2DShader, perlin3DShader } from './Perlin'
+import ComputeRenderer from './ComputeRenderer'
+import { Noise2DLogic, Noise3DLogic } from './NoiseRenderer'
 
 const colors = ref([
     { color: '#FFFFFF', point: 0 },
@@ -26,15 +27,47 @@ const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
-const renderer = new NoiseRenderer(perlin2DShader(), grid_size.value)
+let canvas_element: HTMLCanvasElement | null = null
+let logic = new Noise2DLogic(perlin2DShader())
+let renderer = new ComputeRenderer(logic)
+
+function onCanvasReady(canvas: HTMLCanvasElement) {
+    canvas_element = canvas
+    renderer.init(canvas, {
+        n_grid_columns: grid_size.value,
+        z_coord: z_coord.value,
+    })
+}
 
 watch(grid_size, (new_grid_size) => {
-    renderer.setGridSize(new_grid_size)
+    renderer.update({
+        n_grid_columns: new_grid_size,
+        z_coord: null,
+    })
 })
 
 watch(z_coord, (new_z_coord) => {
-    if (dimension.value == '3D') {
-        renderer.setZCoordinate(new_z_coord)
+    renderer.update({
+        n_grid_columns: null,
+        z_coord: new_z_coord,
+    })
+})
+
+watch(dimension, (new_dimension) => {
+    if (canvas_element !== null) {
+        renderer.cleanup()
+
+        if (new_dimension === '2D') {
+            logic = new Noise2DLogic(perlin2DShader())
+            renderer = new ComputeRenderer(logic)
+        } else {
+            logic = new Noise3DLogic(perlin3DShader())
+            renderer = new ComputeRenderer(logic)
+        }
+        renderer.init(canvas_element, {
+            n_grid_columns: grid_size.value,
+            z_coord: z_coord.value,
+        })
     }
 })
 </script>
@@ -142,7 +175,7 @@ watch(z_coord, (new_z_coord) => {
                 <ColorPanel v-model="colors" />
             </template>
         </TabControl>
-        <Display class="canvas" :renderer="renderer" />
+        <Display @canvas-ready="onCanvasReady" />
     </div>
 </template>
 
