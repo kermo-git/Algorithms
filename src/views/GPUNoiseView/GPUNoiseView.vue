@@ -9,7 +9,7 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer from './ComputeRenderer'
-import { Perlin2DRenderer, Perlin3DRenderer } from './Perlin'
+import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
 
 const colors = ref([
     { color: '#FFFFFF', point: 0 },

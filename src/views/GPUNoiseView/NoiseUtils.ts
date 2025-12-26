@@ -4,7 +4,7 @@ export interface NoiseUniforms {
 }
 
 export function shaderHashTable(n: number = 256) {
-    const hash_table = new Uint32Array(2 * n)
+    const hash_table = new Int32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
         hash_table[i] = i

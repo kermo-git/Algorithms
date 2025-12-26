@@ -1,19 +1,19 @@
-import type { RenderLogic } from './ComputeRenderer'
+import type { RenderLogic } from '../ComputeRenderer'
 import {
     noiseShader,
     shaderHashTable,
     shaderUnitVectors2D,
     shaderUnitVectors3D,
     type NoiseUniforms,
-} from './NoiseUtils'
-import { createFloatUniform, createStorageBuffer, updateFloatUniform } from './ShaderUtils'
+} from '../NoiseUtils'
+import { createFloatUniform, createStorageBuffer, updateFloatUniform } from '../ShaderUtils'
 
-function perlin2DShader(): string {
+export function perlin2DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<u32>;
+        @group(1) @binding(2) var<storage> hash_table: array<i32>;
         @group(1) @binding(3) var<storage> gradients: array<vec2f>;
 
-        fn get_gradient(x: u32, y: u32) -> vec2f {
+        fn get_gradient(x: i32, y: i32) -> vec2f {
             let hash = hash_table[hash_table[x] + y];
             return gradients[hash];
         }
@@ -28,8 +28,8 @@ function perlin2DShader(): string {
 
         fn noise(global_pos: vec2f) -> f32 {
             let floor_pos = floor(global_pos);
-            let p0 = vec2u(floor_pos) & vec2u(255, 255);
-            let p1 = (p0 + 1u) & vec2u(255, 255);
+            let p0 = vec2i(floor_pos) & vec2i(255, 255);
+            let p1 = (p0 + 1i) & vec2i(255, 255);
             
             let grad_00 = get_gradient(p0.x, p0.y);
             let grad_10 = get_gradient(p1.x, p0.y);
@@ -101,10 +101,10 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
 
 export function perlin3DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<u32>;
+        @group(1) @binding(2) var<storage> hash_table: array<i32>;
         @group(1) @binding(3) var<storage> gradients: array<vec3f>;
 
-        fn get_gradient(x: u32, y: u32, z: u32) -> vec3f {
+        fn get_gradient(x: i32, y: i32, z: i32) -> vec3f {
             let hash = hash_table[hash_table[hash_table[x] + y] + z];
             return gradients[hash];
         }
@@ -119,8 +119,8 @@ export function perlin3DShader(): string {
 
         fn noise(global_pos: vec3f) -> f32 {
             let floor_pos = floor(global_pos);
-            let p0 = vec3u(floor_pos) & vec3u(255, 255, 255);
-            let p1 = (p0 + 1u) & vec3u(255, 255, 255);
+            let p0 = vec3i(floor_pos) & vec3i(255, 255, 255);
+            let p1 = (p0 + 1i) & vec3i(255, 255, 255);
             
             let grad_000 = get_gradient(p0.x, p0.y, p0.z);
             let grad_100 = get_gradient(p1.x, p0.y, p0.z);

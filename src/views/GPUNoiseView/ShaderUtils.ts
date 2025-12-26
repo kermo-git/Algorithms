@@ -1,4 +1,4 @@
-type BufferData = Float32Array<ArrayBuffer> | Uint32Array<ArrayBuffer>
+type BufferData = Float32Array<ArrayBuffer> | Int32Array<ArrayBuffer>
 
 export function createStorageBuffer(data: BufferData, device: GPUDevice): GPUBuffer {
     const buffer = device.createBuffer({
