@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
@@ -7,7 +7,7 @@ import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
-import Display from './Display.vue'
+import Canvas from '@/components/Canvas.vue'
 import { perlin2DShader, perlin3DShader } from './Perlin'
 import ComputeRenderer from './ComputeRenderer'
 import { Noise2DLogic, Noise3DLogic } from './NoiseRenderer'
@@ -175,7 +175,7 @@ watch(dimension, (new_dimension) => {
                 <ColorPanel v-model="colors" />
             </template>
         </TabControl>
-        <Display @canvas-ready="onCanvasReady" />
+        <Canvas @canvas-ready="onCanvasReady" />
     </div>
 </template>
 

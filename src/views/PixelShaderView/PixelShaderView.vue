@@ -8,7 +8,7 @@ import type { Color } from '@/utils/Colors'
 import { type powerOfTwo } from '@/views/NoiseView/Noise/Noise'
 import { Simplex2D, Simplex3D } from '@/views/NoiseView/Noise/Simplex'
 import { Perlin2D, Perlin3D } from '@/views/NoiseView/Noise/Perlin'
-import PixelCanvas from './PixelCanvas.vue'
+import Display from './Display.vue'
 import TabControl from '@/components/TabControl.vue'
 import { Worley2D, Worley3D } from '@/views/NoiseView/Noise/Worley'
 import CodeEditor from './CodeEditor.vue'
@@ -120,7 +120,7 @@ const matrix = computed(() => {
             />
             <CodeEditor v-model="editor_code" />
         </TabControl>
-        <PixelCanvas class="canvas" :matrix="matrix" />
+        <Display :matrix="matrix" />
     </div>
 </template>
 

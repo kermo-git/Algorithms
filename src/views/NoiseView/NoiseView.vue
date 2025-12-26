@@ -17,7 +17,7 @@ import { Simplex2D, Simplex3D } from './Noise/Simplex'
 import { Cubic2D, Cubic3D } from './Noise/Cubic'
 import { Value2D, Value3D } from './Noise/Value'
 import ColorPanel from './ColorPanel.vue'
-import PixelCanvas from './PixelCanvas.vue'
+import Display from './Display.vue'
 
 const colors = ref<ColorPoint[]>([
     { color: '#FFFFFF', point: 0 },
@@ -240,7 +240,7 @@ const activeTab = ref('Configuration')
                 <ColorPanel v-model="colors" />
             </template>
         </TabControl>
-        <PixelCanvas
+        <Display
             class="canvas"
             :matrix="matrix"
             :colors="colors"
