@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
@@ -130,17 +129,7 @@ watch(algorithm, (new_algorithm) => {
                 <template v-if="dimension === '3D'">
                     <p>Z coordinate: {{ z_coord }}</p>
 
-                    <PanelSection>
-                        <p>0</p>
-                        <RangeInput
-                            class="label-field"
-                            :min="0"
-                            :max="1"
-                            :step="0.01"
-                            v-model="z_coord"
-                        />
-                        <p>1</p>
-                    </PanelSection>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
 
                     <TextSingleSelect
                         text="Domain transformation"
@@ -151,17 +140,7 @@ watch(algorithm, (new_algorithm) => {
 
                     <template v-if="domain_transform === 'Warp'">
                         <p>Warp strength: {{ domain_warp_strength }}</p>
-                        <PanelSection>
-                            <p>1</p>
-                            <RangeInput
-                                class="label-field"
-                                :min="1"
-                                :max="10"
-                                :step="0.5"
-                                v-model="domain_warp_strength"
-                            />
-                            <p>10</p>
-                        </PanelSection>
+                        <RangeInput :min="1" :max="10" :step="0.5" v-model="domain_warp_strength" />
                     </template>
                 </template>
 
@@ -181,18 +160,7 @@ watch(algorithm, (new_algorithm) => {
 
                 <template v-if="n_octaves > 1">
                     <p>Persistence: {{ persistence }}</p>
-
-                    <PanelSection>
-                        <p>0</p>
-                        <RangeInput
-                            class="label-field"
-                            :min="0"
-                            :max="1"
-                            :step="0.01"
-                            v-model="persistence"
-                        />
-                        <p>1</p>
-                    </PanelSection>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
                 </template>
             </template>
             <template v-else>
@@ -213,9 +181,5 @@ watch(algorithm, (new_algorithm) => {
 
 .field {
     width: 100%;
-}
-
-.label-field {
-    flex-grow: 1;
 }
 </style>

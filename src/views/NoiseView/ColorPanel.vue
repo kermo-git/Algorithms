@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
-import PanelSection from '@/components/PanelSection.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
 import type { ColorPoint } from './types'
@@ -109,24 +106,19 @@ function onDeleteClick(ev: Event) {
                 @click="onDeleteClick"
             />
         </div>
-        <PanelSection>
-            <p>0</p>
-            <RangeInput
-                class="slider"
-                :min="0"
-                :max="1"
-                :step="0.01"
-                :model-value="color_point.point"
-                @update:model-value="
-                    (value) => {
-                        const color_points = props.modelValue
-                        color_points[i].point = value!
-                        emit('update:modelValue', color_points.slice())
-                    }
-                "
-            />
-            <p>1</p>
-        </PanelSection>
+        <RangeInput
+            :min="0"
+            :max="1"
+            :step="0.01"
+            :model-value="color_point.point"
+            @update:model-value="
+                (value) => {
+                    const color_points = props.modelValue
+                    color_points[i].point = value!
+                    emit('update:modelValue', color_points.slice())
+                }
+            "
+        />
     </template>
 </template>
 
@@ -141,10 +133,6 @@ input[type='color'] {
 
 input[type='color']:hover {
     border: var(--accent-border);
-}
-
-.slider {
-    flex-grow: 1;
 }
 
 .color-buttons {

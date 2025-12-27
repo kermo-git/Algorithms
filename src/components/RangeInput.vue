@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import PanelSection from './PanelSection.vue'
+
+defineOptions({ inheritAttrs: false })
 const model = defineModel<number>()
 
 function onInput(event: Event) {
@@ -8,11 +11,17 @@ function onInput(event: Event) {
 </script>
 
 <template>
-    <input type="range" :value="model" @input="onInput" />
+    <PanelSection>
+        <p>{{ $attrs['min'] }}</p>
+        <input v-bind="$attrs" type="range" :value="model" @input="onInput" />
+        <p>{{ $attrs['max'] }}</p>
+        <slot />
+    </PanelSection>
 </template>
 
 <style scoped>
 input[type='range'] {
+    flex-grow: 1;
     appearance: none;
     background: transparent;
     cursor: pointer;

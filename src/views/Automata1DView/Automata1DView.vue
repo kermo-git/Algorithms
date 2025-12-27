@@ -97,12 +97,9 @@ const activeTab = ref('Configuration')
 
                 <p>Lambda: {{ lambda }}</p>
 
-                <PanelSection>
-                    <p>0</p>
-                    <RangeInput class="lambda" :min="0" :max="1" :step="0.01" v-model="lambda" />
-                    <p>1</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
                     <PanelButton :mdi-path="mdiDice5" @click="randomizeRule" />
-                </PanelSection>
+                </RangeInput>
             </template>
             <template v-if="activeTab === 'Style'">
                 <p>Colors</p>
@@ -129,8 +126,7 @@ const activeTab = ref('Configuration')
     overflow-y: scroll;
 }
 
-#rule,
-.lambda {
+#rule {
     flex-grow: 1;
 }
 </style>
