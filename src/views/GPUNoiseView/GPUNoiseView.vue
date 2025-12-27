@@ -11,9 +11,9 @@ import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer from './ComputeRenderer'
 import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
 import { Worley2DRenderer, Worley3DRenderer } from './Noise/Worley'
-import { defaultColorPoints, type ColorPoint } from './NoiseUtils'
+import { defaultColorPoints } from './NoiseUtils'
 
-const color_points = ref<ColorPoint[]>(defaultColorPoints)
+const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
 const dimension = ref<'2D' | '3D'>('2D')
 const domain_transform = ref('None')

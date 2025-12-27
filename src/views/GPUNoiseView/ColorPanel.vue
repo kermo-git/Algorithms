@@ -5,16 +5,24 @@ import PanelSection from '@/components/PanelSection.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
 
-import type { ColorPoint } from './NoiseUtils'
-import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
+import { parseHexColor, toHexColor } from '@/utils/Colors'
+import { computed } from 'vue'
 
 interface Props {
-    modelValue: ColorPoint[]
+    /**
+     * This array represents colors for procedural noise generation and it can be sent directly to WebGPU shader.
+     *
+     * It is formatted like this: [R1, G1, B1, P1, R2, G2, ...]
+     *
+     * - RN, GN and BN are red, green and blue color components
+     * - PN is a cutoff point that determines which noise values interpolate which colors.
+     */
+    modelValue: Float32Array<ArrayBuffer>
 }
 const props = defineProps<Props>()
 
 interface Emits {
-    (e: 'update:modelValue', value: ColorPoint[]): void
+    (e: 'update:modelValue', value: Float32Array<ArrayBuffer>): void
 }
 const emit = defineEmits<Emits>()
 
@@ -22,73 +30,116 @@ function lerp(t: number, a: number, b: number) {
     return a + t * (b - a)
 }
 
+const color_info = computed(() => {
+    return Array(props.modelValue.length / 4)
+        .fill(0)
+        .map((_, index) => {
+            const color_points = props.modelValue
+            const offset = 4 * index
+
+            return {
+                hexColor: toHexColor({
+                    red: Math.round(color_points[offset] * 255),
+                    green: Math.round(color_points[offset + 1] * 255),
+                    blue: Math.round(color_points[offset + 2] * 255),
+                }),
+                point: color_points[offset + 3],
+            }
+        })
+})
+
 function onColorInput(ev: Event) {
     const element = ev.currentTarget as HTMLInputElement
     const data = element.dataset
-    const i = Number(data.index)
+    const offset = 4 * Number(data.index)
+
+    const color = parseHexColor(element.value)
 
     const color_points = props.modelValue
-    color_points[i].color = element.value
+    color_points[offset] = color.red / 255
+    color_points[offset + 1] = color.green / 255
+    color_points[offset + 2] = color.blue / 255
 
-    emit('update:modelValue', color_points.slice())
+    emit('update:modelValue', color_points.subarray())
 }
 
 function onAddColorClick(ev: Event) {
     const element = ev.currentTarget as HTMLInputElement
     const data = element.dataset
-    const i = Number(data.index)
+    const next_offset = 4 * Number(data.index)
+    const prev_offset = next_offset - 4
 
     const color_points = props.modelValue
-    const prev = color_points[i - 1]
-    const next = color_points[i]
+    const prev_red = color_points[prev_offset]
+    const prev_green = color_points[prev_offset + 1]
+    const prev_blue = color_points[prev_offset + 2]
+    const prev_point = color_points[prev_offset + 3]
 
-    const prev_color = parseHexColor(prev.color)
-    const next_color = parseHexColor(next.color)
-    const new_color = lerpColors(0.5, prev_color, next_color)
+    const next_red = color_points[next_offset]
+    const next_green = color_points[next_offset + 1]
+    const next_blue = color_points[next_offset + 2]
+    const next_point = color_points[next_offset + 3]
 
-    color_points.splice(i, 0, {
-        color: toHexColor(new_color),
-        point: lerp(0.5, prev.point, next.point),
-    })
-    emit('update:modelValue', color_points.slice())
+    const new_red = lerp(0.5, prev_red, next_red)
+    const new_green = lerp(0.5, prev_green, next_green)
+    const new_blue = lerp(0.5, prev_blue, next_blue)
+    const new_point = lerp(0.5, prev_point, next_point)
+
+    const result = new Float32Array(color_points.length + 4)
+    result.set(color_points.subarray(0, next_offset), 0)
+    result.set([new_red, new_green, new_blue, new_point], next_offset)
+    result.set(color_points.subarray(next_offset), next_offset + 4)
+
+    emit('update:modelValue', result)
 }
 
 function onSwapClick(ev: Event) {
     const element = ev.currentTarget as HTMLInputElement
     const data = element.dataset
-    const i = Number(data.index)
+    const current = 4 * Number(data.index)
+    const prev = current - 4
 
     const color_points = props.modelValue
-    const temp = color_points[i].color
-    color_points[i].color = color_points[i - 1].color
-    color_points[i - 1].color = temp
+    const temp_red = color_points[current]
+    const temp_green = color_points[current + 1]
+    const temp_blue = color_points[current + 2]
 
-    emit('update:modelValue', color_points.slice())
+    color_points[current] = color_points[prev]
+    color_points[current + 1] = color_points[prev + 1]
+    color_points[current + 2] = color_points[prev + 2]
+
+    color_points[prev] = temp_red
+    color_points[prev + 1] = temp_green
+    color_points[prev + 2] = temp_blue
+
+    emit('update:modelValue', color_points.subarray())
 }
 
 function onDeleteClick(ev: Event) {
     const element = ev.currentTarget as HTMLInputElement
     const data = element.dataset
-    const i = Number(data.index)
+    const offset = 4 * Number(data.index)
 
     const color_points = props.modelValue
-    color_points.splice(i, 1)
+    const result = new Float32Array(color_points.length - 4)
+    result.set(color_points.subarray(0, offset), 0)
+    result.set(color_points.subarray(0, offset + 4), offset)
 
-    emit('update:modelValue', color_points.slice())
+    emit('update:modelValue', result.subarray())
 }
 </script>
 
 <template>
-    <template v-for="(color_point, i) in props.modelValue" :key="i">
+    <template v-for="(info, i) in color_info" :key="i">
         <div class="color-buttons">
             <input
                 type="color"
-                :style="`background-color: ${color_point.color}`"
-                :value="color_point.color"
+                :style="`background-color: ${info.hexColor}`"
+                :value="info.hexColor"
                 :data-index="i"
                 @input="onColorInput"
             />
-            <p class="color-point-value">{{ color_point.point }}</p>
+            <p class="color-point-value">{{ info.point.toFixed(2) }}</p>
             <PanelButton
                 v-if="i > 0"
                 :mdi-path="mdiSwapVertical"
@@ -115,12 +166,12 @@ function onDeleteClick(ev: Event) {
                 :min="0"
                 :max="1"
                 :step="0.01"
-                :model-value="color_point.point"
+                :model-value="info.point"
                 @update:model-value="
                     (value) => {
                         const color_points = props.modelValue
-                        color_points[i].point = value!
-                        emit('update:modelValue', color_points.slice())
+                        color_points[4 * i + 3] = value!
+                        emit('update:modelValue', color_points.subarray())
                     }
                 "
             />

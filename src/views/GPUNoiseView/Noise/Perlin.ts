@@ -1,13 +1,10 @@
 import type { RenderLogic } from '../ComputeRenderer'
 import {
-    colorPointBytes,
     defaultColorPoints,
-    nColorPoints,
     noiseShader,
     shaderHashTable,
     shaderUnitVectors2D,
     shaderUnitVectors3D,
-    toShaderArray,
     type NoiseUniforms,
 } from '../NoiseUtils'
 import {
@@ -77,14 +74,13 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
     }
 
     createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
-        const color_points = data.color_points || defaultColorPoints
-        const color_points_bytes = toShaderArray(color_points)
-        this.n_colors = color_points.length
+        const color_points_data = data.color_points || defaultColorPoints
+        this.n_colors = color_points_data.length / 4
 
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
         this.hash_table = createStorageBuffer(shaderHashTable(256), device)
         this.gradients = createStorageBuffer(shaderUnitVectors2D(256), device)
-        this.color_points = createStorageBuffer(color_points_bytes, device, colorPointBytes(10))
+        this.color_points = createStorageBuffer(color_points_data, device, 256)
 
         this.static_bind_group = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(1),
@@ -111,7 +107,7 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
                     binding: 0,
                     resource: {
                         buffer: this.color_points,
-                        size: color_points_bytes.byteLength,
+                        size: color_points_data.byteLength,
                     },
                 },
             ],
@@ -128,11 +124,11 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
             updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
         }
         if (data.color_points !== null) {
-            const bytes = toShaderArray(data.color_points)
-            updateArrayBuffer(this.color_points, bytes, device)
+            updateArrayBuffer(this.color_points, data.color_points, device)
+            const new_n_colors = data.color_points.length / 4
 
-            if (data.color_points.length != this.n_colors) {
-                this.n_colors = data.color_points.length
+            if (new_n_colors != this.n_colors) {
+                this.n_colors = new_n_colors
                 this.color_bind_group = device.createBindGroup({
                     layout: pipeline.getBindGroupLayout(2),
                     entries: [
@@ -140,7 +136,7 @@ export class Perlin2DRenderer implements RenderLogic<NoiseUniforms> {
                             binding: 0,
                             resource: {
                                 buffer: this.color_points,
-                                size: bytes.byteLength,
+                                size: data.color_points.byteLength,
                             },
                         },
                     ],
@@ -230,15 +226,14 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
     }
 
     createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
-        const color_points = data.color_points || defaultColorPoints
-        const color_points_bytes = toShaderArray(color_points)
-        this.n_colors = color_points.length
+        const color_points_data = data.color_points || defaultColorPoints
+        this.n_colors = color_points_data.length / 4
 
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
         this.z_coord = createFloatUniform(data.z_coord || 0, device)
         this.hash_table = createStorageBuffer(shaderHashTable(256), device)
         this.gradients = createStorageBuffer(shaderUnitVectors3D(256), device)
-        this.color_points = createStorageBuffer(color_points_bytes, device, colorPointBytes(10))
+        this.color_points = createStorageBuffer(color_points_data, device, 256)
 
         this.static_bind_group = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(1),
@@ -269,7 +264,7 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
                     binding: 0,
                     resource: {
                         buffer: this.color_points,
-                        size: color_points_bytes.byteLength,
+                        size: color_points_data.byteLength,
                     },
                 },
             ],
@@ -289,11 +284,11 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
             updateFloatUniform(this.z_coord, data.z_coord, device)
         }
         if (data.color_points !== null) {
-            const bytes = toShaderArray(data.color_points)
-            updateArrayBuffer(this.color_points, bytes, device)
+            updateArrayBuffer(this.color_points, data.color_points, device)
+            const new_n_colors = data.color_points.length / 4
 
-            if (data.color_points.length != this.n_colors) {
-                this.n_colors = data.color_points.length
+            if (new_n_colors != this.n_colors) {
+                this.n_colors = new_n_colors
                 this.color_bind_group = device.createBindGroup({
                     layout: pipeline.getBindGroupLayout(2),
                     entries: [
@@ -301,7 +296,7 @@ export class Perlin3DRenderer implements RenderLogic<NoiseUniforms> {
                             binding: 0,
                             resource: {
                                 buffer: this.color_points,
-                                size: bytes.byteLength,
+                                size: data.color_points.byteLength,
                             },
                         },
                     ],

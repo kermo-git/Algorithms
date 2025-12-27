@@ -6,44 +6,12 @@ export interface ShaderBindIndexes {
     bindingStart: number
 }
 
-export interface ColorPoint {
-    color: string
-    point: number
-}
-
-export const defaultColorPoints: ColorPoint[] = [
-    { color: '#FFFFFF', point: 0 },
-    { color: '#000000', point: 1 },
-]
+export const defaultColorPoints = new Float32Array([1, 1, 1, 0, 0, 0, 0, 1])
 
 export interface NoiseUniforms {
     n_grid_columns: number | null
     z_coord: number | null
-    color_points: ColorPoint[] | null
-}
-
-export function colorPointBytes(n_color_points: number): number {
-    const n_components = 4 // R, G, B and point
-    const f32_bytes = 4
-    return n_color_points * n_components * f32_bytes
-}
-
-export function nColorPoints(data: Float32Array<ArrayBuffer>) {
-    return data.length / 4
-}
-
-export function toShaderArray(color_points: ColorPoint[]) {
-    const result = new Float32Array(color_points.length * 4)
-    for (let i = 0; i < color_points.length; i++) {
-        const color = parseHexColor(color_points[i].color)
-        const offset = i * 4
-
-        result[offset] = color.red / 255
-        result[offset + 1] = color.green / 255
-        result[offset + 2] = color.blue / 255
-        result[offset + 3] = color_points[i].point
-    }
-    return result
+    color_points: Float32Array<ArrayBuffer> | null
 }
 
 export function shaderHashTable(n: number = 256) {
