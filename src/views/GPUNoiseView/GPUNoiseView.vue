@@ -11,12 +11,9 @@ import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer from './ComputeRenderer'
 import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
 import { Worley2DRenderer, Worley3DRenderer } from './Noise/Worley'
+import { defaultColorPoints, type ColorPoint } from './NoiseUtils'
 
-const colors = ref([
-    { color: '#FFFFFF', point: 0 },
-    { color: '#000000', point: 1 },
-])
-const color_type = ref('Continuous')
+const color_points = ref<ColorPoint[]>(defaultColorPoints)
 const algorithm = ref('Perlin')
 const dimension = ref<'2D' | '3D'>('2D')
 const domain_transform = ref('None')
@@ -52,6 +49,7 @@ function onCanvasReady(canvas: HTMLCanvasElement) {
     renderer.init(canvas, {
         n_grid_columns: grid_size.value,
         z_coord: z_coord.value,
+        color_points: color_points.value,
     })
 }
 
@@ -59,6 +57,7 @@ watch(grid_size, (new_grid_size) => {
     renderer.update({
         n_grid_columns: new_grid_size,
         z_coord: null,
+        color_points: null,
     })
 })
 
@@ -66,6 +65,15 @@ watch(z_coord, (new_z_coord) => {
     renderer.update({
         n_grid_columns: null,
         z_coord: new_z_coord,
+        color_points: null,
+    })
+})
+
+watch(color_points, () => {
+    renderer.update({
+        n_grid_columns: null,
+        z_coord: null,
+        color_points: color_points.value,
     })
 })
 
@@ -76,6 +84,7 @@ watch(dimension, (new_dimension) => {
         renderer.init(canvas_element, {
             n_grid_columns: grid_size.value,
             z_coord: z_coord.value,
+            color_points: color_points.value,
         })
     }
 })
@@ -87,6 +96,7 @@ watch(algorithm, (new_algorithm) => {
         renderer.init(canvas_element, {
             n_grid_columns: grid_size.value,
             z_coord: z_coord.value,
+            color_points: color_points.value,
         })
     }
 })
@@ -186,13 +196,7 @@ watch(algorithm, (new_algorithm) => {
                 </template>
             </template>
             <template v-else>
-                <TextSingleSelect
-                    text="Continuous colors"
-                    name="dimension"
-                    :options="['Discrete', 'Continuous']"
-                    v-model="color_type"
-                />
-                <ColorPanel v-model="colors" />
+                <ColorPanel v-model="color_points" />
             </template>
         </TabControl>
         <Canvas @canvas-ready="onCanvasReady" />

@@ -1,12 +1,20 @@
 import type { RenderLogic } from '../ComputeRenderer'
 import {
+    colorPointBytes,
+    defaultColorPoints,
     noiseShader,
     shaderHashTable,
     shaderRandomPoints2D,
     shaderRandomPoints3D,
+    toShaderArray,
     type NoiseUniforms,
 } from '../NoiseUtils'
-import { createFloatUniform, createStorageBuffer, updateFloatUniform } from '../ShaderUtils'
+import {
+    createFloatUniform,
+    createStorageBuffer,
+    updateArrayBuffer,
+    updateFloatUniform,
+} from '../ShaderUtils'
 
 export function worley2DShader(second_closest = false): string {
     const min_check_code = second_closest
@@ -52,9 +60,15 @@ export function worley2DShader(second_closest = false): string {
 
 export class Worley2DRenderer implements RenderLogic<NoiseUniforms> {
     second_closest: boolean
+
     n_grid_columns!: GPUBuffer
     hash_table!: GPUBuffer
     points!: GPUBuffer
+    static_bind_group!: GPUBindGroup
+
+    n_colors = 0
+    color_points!: GPUBuffer
+    color_bind_group!: GPUBindGroup
 
     constructor(second_closest = false) {
         this.second_closest = second_closest
@@ -67,34 +81,76 @@ export class Worley2DRenderer implements RenderLogic<NoiseUniforms> {
         `
     }
 
-    createBuffers(data: NoiseUniforms, device: GPUDevice): GPUBindGroupEntry[] {
+    createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+        const color_points = data.color_points || defaultColorPoints
+        const color_points_bytes = toShaderArray(color_points)
+        this.n_colors = color_points.length
+
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
         this.hash_table = createStorageBuffer(shaderHashTable(256), device)
         this.points = createStorageBuffer(shaderRandomPoints2D(256), device)
+        this.color_points = createStorageBuffer(color_points_bytes, device, colorPointBytes(10))
 
-        return [
-            {
-                binding: 0,
-                resource: { buffer: this.n_grid_columns },
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: this.hash_table,
+        this.static_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(1),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.n_grid_columns },
                 },
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: this.points,
+                {
+                    binding: 2,
+                    resource: { buffer: this.hash_table },
                 },
-            },
-        ]
+                {
+                    binding: 3,
+                    resource: { buffer: this.points },
+                },
+            ],
+        })
+
+        this.color_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(2),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.color_points,
+                        size: color_points_bytes.byteLength,
+                    },
+                },
+            ],
+        })
     }
 
-    update(data: NoiseUniforms, device: GPUDevice): void {
+    bindBuffers(encoder: GPUComputePassEncoder): void {
+        encoder.setBindGroup(1, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_bind_group)
+    }
+
+    update(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
         if (data.n_grid_columns !== null) {
             updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
+        }
+        if (data.color_points !== null) {
+            const bytes = toShaderArray(data.color_points)
+            updateArrayBuffer(this.color_points, bytes, device)
+
+            if (data.color_points.length != this.n_colors) {
+                this.n_colors = data.color_points.length
+                this.color_bind_group = device.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(2),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: this.color_points,
+                                size: bytes.byteLength,
+                            },
+                        },
+                    ],
+                })
+            }
         }
     }
 
@@ -102,6 +158,7 @@ export class Worley2DRenderer implements RenderLogic<NoiseUniforms> {
         this.n_grid_columns?.destroy()
         this.hash_table?.destroy()
         this.points?.destroy()
+        this.color_points?.destroy()
     }
 }
 
@@ -153,10 +210,16 @@ export function worley3DShader(second_closest = false): string {
 
 export class Worley3DRenderer implements RenderLogic<NoiseUniforms> {
     second_closest: boolean
+
     n_grid_columns!: GPUBuffer
     z_coord!: GPUBuffer
     hash_table!: GPUBuffer
     points!: GPUBuffer
+    static_bind_group!: GPUBindGroup
+
+    n_colors = 0
+    color_points!: GPUBuffer
+    color_bind_group!: GPUBindGroup
 
     constructor(second_closest = false) {
         this.second_closest = second_closest
@@ -169,38 +232,84 @@ export class Worley3DRenderer implements RenderLogic<NoiseUniforms> {
         `
     }
 
-    createBuffers(data: NoiseUniforms, device: GPUDevice): GPUBindGroupEntry[] {
+    createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+        const color_points = data.color_points || defaultColorPoints
+        const color_points_bytes = toShaderArray(color_points)
+        this.n_colors = color_points.length
+
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
         this.z_coord = createFloatUniform(data.z_coord || 0, device)
         this.hash_table = createStorageBuffer(shaderHashTable(256), device)
         this.points = createStorageBuffer(shaderRandomPoints3D(256), device)
+        this.color_points = createStorageBuffer(color_points_bytes, device, colorPointBytes(10))
 
-        return [
-            {
-                binding: 0,
-                resource: { buffer: this.n_grid_columns },
-            },
-            {
-                binding: 1,
-                resource: { buffer: this.z_coord },
-            },
-            {
-                binding: 2,
-                resource: { buffer: this.hash_table },
-            },
-            {
-                binding: 3,
-                resource: { buffer: this.points },
-            },
-        ]
+        this.static_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(1),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.n_grid_columns },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.z_coord },
+                },
+                {
+                    binding: 2,
+                    resource: { buffer: this.hash_table },
+                },
+                {
+                    binding: 3,
+                    resource: { buffer: this.points },
+                },
+            ],
+        })
+
+        this.color_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(2),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.color_points,
+                        size: color_points_bytes.byteLength,
+                    },
+                },
+            ],
+        })
     }
 
-    update(data: NoiseUniforms, device: GPUDevice): void {
+    bindBuffers(encoder: GPUComputePassEncoder): void {
+        encoder.setBindGroup(1, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_bind_group)
+    }
+
+    update(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
         if (data.n_grid_columns !== null) {
             updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
         }
         if (data.z_coord !== null) {
             updateFloatUniform(this.z_coord, data.z_coord, device)
+        }
+        if (data.color_points !== null) {
+            const bytes = toShaderArray(data.color_points)
+            updateArrayBuffer(this.color_points, bytes, device)
+
+            if (data.color_points.length != this.n_colors) {
+                this.n_colors = data.color_points.length
+                this.color_bind_group = device.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(2),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: this.color_points,
+                                size: bytes.byteLength,
+                            },
+                        },
+                    ],
+                })
+            }
         }
     }
 
@@ -209,5 +318,6 @@ export class Worley3DRenderer implements RenderLogic<NoiseUniforms> {
         this.z_coord?.destroy()
         this.hash_table?.destroy()
         this.points?.destroy()
+        this.color_points?.destroy()
     }
 }

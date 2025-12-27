@@ -1,15 +1,12 @@
 <script setup lang="ts">
+import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
+
 import PanelSection from '@/components/PanelSection.vue'
 import RangeInput from '@/components/RangeInput.vue'
-
 import PanelButton from '@/components/PanelButton.vue'
-import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
-import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
 
-interface ColorPoint {
-    color: string
-    point: number
-}
+import type { ColorPoint } from './NoiseUtils'
+import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
 
 interface Props {
     modelValue: ColorPoint[]

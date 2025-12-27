@@ -22,14 +22,14 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
 
 export interface RenderLogic<UniformData> {
     createShader(color_format: GPUTextureFormat): string
-    createBuffers(data: UniformData, device: GPUDevice): GPUBindGroupEntry[]
-    update(data: UniformData, device: GPUDevice): void
+    createBuffers(data: UniformData, device: GPUDevice, pipeline: GPUComputePipeline): void
+    bindBuffers(encoder: GPUComputePassEncoder): void
+    update(data: UniformData, device: GPUDevice, pipeline: GPUComputePipeline): void
     cleanup(): void
 }
 
 export default class ComputeRenderer<UniformData> {
     logic: RenderLogic<UniformData>
-    buffer_bind_group!: GPUBindGroup
 
     device!: GPUDevice
     pipeline!: GPUComputePipeline
@@ -75,11 +75,7 @@ export default class ComputeRenderer<UniformData> {
             },
         })
 
-        const buffers = this.logic.createBuffers(data, this.device)
-        this.buffer_bind_group = this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(1),
-            entries: buffers,
-        })
+        this.logic.createBuffers(data, this.device, this.pipeline)
 
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
@@ -98,7 +94,7 @@ export default class ComputeRenderer<UniformData> {
     }
 
     update(data: UniformData) {
-        this.logic.update(data, this.device)
+        this.logic.update(data, this.device, this.pipeline)
         this.render()
     }
 
@@ -121,7 +117,7 @@ export default class ComputeRenderer<UniformData> {
 
             pass_encoder.setPipeline(this.pipeline)
             pass_encoder.setBindGroup(0, canvas_bind_group)
-            pass_encoder.setBindGroup(1, this.buffer_bind_group)
+            this.logic.bindBuffers(pass_encoder)
             pass_encoder.dispatchWorkgroups(
                 Math.ceil(texture.width / WG_DIM),
                 Math.ceil(texture.height / WG_DIM),

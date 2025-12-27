@@ -2,9 +2,13 @@ export const WG_DIM = 8
 
 type BufferData = Float32Array<ArrayBuffer> | Int32Array<ArrayBuffer>
 
-export function createStorageBuffer(data: BufferData, device: GPUDevice): GPUBuffer {
+export function createStorageBuffer(
+    data: BufferData,
+    device: GPUDevice,
+    size: number = 0,
+): GPUBuffer {
     const buffer = device.createBuffer({
-        size: data.byteLength,
+        size: size || data.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     })
     device.queue.writeBuffer(buffer, 0, data, 0, data.length)
@@ -39,4 +43,8 @@ export function createIntUniform(value: number, device: GPUDevice): GPUBuffer {
 export function updateIntUniform(buffer: GPUBuffer, value: number, device: GPUDevice) {
     const data = new Uint32Array([value])
     device.queue.writeBuffer(buffer, 0, data, 0, 1)
+}
+
+export function updateArrayBuffer(buffer: GPUBuffer, data: BufferData, device: GPUDevice) {
+    device.queue.writeBuffer(buffer, 0, data, 0, data.length)
 }

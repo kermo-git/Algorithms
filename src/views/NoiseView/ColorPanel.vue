@@ -97,7 +97,7 @@ function onDeleteClick(ev: Event) {
                 @click="onSwapClick"
             />
             <PanelButton
-                v-if="i > 0"
+                v-if="i > 0 && props.modelValue.length < 10"
                 :mdi-path="mdiPlus"
                 :data-index="i"
                 @click="onAddColorClick"
