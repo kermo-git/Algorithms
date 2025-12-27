@@ -121,9 +121,13 @@ function onDeleteClick(ev: Event) {
 
     const color_points = props.modelValue
     const result = new Float32Array(color_points.length - 4)
-    result.set(color_points.subarray(0, offset), 0)
-    result.set(color_points.subarray(0, offset + 4), offset)
 
+    if (offset > 0) {
+        result.set(color_points.subarray(0, offset), 0)
+    }
+    if (offset < result.length) {
+        result.set(color_points.subarray(offset + 4), offset)
+    }
     emit('update:modelValue', result.subarray())
 }
 </script>
