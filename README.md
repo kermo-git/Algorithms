@@ -40,7 +40,3 @@ https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 And also this:
 
 https://en.wikipedia.org/wiki/Worley_noise
-
-### Pixel Shader
-
-This section allows the user to write some JavaScript code that paints a single pixel. Perhaps it's not correct to call it a "shader" since it's not using WebGL.

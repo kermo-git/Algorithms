@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Automata1DView from '@/views/Automata1DView/Automata1DView.vue'
 import NeuralAutomataView from '@/views/NeuralAutomataView/NeuralAutomataView.vue'
 import NoiseView from '@/views/NoiseView/NoiseView.vue'
-import PixelShaderView from '@/views/PixelShaderView/PixelShaderView.vue'
 import GPUNoiseView from '@/views/GPUNoiseView/GPUNoiseView.vue'
 
 const router = createRouter({
@@ -26,11 +25,6 @@ const router = createRouter({
             path: '/noise',
             name: 'noise',
             component: NoiseView,
-        },
-        {
-            path: '/pixel-shader',
-            name: 'pixel-shader',
-            component: PixelShaderView,
         },
         {
             path: '/gpu-noise',
