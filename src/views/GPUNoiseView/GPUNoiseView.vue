@@ -8,10 +8,10 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
-import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
-import { Worley2DRenderer, Worley3DRenderer } from './Noise/Worley'
+import { Perlin2D, Perlin3D } from './Noise/Perlin'
+import { Worley2D, Worley3D } from './Noise/Worley'
 import { defaultColorPoints, type NoiseUniforms } from './NoiseUtils'
-import { ValueNoise2DRenderer, ValueNoise3DRenderer } from './Noise/Value'
+import { ValueNoise2D, ValueNoise3D } from './Noise/Value'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
@@ -31,21 +31,21 @@ function createRenderer(algorithm: string, dimension: '2D' | '3D') {
         const second_closest = algorithm === 'Worley (2nd closest)'
 
         if (dimension === '2D') {
-            render_logic = new Worley2DRenderer(second_closest)
+            render_logic = new Worley2D(second_closest)
         } else {
-            render_logic = new Worley3DRenderer(second_closest)
+            render_logic = new Worley3D(second_closest)
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
-            render_logic = new ValueNoise2DRenderer()
+            render_logic = new ValueNoise2D()
         } else {
-            render_logic = new ValueNoise3DRenderer()
+            render_logic = new ValueNoise3D()
         }
     } else {
         if (dimension === '2D') {
-            render_logic = new Perlin2DRenderer()
+            render_logic = new Perlin2D()
         } else {
-            render_logic = new Perlin3DRenderer()
+            render_logic = new Perlin3D()
         }
     }
     return new ComputeRenderer(render_logic)

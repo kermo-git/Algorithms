@@ -2,7 +2,7 @@ import {
     noiseShader,
     shaderRandomPoints2D,
     shaderRandomPoints3D,
-    NoiseRenderer,
+    ProceduralNoise,
 } from '../NoiseUtils'
 
 export function worley2DShader(second_closest = false): string {
@@ -47,7 +47,7 @@ export function worley2DShader(second_closest = false): string {
     `
 }
 
-export class Worley2DRenderer extends NoiseRenderer {
+export class Worley2D extends ProceduralNoise {
     is_3D = false
     second_closest: boolean
 
@@ -113,7 +113,7 @@ export function worley3DShader(second_closest = false): string {
     `
 }
 
-export class Worley3DRenderer extends NoiseRenderer {
+export class Worley3D extends ProceduralNoise {
     is_3D = true
     second_closest: boolean
 

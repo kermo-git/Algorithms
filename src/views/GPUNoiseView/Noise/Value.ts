@@ -1,4 +1,4 @@
-import { noiseShader, NoiseRenderer } from '../NoiseUtils'
+import { noiseShader, ProceduralNoise } from '../NoiseUtils'
 
 export function valueNoise2DShader(): string {
     return /* wgsl */ `
@@ -32,7 +32,7 @@ export function valueNoise2DShader(): string {
     `
 }
 
-export class ValueNoise2DRenderer extends NoiseRenderer {
+export class ValueNoise2D extends ProceduralNoise {
     is_3D = false
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
@@ -86,7 +86,7 @@ export function valueNoise3DShader(): string {
     `
 }
 
-export class ValueNoise3DRenderer extends NoiseRenderer {
+export class ValueNoise3D extends ProceduralNoise {
     is_3D = true
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

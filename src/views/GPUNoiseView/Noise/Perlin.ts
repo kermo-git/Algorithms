@@ -1,4 +1,9 @@
-import { noiseShader, shaderUnitVectors2D, shaderUnitVectors3D, NoiseRenderer } from '../NoiseUtils'
+import {
+    noiseShader,
+    shaderUnitVectors2D,
+    shaderUnitVectors3D,
+    ProceduralNoise,
+} from '../NoiseUtils'
 
 export function perlin2DShader(): string {
     return /* wgsl */ `
@@ -38,7 +43,7 @@ export function perlin2DShader(): string {
     `
 }
 
-export class Perlin2DRenderer extends NoiseRenderer {
+export class Perlin2D extends ProceduralNoise {
     is_3D = false
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
@@ -103,7 +108,7 @@ export function perlin3DShader(): string {
     `
 }
 
-export class Perlin3DRenderer extends NoiseRenderer {
+export class Perlin3D extends ProceduralNoise {
     is_3D = true
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

@@ -174,7 +174,7 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
     `
 }
 
-export abstract class NoiseRenderer implements RenderLogic<NoiseUniforms> {
+export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     /**
      * This buffer contains elements that give each noise pattern its randomness.
      * They could be either scalars or vectors depending on noise algorithm.
