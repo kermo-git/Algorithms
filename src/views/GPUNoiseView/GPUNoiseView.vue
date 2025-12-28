@@ -7,10 +7,11 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
-import ComputeRenderer from './ComputeRenderer'
+import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
 import { Perlin2DRenderer, Perlin3DRenderer } from './Noise/Perlin'
 import { Worley2DRenderer, Worley3DRenderer } from './Noise/Worley'
-import { defaultColorPoints } from './NoiseUtils'
+import { defaultColorPoints, type NoiseUniforms } from './NoiseUtils'
+import { ValueNoise2DRenderer, ValueNoise3DRenderer } from './Noise/Value'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
@@ -24,21 +25,30 @@ const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
 function createRenderer(algorithm: string, dimension: '2D' | '3D') {
-    if (algorithm.startsWith('Worley')) {
-        const second_closest = algorithm == 'Worley (2nd closest)'
+    let render_logic: RenderLogic<NoiseUniforms>
 
-        if (dimension == '2D') {
-            return new ComputeRenderer(new Worley2DRenderer(second_closest))
+    if (algorithm.startsWith('Worley')) {
+        const second_closest = algorithm === 'Worley (2nd closest)'
+
+        if (dimension === '2D') {
+            render_logic = new Worley2DRenderer(second_closest)
         } else {
-            return new ComputeRenderer(new Worley3DRenderer(second_closest))
+            render_logic = new Worley3DRenderer(second_closest)
+        }
+    } else if (algorithm === 'Value') {
+        if (dimension === '2D') {
+            render_logic = new ValueNoise2DRenderer()
+        } else {
+            render_logic = new ValueNoise3DRenderer()
         }
     } else {
-        if (dimension == '2D') {
-            return new ComputeRenderer(new Perlin2DRenderer())
+        if (dimension === '2D') {
+            render_logic = new Perlin2DRenderer()
         } else {
-            return new ComputeRenderer(new Perlin3DRenderer())
+            render_logic = new Perlin3DRenderer()
         }
     }
+    return new ComputeRenderer(render_logic)
 }
 let renderer = createRenderer(algorithm.value, dimension.value)
 let canvas_element: HTMLCanvasElement | null = null
