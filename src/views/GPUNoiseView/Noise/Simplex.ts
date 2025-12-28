@@ -15,8 +15,8 @@ function unskew_constant(n_dimensions: number) {
 
 export function simplex2DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> gradients: array<vec2f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> gradients: array<vec2f>;
 
         fn influence(skew_c: vec2i, c_pos: vec2f) -> f32 {
             let t = 0.5 - dot(c_pos, c_pos);
@@ -88,8 +88,8 @@ export class Simplex2D extends ProceduralNoise {
 
 export function simplex3DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> gradients: array<vec3f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> gradients: array<vec3f>;
 
         fn influence(skew_c: vec3i, c_pos: vec3f) -> f32 {
             let t = 0.6 - dot(c_pos, c_pos);

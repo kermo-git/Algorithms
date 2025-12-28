@@ -2,8 +2,8 @@ import { noiseShader, ProceduralNoise } from '../NoiseUtils'
 
 export function value2DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> values: array<f32>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> values: array<f32>;
 
         fn get_value(x: i32, y: i32) -> f32 {
             let hash = hash_table[hash_table[x] + y];
@@ -48,8 +48,8 @@ export class Value2D extends ProceduralNoise {
 
 export function value3DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> values: array<f32>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> values: array<f32>;
 
         fn get_value(x: i32, y: i32, z: i32) -> f32 {
             let hash = hash_table[hash_table[hash_table[x] + y] + z];

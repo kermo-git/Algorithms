@@ -1,9 +1,11 @@
 import { parseHexColor } from '@/utils/Colors'
 import {
     createFloatUniform,
+    createIntUniform,
     createStorageBuffer,
     updateArrayBuffer,
     updateFloatUniform,
+    updateIntUniform,
     WG_DIM,
 } from './ShaderUtils'
 import type { RenderLogic } from './ComputeRenderer'
@@ -16,9 +18,11 @@ export interface ShaderBindIndexes {
 export const defaultColorPoints = new Float32Array([1, 1, 1, 0, 0, 0, 0, 1])
 
 export interface NoiseUniforms {
-    n_grid_columns: number | null
-    z_coord: number | null
-    color_points: Float32Array<ArrayBuffer> | null
+    n_grid_columns?: number
+    n_octaves?: number
+    persistence?: number
+    z_coord?: number
+    color_points?: Float32Array<ArrayBuffer>
 }
 
 export function generateHashTable(n: number = 256) {
@@ -112,8 +116,10 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
         // fn noise(pos: vec3f) -> f32 { ... } (3D noise)
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-        @group(1) @binding(0) var<uniform> n_grid_columns: f32;
-        ${only_3D} @group(1) @binding(1) var<uniform> z_coordinate: f32;
+        @group(1) @binding(2) var<uniform> n_grid_columns: f32;
+        @group(1) @binding(3) var<uniform> n_octaves: u32;
+        @group(1) @binding(4) var<uniform> persistence: f32;
+        ${only_3D} @group(1) @binding(5) var<uniform> z_coordinate: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
         fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${vec_type} {
@@ -124,6 +130,21 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
 
             ${only_3D} let noise_pos_2d = grid_dims * texture_pos / texture_dims;
             ${only_3D} return vec3f(noise_pos_2d, z_coordinate);
+        }
+        
+        fn find_noise_value(noise_pos: ${vec_type}) -> f32 {
+            var amplitude: f32 = 1;
+            var frequency: f32 = 1;
+            var noise_value: f32 = 0;
+            var max_noise_value: f32 = 0;
+
+            for (var i = 0u; i < n_octaves; i++) {
+                noise_value += amplitude * noise(noise_pos * frequency);
+                max_noise_value += amplitude;
+                frequency *= 2;
+                amplitude *= persistence;
+            }
+            return noise_value / max_noise_value;
         }
 
         fn interpolate_colors(noise_value: f32) -> vec4f {
@@ -164,29 +185,25 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
                 return;
             }
             let noise_pos = find_noise_pos(vec2f(texture_pos), vec2f(texture_dims));
-            let noise_value = noise(noise_pos);
+            let noise_value = find_noise_value(noise_pos);
+            let color = interpolate_colors(noise_value);
 
-            textureStore(
-                texture, texture_pos, 
-                interpolate_colors(noise_value)
-            );
+            textureStore(texture, texture_pos, color);
         }
     `
 }
 
 export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
-    /**
-     * This buffer contains elements that give each noise pattern its randomness.
-     * They could be either scalars or vectors depending on noise algorithm.
-     */
-    random_elements!: GPUBuffer
     abstract generateRandomElements(n: number): Float32Array<ArrayBuffer>
     abstract createShader(color_format: GPUTextureFormat): string
     abstract is_3D: boolean
 
-    n_grid_columns!: GPUBuffer
-    z_coord!: GPUBuffer
     hash_table!: GPUBuffer
+    random_elements!: GPUBuffer
+    n_grid_columns!: GPUBuffer
+    n_octaves!: GPUBuffer
+    persistence!: GPUBuffer
+    z_coord!: GPUBuffer
 
     static_bind_group!: GPUBindGroup
 
@@ -195,29 +212,39 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     color_bind_group!: GPUBindGroup
 
     createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
-        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.random_elements = createStorageBuffer(this.generateRandomElements(256), device)
+        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
+        this.n_octaves = createIntUniform(data.n_octaves || 1, device)
+        this.persistence = createFloatUniform(data.persistence || 0.5, device)
 
         const bind_group_entries = [
             {
                 binding: 0,
-                resource: { buffer: this.n_grid_columns },
-            },
-            {
-                binding: 2,
                 resource: { buffer: this.hash_table },
             },
             {
-                binding: 3,
+                binding: 1,
                 resource: { buffer: this.random_elements },
+            },
+            {
+                binding: 2,
+                resource: { buffer: this.n_grid_columns },
+            },
+            {
+                binding: 3,
+                resource: { buffer: this.n_octaves },
+            },
+            {
+                binding: 4,
+                resource: { buffer: this.persistence },
             },
         ]
 
         if (this.is_3D) {
             this.z_coord = createFloatUniform(data.z_coord || 0, device)
             bind_group_entries.push({
-                binding: 1,
+                binding: 5,
                 resource: { buffer: this.z_coord },
             })
         }
@@ -251,13 +278,19 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     }
 
     update(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
-        if (data.n_grid_columns !== null) {
+        if (data.n_grid_columns) {
             updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
         }
-        if (this.is_3D && data.z_coord !== null) {
+        if (data.n_octaves) {
+            updateIntUniform(this.n_octaves, data.n_octaves, device)
+        }
+        if (data.persistence) {
+            updateFloatUniform(this.persistence, data.persistence, device)
+        }
+        if (this.is_3D && data.z_coord !== undefined) {
             updateFloatUniform(this.z_coord, data.z_coord, device)
         }
-        if (data.color_points !== null) {
+        if (data.color_points) {
             updateArrayBuffer(this.color_points, data.color_points, device)
             const new_n_colors = data.color_points.length / 4
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
@@ -62,66 +62,59 @@ function createRenderer(algorithm: string, dimension: '2D' | '3D') {
             render_logic = new Perlin3D()
         }
     }
-    return new ComputeRenderer(render_logic)
+    return markRaw(new ComputeRenderer(render_logic))
 }
-let renderer = createRenderer(algorithm.value, dimension.value)
-let canvas_element: HTMLCanvasElement | null = null
 
-function onCanvasReady(canvas: HTMLCanvasElement) {
-    canvas_element = canvas
-    renderer.init(canvas, {
+function getNoiseParams(): NoiseUniforms {
+    return {
         n_grid_columns: grid_size.value,
+        n_octaves: n_octaves.value,
+        persistence: persistence.value,
         z_coord: z_coord.value,
         color_points: color_points.value,
-    })
+    }
 }
 
-watch(grid_size, (new_grid_size) => {
-    renderer.update({
+const renderer = shallowRef<ComputeRenderer<NoiseUniforms>>(
+    createRenderer(algorithm.value, dimension.value),
+)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+function onCanvasReady(canvas: HTMLCanvasElement) {
+    canvasRef.value = canvas
+    renderer.value.init(canvas, getNoiseParams())
+}
+
+watch([n_octaves, persistence], ([new_n_octaves, new_persistence]) => {
+    renderer.value.update({
+        n_octaves: new_n_octaves,
+        persistence: new_persistence,
+    })
+})
+
+watch([grid_size, z_coord], ([new_grid_size, new_z_coord]) => {
+    renderer.value.update({
         n_grid_columns: new_grid_size,
-        z_coord: null,
-        color_points: null,
-    })
-})
-
-watch(z_coord, (new_z_coord) => {
-    renderer.update({
-        n_grid_columns: null,
         z_coord: new_z_coord,
-        color_points: null,
     })
 })
 
-watch(color_points, () => {
-    renderer.update({
-        n_grid_columns: null,
-        z_coord: null,
-        color_points: color_points.value,
+watch(color_points, (new_color_points) => {
+    renderer.value.update({
+        color_points: new_color_points,
     })
 })
 
-watch(dimension, (new_dimension) => {
-    if (canvas_element !== null) {
-        renderer.cleanup()
-        renderer = createRenderer(algorithm.value, new_dimension)
-        renderer.init(canvas_element, {
-            n_grid_columns: grid_size.value,
-            z_coord: z_coord.value,
-            color_points: color_points.value,
-        })
+watch([algorithm, dimension], ([new_algorithm, new_dimension]) => {
+    renderer.value.cleanup()
+    renderer.value = createRenderer(new_algorithm, new_dimension)
+    if (canvasRef.value) {
+        renderer.value.init(canvasRef.value, getNoiseParams())
     }
 })
 
-watch(algorithm, (new_algorithm) => {
-    if (canvas_element !== null) {
-        renderer.cleanup()
-        renderer = createRenderer(new_algorithm, dimension.value)
-        renderer.init(canvas_element, {
-            n_grid_columns: grid_size.value,
-            z_coord: z_coord.value,
-            color_points: color_points.value,
-        })
-    }
+onBeforeUnmount(() => {
+    renderer.value.cleanup()
 })
 </script>
 

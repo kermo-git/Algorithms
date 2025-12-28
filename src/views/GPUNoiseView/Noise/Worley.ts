@@ -21,8 +21,8 @@ export function worley2DShader(second_closest = false): string {
     const normalizing_factor = second_closest ? 1 / 1.4 : 1 / 1.2
 
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> points: array<vec2f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> points: array<vec2f>;
 
         fn noise(global_pos: vec2f) -> f32 {
             let grid_pos = vec2i(floor(global_pos));
@@ -83,8 +83,8 @@ export function worley3DShader(second_closest = false): string {
     const normalizing_factor = second_closest ? 1 / 1.26 : 1 / 1.2
 
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> points: array<vec3f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> points: array<vec3f>;
 
         fn noise(global_pos: vec3f) -> f32 {
             let grid_pos = vec3i(floor(global_pos));

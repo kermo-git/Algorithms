@@ -7,8 +7,8 @@ import {
 
 export function perlin2DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> gradients: array<vec2f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> gradients: array<vec2f>;
 
         fn get_gradient(x: i32, y: i32) -> vec2f {
             let hash = hash_table[hash_table[x] + y];
@@ -59,8 +59,8 @@ export class Perlin2D extends ProceduralNoise {
 
 export function perlin3DShader(): string {
     return /* wgsl */ `
-        @group(1) @binding(2) var<storage> hash_table: array<i32>;
-        @group(1) @binding(3) var<storage> gradients: array<vec3f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> gradients: array<vec3f>;
 
         fn get_gradient(x: i32, y: i32, z: i32) -> vec3f {
             let hash = hash_table[hash_table[hash_table[x] + y] + z];
