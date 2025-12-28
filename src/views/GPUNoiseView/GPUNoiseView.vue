@@ -12,6 +12,7 @@ import { Perlin2D, Perlin3D } from './Noise/Perlin'
 import { Worley2D, Worley3D } from './Noise/Worley'
 import { defaultColorPoints, type NoiseUniforms } from './NoiseUtils'
 import { ValueNoise2D, ValueNoise3D } from './Noise/Value'
+import { Simplex2D, Simplex3D } from './Noise/Simplex'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
@@ -40,6 +41,12 @@ function createRenderer(algorithm: string, dimension: '2D' | '3D') {
             render_logic = new ValueNoise2D()
         } else {
             render_logic = new ValueNoise3D()
+        }
+    } else if (algorithm === 'Simplex') {
+        if (dimension === '2D') {
+            render_logic = new Simplex2D()
+        } else {
+            render_logic = new Simplex3D()
         }
     } else {
         if (dimension === '2D') {
