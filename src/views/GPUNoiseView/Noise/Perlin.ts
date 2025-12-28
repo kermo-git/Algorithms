@@ -14,10 +14,6 @@ export function perlin2DShader(): string {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn lerp(t: f32, a: f32, b: f32) -> f32 {
-            return a + t * (b - a);
-        }
-
         fn noise(global_pos: vec2f) -> f32 {
             let floor_pos = floor(global_pos);
             let p0 = vec2i(floor_pos) & vec2i(255, 255);
@@ -36,7 +32,7 @@ export function perlin2DShader(): string {
             let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
             let s = fade(local);
-            let n = 1.55 * lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d));
+            let n = 1.55 * mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
             return clamp((n + 1)*0.5, 0, 1);
         }
     `
@@ -70,10 +66,6 @@ export function perlin3DShader(): string {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn lerp(t: f32, a: f32, b: f32) -> f32 {
-            return a + t * (b - a);
-        }
-
         fn noise(global_pos: vec3f) -> f32 {
             let floor_pos = floor(global_pos);
             let p0 = vec3i(floor_pos) & vec3i(255, 255, 255);
@@ -101,9 +93,10 @@ export function perlin3DShader(): string {
 
             let s = fade(local);
             
-            let n = 1.55 * lerp(s.z,
-                lerp(s.y, lerp(s.x, a, b), lerp(s.x, c, d)),
-                lerp(s.y, lerp(s.x, e, f), lerp(s.x, g, h)),
+            let n = 1.55 * mix(
+                mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
+                mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
+                s.z
             );
             return clamp((n + 1)*0.5, 0, 1);
         }
