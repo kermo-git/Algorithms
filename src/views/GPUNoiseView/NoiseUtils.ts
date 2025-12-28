@@ -1,5 +1,12 @@
 import { parseHexColor } from '@/utils/Colors'
-import { WG_DIM } from './ShaderUtils'
+import {
+    createFloatUniform,
+    createStorageBuffer,
+    updateArrayBuffer,
+    updateFloatUniform,
+    WG_DIM,
+} from './ShaderUtils'
+import type { RenderLogic } from './ComputeRenderer'
 
 export interface ShaderBindIndexes {
     bindGroup: number
@@ -14,7 +21,7 @@ export interface NoiseUniforms {
     color_points: Float32Array<ArrayBuffer> | null
 }
 
-export function shaderHashTable(n: number = 256) {
+export function generateHashTable(n: number = 256) {
     const hash_table = new Int32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
@@ -165,4 +172,118 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
             );
         }
     `
+}
+
+export abstract class NoiseRenderer implements RenderLogic<NoiseUniforms> {
+    /**
+     * This buffer contains elements that give each noise pattern its randomness.
+     * They could be either scalars or vectors depending on noise algorithm.
+     */
+    random_elements!: GPUBuffer
+    abstract generateRandomElements(n: number): Float32Array<ArrayBuffer>
+    abstract createShader(color_format: GPUTextureFormat): string
+    abstract is_3D: boolean
+
+    n_grid_columns!: GPUBuffer
+    z_coord!: GPUBuffer
+    hash_table!: GPUBuffer
+
+    static_bind_group!: GPUBindGroup
+
+    n_colors = 0
+    color_points!: GPUBuffer
+    color_bind_group!: GPUBindGroup
+
+    createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
+        this.hash_table = createStorageBuffer(generateHashTable(256), device)
+        this.random_elements = createStorageBuffer(this.generateRandomElements(256), device)
+
+        const bind_group_entries = [
+            {
+                binding: 0,
+                resource: { buffer: this.n_grid_columns },
+            },
+            {
+                binding: 2,
+                resource: { buffer: this.hash_table },
+            },
+            {
+                binding: 3,
+                resource: { buffer: this.random_elements },
+            },
+        ]
+
+        if (this.is_3D) {
+            this.z_coord = createFloatUniform(data.z_coord || 0, device)
+            bind_group_entries.push({
+                binding: 1,
+                resource: { buffer: this.z_coord },
+            })
+        }
+
+        this.static_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(1),
+            entries: bind_group_entries,
+        })
+
+        const color_points_data = data.color_points || defaultColorPoints
+        this.n_colors = color_points_data.length / 4
+        this.color_points = createStorageBuffer(color_points_data, device, 256)
+
+        this.color_bind_group = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(2),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.color_points,
+                        size: color_points_data.byteLength,
+                    },
+                },
+            ],
+        })
+    }
+
+    bindBuffers(encoder: GPUComputePassEncoder): void {
+        encoder.setBindGroup(1, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_bind_group)
+    }
+
+    update(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+        if (data.n_grid_columns !== null) {
+            updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
+        }
+        if (this.is_3D && data.z_coord !== null) {
+            updateFloatUniform(this.z_coord, data.z_coord, device)
+        }
+        if (data.color_points !== null) {
+            updateArrayBuffer(this.color_points, data.color_points, device)
+            const new_n_colors = data.color_points.length / 4
+
+            if (new_n_colors != this.n_colors) {
+                this.n_colors = new_n_colors
+                this.color_bind_group = device.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(2),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: this.color_points,
+                                size: data.color_points.byteLength,
+                            },
+                        },
+                    ],
+                })
+            }
+        }
+    }
+
+    cleanup() {
+        this.n_grid_columns?.destroy()
+        this.z_coord?.destroy()
+        this.hash_table?.destroy()
+        this.random_elements?.destroy()
+        this.color_points?.destroy()
+    }
 }
