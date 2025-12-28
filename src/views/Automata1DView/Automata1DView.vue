@@ -16,17 +16,28 @@ import PanelField from '@/components/PanelField.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import MenuItem from '@/components/MenuItem.vue'
 
-const grid_size = ref(128)
+const activeTab = ref('Configuration')
 const numStates = ref(2)
 const neighborhoodRadius = ref(1)
+const firstGen = ref<FirstGenType>('Random')
 const ruleNumber = ref('30')
 const lambda = ref(0)
-
 const colors = ref(['#323232', '#00CE00', '#DB04AA', '#0144DB'])
+const grid_size = ref(128)
+
+function copyRuleNumber() {
+    navigator.clipboard.writeText(ruleNumber.value)
+}
+
+function randomizeRule() {
+    rule.value.randomize(lambda.value)
+    ruleNumber.value = String(rule.value.getRuleNumber())
+}
 
 const rule = computed(() => {
     return createRule(BigInt(ruleNumber.value), numStates.value, neighborhoodRadius.value)
 })
+
 const ruleNumberLabel = computed(() => {
     const strValue = String(getNumRules(numStates.value, neighborhoodRadius.value) - 1n)
 
@@ -39,17 +50,6 @@ const ruleNumberLabel = computed(() => {
     return `Rule number (up to ${strValue.length} digits)`
 })
 
-function copyRuleNumber() {
-    navigator.clipboard.writeText(ruleNumber.value)
-}
-
-function randomizeRule() {
-    rule.value.randomize(lambda.value)
-    ruleNumber.value = String(rule.value.getRuleNumber())
-}
-
-const firstGen = ref<FirstGenType>('Random')
-
 const matrix = computed(() => {
     const matrix = new Matrix(grid_size.value, grid_size.value, 0)
 
@@ -60,8 +60,6 @@ const matrix = computed(() => {
     }
     return matrix
 })
-
-const activeTab = ref('Configuration')
 </script>
 
 <template>
