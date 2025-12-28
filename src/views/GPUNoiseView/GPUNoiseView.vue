@@ -11,8 +11,9 @@ import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
 import { Perlin2D, Perlin3D } from './Noise/Perlin'
 import { Worley2D, Worley3D } from './Noise/Worley'
 import { defaultColorPoints, type NoiseUniforms } from './NoiseUtils'
-import { ValueNoise2D, ValueNoise3D } from './Noise/Value'
+import { Value2D, Value3D } from './Noise/Value'
 import { Simplex2D, Simplex3D } from './Noise/Simplex'
+import { Cubic2D, Cubic3D } from './Noise/Cubic'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
@@ -38,15 +39,21 @@ function createRenderer(algorithm: string, dimension: '2D' | '3D') {
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
-            render_logic = new ValueNoise2D()
+            render_logic = new Value2D()
         } else {
-            render_logic = new ValueNoise3D()
+            render_logic = new Value3D()
         }
     } else if (algorithm === 'Simplex') {
         if (dimension === '2D') {
             render_logic = new Simplex2D()
         } else {
             render_logic = new Simplex3D()
+        }
+    } else if (algorithm === 'Cubic') {
+        if (dimension === '2D') {
+            render_logic = new Cubic2D()
+        } else {
+            render_logic = new Cubic3D()
         }
     } else {
         if (dimension === '2D') {

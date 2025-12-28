@@ -1,6 +1,6 @@
 import { noiseShader, ProceduralNoise } from '../NoiseUtils'
 
-export function valueNoise2DShader(): string {
+export function value2DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(2) var<storage> hash_table: array<i32>;
         @group(1) @binding(3) var<storage> values: array<f32>;
@@ -32,7 +32,7 @@ export function valueNoise2DShader(): string {
     `
 }
 
-export class ValueNoise2D extends ProceduralNoise {
+export class Value2D extends ProceduralNoise {
     is_3D = false
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
@@ -40,13 +40,13 @@ export class ValueNoise2D extends ProceduralNoise {
     }
     createShader(color_format: GPUTextureFormat): string {
         return `
-            ${valueNoise2DShader()}
+            ${value2DShader()}
             ${noiseShader(false, color_format)}
         `
     }
 }
 
-export function valueNoise3DShader(): string {
+export function value3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(2) var<storage> hash_table: array<i32>;
         @group(1) @binding(3) var<storage> values: array<f32>;
@@ -86,7 +86,7 @@ export function valueNoise3DShader(): string {
     `
 }
 
-export class ValueNoise3D extends ProceduralNoise {
+export class Value3D extends ProceduralNoise {
     is_3D = true
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
@@ -94,7 +94,7 @@ export class ValueNoise3D extends ProceduralNoise {
     }
     createShader(color_format: GPUTextureFormat): string {
         return `
-            ${valueNoise3DShader()}
+            ${value3DShader()}
             ${noiseShader(true, color_format)}
         `
     }
