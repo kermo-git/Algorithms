@@ -14,6 +14,7 @@ import PixelCanvas from '@/components/PixelCanvas.vue'
 import TabControl from '@/components/TabControl.vue'
 import PanelField from '@/components/PanelField.vue'
 import RangeInput from '@/components/RangeInput.vue'
+import MenuItem from '@/components/MenuItem.vue'
 
 const grid_size = ref(128)
 const numStates = ref(2)
@@ -65,7 +66,7 @@ const activeTab = ref('Configuration')
 
 <template>
     <div class="container">
-        <TabControl :captions="['Configuration', 'Style']" v-model="activeTab">
+        <TabControl :captions="['Configuration', 'Examples', 'Style']" v-model="activeTab">
             <template v-if="activeTab === 'Configuration'">
                 <NumberSingleSelect
                     text="Number of states"
@@ -100,6 +101,88 @@ const activeTab = ref('Configuration')
                 <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
                     <PanelButton :mdi-path="mdiDice5" @click="randomizeRule" />
                 </RangeInput>
+            </template>
+            <template v-if="activeTab === 'Examples'">
+                <MenuItem
+                    text="Rule 30"
+                    @click="
+                        () => {
+                            ruleNumber = '30'
+                            numStates = 2
+                            neighborhoodRadius = 1
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Flowing lines"
+                    @click="
+                        () => {
+                            ruleNumber = '1862870231131'
+                            numStates = 3
+                            neighborhoodRadius = 1
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Triangles"
+                    @click="
+                        () => {
+                            ruleNumber = '6637593129346'
+                            numStates = 3
+                            neighborhoodRadius = 1
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Sharp corners"
+                    @click="
+                        () => {
+                            ruleNumber = '4234215280010'
+                            numStates = 3
+                            neighborhoodRadius = 1
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Plant roots"
+                    @click="
+                        () => {
+                            ruleNumber = '135497638344673206598927780380850347174'
+                            numStates = 4
+                            neighborhoodRadius = 1
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Electrical circuit board"
+                    @click="
+                        () => {
+                            ruleNumber = '609058266'
+                            numStates = 2
+                            neighborhoodRadius = 2
+                        }
+                    "
+                />
+                <MenuItem
+                    text="City buildings"
+                    @click="
+                        () => {
+                            ruleNumber = '2939828314'
+                            numStates = 2
+                            neighborhoodRadius = 2
+                        }
+                    "
+                />
+                <MenuItem
+                    text="City"
+                    @click="
+                        () => {
+                            ruleNumber = '9548131633201461177601464909579195651'
+                            numStates = 2
+                            neighborhoodRadius = 3
+                        }
+                    "
+                />
             </template>
             <template v-if="activeTab === 'Style'">
                 <p>Colors</p>
