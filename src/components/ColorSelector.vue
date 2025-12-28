@@ -37,7 +37,7 @@ const palettes = [
         colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A'],
     },
     {
-        name: 'Map',
+        name: 'Satellite photo',
         colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3'],
     },
     {

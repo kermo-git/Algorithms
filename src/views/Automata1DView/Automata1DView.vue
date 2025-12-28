@@ -22,7 +22,7 @@ const neighborhoodRadius = ref(1)
 const firstGen = ref<FirstGenType>('Random')
 const ruleNumber = ref('30')
 const lambda = ref(0)
-const colors = ref(['#323232', '#00CE00', '#DB04AA', '#0144DB'])
+const colors = ref(['#323232', '#FECB3E', '#FF87FD', '#009200'])
 const grid_size = ref(128)
 
 function copyRuleNumber() {
@@ -108,16 +108,7 @@ const matrix = computed(() => {
                             ruleNumber = '30'
                             numStates = 2
                             neighborhoodRadius = 1
-                        }
-                    "
-                />
-                <MenuItem
-                    text="Flowing lines"
-                    @click="
-                        () => {
-                            ruleNumber = '1862870231131'
-                            numStates = 3
-                            neighborhoodRadius = 1
+                            colors = ['#323232', '#FECB3E', '#FF87FD', '#009200']
                         }
                     "
                 />
@@ -128,6 +119,7 @@ const matrix = computed(() => {
                             ruleNumber = '6637593129346'
                             numStates = 3
                             neighborhoodRadius = 1
+                            colors = ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
                         }
                     "
                 />
@@ -138,16 +130,18 @@ const matrix = computed(() => {
                             ruleNumber = '4234215280010'
                             numStates = 3
                             neighborhoodRadius = 1
+                            colors = ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
                         }
                     "
                 />
                 <MenuItem
-                    text="Plant roots"
+                    text="Vines"
                     @click="
                         () => {
                             ruleNumber = '135497638344673206598927780380850347174'
                             numStates = 4
                             neighborhoodRadius = 1
+                            colors = ['#FF87FD', '#323232', '#009200', '#FECB3E']
                         }
                     "
                 />
@@ -158,6 +152,7 @@ const matrix = computed(() => {
                             ruleNumber = '609058266'
                             numStates = 2
                             neighborhoodRadius = 2
+                            colors = ['#FECB3E', '#007628', '#000000', '#FFFFFF']
                         }
                     "
                 />
@@ -168,6 +163,7 @@ const matrix = computed(() => {
                             ruleNumber = '2939828314'
                             numStates = 2
                             neighborhoodRadius = 2
+                            colors = ['#F5CB6E', '#323232', '#000000', '#FFFFFF']
                         }
                     "
                 />
@@ -178,6 +174,7 @@ const matrix = computed(() => {
                             ruleNumber = '9548131633201461177601464909579195651'
                             numStates = 2
                             neighborhoodRadius = 3
+                            colors = ['#F7F6CF', '#7A7A7A', '#000000', '#FFFFFF']
                         }
                     "
                 />
