@@ -22,6 +22,7 @@ export interface NoiseUniforms {
     n_octaves?: number
     persistence?: number
     z_coord?: number
+    warp_strength?: number
     color_points?: Float32Array<ArrayBuffer>
 }
 
@@ -105,11 +106,41 @@ export function shaderUnitVectors3D(n: number = 256) {
     return array
 }
 
-export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): string {
+export type DomainTransform = 'None' | 'Rotate' | 'Warp'
+
+export function noiseShader(
+    is_3D: boolean,
+    transform: DomainTransform,
+    color_format: GPUTextureFormat,
+): string {
     const only_2D = is_3D ? '//' : ''
     const only_3D = is_3D ? '' : '//'
+    const only_warp = is_3D && transform == 'Warp' ? '' : '//'
     const vec_type = is_3D ? 'vec3f' : 'vec2f'
 
+    let final_noise_pos = 'scaled_pos'
+    let rotate_function = ''
+
+    if (is_3D) {
+        if (transform == 'Rotate') {
+            rotate_function = /* wgsl */ `
+                // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
+                fn rotate(pos: vec3f) -> vec3f {
+                    let xz = pos.x + pos.z;
+                    let s2 = xz * -0.211324865405187;
+                    let yy = pos.y * 0.577350269189626;
+                    let xr = pos.x + (s2 + yy);
+                    let zr = pos.z + (s2 + yy);
+                    let yr = xz * -0.577350269189626 + yy;
+                    return vec3f(xr, yr, zr);
+                }
+            `
+            final_noise_pos = 'rotate(scaled_pos)'
+        } else if (transform == 'Warp') {
+            final_noise_pos =
+                'vec3f(scaled_pos.xy, scaled_pos.z + noise(scaled_pos) * warp_strength)'
+        }
+    }
     return /* wgsl */ `
         // Define the noise function here:
         // fn noise(pos: vec2f) -> f32 { ... } (2D noise)
@@ -120,7 +151,10 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
         @group(1) @binding(3) var<uniform> n_octaves: u32;
         @group(1) @binding(4) var<uniform> persistence: f32;
         ${only_3D} @group(1) @binding(5) var<uniform> z_coordinate: f32;
+        ${only_warp} @group(1) @binding(6) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
+
+        ${rotate_function}
 
         fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${vec_type} {
             let n_grid_rows = n_grid_columns * texture_dims.y / texture_dims.x;
@@ -139,7 +173,8 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
             var max_noise_value: f32 = 0;
 
             for (var i = 0u; i < n_octaves; i++) {
-                noise_value += amplitude * noise(noise_pos * frequency);
+                let scaled_pos = noise_pos * frequency;
+                noise_value += amplitude * noise(${final_noise_pos});
                 max_noise_value += amplitude;
                 frequency *= 2;
                 amplitude *= persistence;
@@ -194,9 +229,28 @@ export function noiseShader(is_3D: boolean, color_format: GPUTextureFormat): str
 }
 
 export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
+    is_3D: boolean
+    transform: DomainTransform
+    noise_shader_code: string
+
+    constructor(
+        noise_shader_code: string,
+        is_3D: boolean = false,
+        transform: DomainTransform = 'None',
+    ) {
+        this.is_3D = is_3D
+        this.transform = transform
+        this.noise_shader_code = noise_shader_code
+    }
+
     abstract generateRandomElements(n: number): Float32Array<ArrayBuffer>
-    abstract createShader(color_format: GPUTextureFormat): string
-    abstract is_3D: boolean
+
+    createShader(color_format: GPUTextureFormat): string {
+        return `
+            ${this.noise_shader_code}
+            ${noiseShader(this.is_3D, this.transform, color_format)}
+        `
+    }
 
     hash_table!: GPUBuffer
     random_elements!: GPUBuffer
@@ -204,6 +258,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     n_octaves!: GPUBuffer
     persistence!: GPUBuffer
     z_coord!: GPUBuffer
+    warp_strength!: GPUBuffer
 
     static_bind_group!: GPUBindGroup
 
@@ -247,6 +302,13 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
+            if (this.transform === 'Warp') {
+                this.warp_strength = createFloatUniform(data.warp_strength || 1, device)
+                bind_group_entries.push({
+                    binding: 6,
+                    resource: { buffer: this.warp_strength },
+                })
+            }
         }
 
         this.static_bind_group = device.createBindGroup({
@@ -287,8 +349,13 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
         if (data.persistence) {
             updateFloatUniform(this.persistence, data.persistence, device)
         }
-        if (this.is_3D && data.z_coord !== undefined) {
-            updateFloatUniform(this.z_coord, data.z_coord, device)
+        if (this.is_3D) {
+            if (data.z_coord !== undefined) {
+                updateFloatUniform(this.z_coord, data.z_coord, device)
+            }
+            if (data.warp_strength) {
+                updateFloatUniform(this.warp_strength, data.warp_strength, device)
+            }
         }
         if (data.color_points) {
             updateArrayBuffer(this.color_points, data.color_points, device)

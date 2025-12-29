@@ -3,6 +3,7 @@ import {
     shaderUnitVectors2D,
     shaderUnitVectors3D,
     ProceduralNoise,
+    type DomainTransform,
 } from '../NoiseUtils'
 
 function skew_constant(n_dimensions: number) {
@@ -73,16 +74,12 @@ export function simplex2DShader(): string {
 }
 
 export class Simplex2D extends ProceduralNoise {
-    is_3D = false
+    constructor() {
+        super(simplex2DShader())
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderUnitVectors2D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${simplex2DShader()}
-            ${noiseShader(false, color_format)}
-        `
     }
 }
 
@@ -175,15 +172,11 @@ export function simplex3DShader(): string {
 }
 
 export class Simplex3D extends ProceduralNoise {
-    is_3D = true
+    constructor(transform: DomainTransform = 'None') {
+        super(simplex3DShader(), true, transform)
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderUnitVectors3D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${simplex3DShader()}
-            ${noiseShader(true, color_format)}
-        `
     }
 }

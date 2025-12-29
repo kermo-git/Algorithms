@@ -1,4 +1,4 @@
-import { noiseShader, ProceduralNoise } from '../NoiseUtils'
+import { noiseShader, ProceduralNoise, type DomainTransform } from '../NoiseUtils'
 
 export function cubic2DShader(): string {
     return /* wgsl */ `
@@ -70,16 +70,12 @@ export function cubic2DShader(): string {
 }
 
 export class Cubic2D extends ProceduralNoise {
-    is_3D = false
+    constructor() {
+        super(cubic2DShader())
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return new Float32Array(n).map(Math.random)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${cubic2DShader()}
-            ${noiseShader(false, color_format)}
-        `
     }
 }
 
@@ -153,15 +149,11 @@ export function cubic3DShader(): string {
 }
 
 export class Cubic3D extends ProceduralNoise {
-    is_3D = true
+    constructor(transform: DomainTransform = 'None') {
+        super(cubic3DShader(), true, transform)
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return new Float32Array(n).map(Math.random)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${cubic3DShader()}
-            ${noiseShader(true, color_format)}
-        `
     }
 }

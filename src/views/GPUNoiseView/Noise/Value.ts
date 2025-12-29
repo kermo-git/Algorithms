@@ -1,4 +1,4 @@
-import { noiseShader, ProceduralNoise } from '../NoiseUtils'
+import { noiseShader, ProceduralNoise, type DomainTransform } from '../NoiseUtils'
 
 export function value2DShader(): string {
     return /* wgsl */ `
@@ -33,16 +33,12 @@ export function value2DShader(): string {
 }
 
 export class Value2D extends ProceduralNoise {
-    is_3D = false
+    constructor() {
+        super(value2DShader())
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return new Float32Array(n).map(Math.random)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${value2DShader()}
-            ${noiseShader(false, color_format)}
-        `
     }
 }
 
@@ -87,15 +83,11 @@ export function value3DShader(): string {
 }
 
 export class Value3D extends ProceduralNoise {
-    is_3D = true
+    constructor(transform: DomainTransform = 'None') {
+        super(value3DShader(), true, transform)
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return new Float32Array(n).map(Math.random)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${value3DShader()}
-            ${noiseShader(true, color_format)}
-        `
     }
 }

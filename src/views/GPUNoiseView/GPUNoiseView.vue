@@ -10,7 +10,7 @@ import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
 import { Perlin2D, Perlin3D } from './Noise/Perlin'
 import { Worley2D, Worley3D } from './Noise/Worley'
-import { defaultColorPoints, type NoiseUniforms } from './NoiseUtils'
+import { defaultColorPoints, type DomainTransform, type NoiseUniforms } from './NoiseUtils'
 import { Value2D, Value3D } from './Noise/Value'
 import { Simplex2D, Simplex3D } from './Noise/Simplex'
 import { Cubic2D, Cubic3D } from './Noise/Cubic'
@@ -18,15 +18,19 @@ import { Cubic2D, Cubic3D } from './Noise/Cubic'
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
 const dimension = ref<'2D' | '3D'>('2D')
-const domain_transform = ref('None')
-const domain_warp_strength = ref(2)
+const domain_transform = ref<DomainTransform>('None')
+const warp_strength = ref(1)
 const z_coord = ref(0)
 const grid_size = ref(16)
 const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
-function createRenderer(algorithm: string, dimension: '2D' | '3D') {
+function createRenderer(
+    algorithm: string,
+    dimension: '2D' | '3D',
+    domain_transform: DomainTransform,
+) {
     let render_logic: RenderLogic<NoiseUniforms>
 
     if (algorithm.startsWith('Worley')) {
@@ -35,31 +39,31 @@ function createRenderer(algorithm: string, dimension: '2D' | '3D') {
         if (dimension === '2D') {
             render_logic = new Worley2D(second_closest)
         } else {
-            render_logic = new Worley3D(second_closest)
+            render_logic = new Worley3D(second_closest, domain_transform)
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
             render_logic = new Value2D()
         } else {
-            render_logic = new Value3D()
+            render_logic = new Value3D(domain_transform)
         }
     } else if (algorithm === 'Simplex') {
         if (dimension === '2D') {
             render_logic = new Simplex2D()
         } else {
-            render_logic = new Simplex3D()
+            render_logic = new Simplex3D(domain_transform)
         }
     } else if (algorithm === 'Cubic') {
         if (dimension === '2D') {
             render_logic = new Cubic2D()
         } else {
-            render_logic = new Cubic3D()
+            render_logic = new Cubic3D(domain_transform)
         }
     } else {
         if (dimension === '2D') {
             render_logic = new Perlin2D()
         } else {
-            render_logic = new Perlin3D()
+            render_logic = new Perlin3D(domain_transform)
         }
     }
     return markRaw(new ComputeRenderer(render_logic))
@@ -71,12 +75,13 @@ function getNoiseParams(): NoiseUniforms {
         n_octaves: n_octaves.value,
         persistence: persistence.value,
         z_coord: z_coord.value,
+        warp_strength: warp_strength.value,
         color_points: color_points.value,
     }
 }
 
 const renderer = shallowRef<ComputeRenderer<NoiseUniforms>>(
-    createRenderer(algorithm.value, dimension.value),
+    createRenderer(algorithm.value, dimension.value, domain_transform.value),
 )
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -99,19 +104,28 @@ watch([grid_size, z_coord], ([new_grid_size, new_z_coord]) => {
     })
 })
 
+watch(warp_strength, (new_warp_strength) => {
+    renderer.value.update({
+        warp_strength: new_warp_strength,
+    })
+})
+
 watch(color_points, (new_color_points) => {
     renderer.value.update({
         color_points: new_color_points,
     })
 })
 
-watch([algorithm, dimension], ([new_algorithm, new_dimension]) => {
-    renderer.value.cleanup()
-    renderer.value = createRenderer(new_algorithm, new_dimension)
-    if (canvasRef.value) {
-        renderer.value.init(canvasRef.value, getNoiseParams())
-    }
-})
+watch(
+    [algorithm, dimension, domain_transform],
+    ([new_algorithm, new_dimension, new_domain_transform]) => {
+        renderer.value.cleanup()
+        renderer.value = createRenderer(new_algorithm, new_dimension, new_domain_transform)
+        if (canvasRef.value) {
+            renderer.value.init(canvasRef.value, getNoiseParams())
+        }
+    },
+)
 
 onBeforeUnmount(() => {
     renderer.value.cleanup()
@@ -156,8 +170,8 @@ onBeforeUnmount(() => {
                     />
 
                     <template v-if="domain_transform === 'Warp'">
-                        <p>Warp strength: {{ domain_warp_strength }}</p>
-                        <RangeInput :min="1" :max="10" :step="0.5" v-model="domain_warp_strength" />
+                        <p>Warp strength: {{ warp_strength }}</p>
+                        <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
                     </template>
                 </template>
 

@@ -1,8 +1,8 @@
 import {
-    noiseShader,
     shaderRandomPoints2D,
     shaderRandomPoints3D,
     ProceduralNoise,
+    type DomainTransform,
 } from '../NoiseUtils'
 
 export function worley2DShader(second_closest = false): string {
@@ -48,22 +48,12 @@ export function worley2DShader(second_closest = false): string {
 }
 
 export class Worley2D extends ProceduralNoise {
-    is_3D = false
-    second_closest: boolean
-
     constructor(second_closest: boolean) {
-        super()
-        this.second_closest = second_closest
+        super(worley2DShader(second_closest))
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderRandomPoints2D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${worley2DShader(this.second_closest)}
-            ${noiseShader(false, color_format)}
-        `
     }
 }
 
@@ -114,21 +104,11 @@ export function worley3DShader(second_closest = false): string {
 }
 
 export class Worley3D extends ProceduralNoise {
-    is_3D = true
-    second_closest: boolean
-
-    constructor(second_closest: boolean) {
-        super()
-        this.second_closest = second_closest
+    constructor(second_closest: boolean, transform: DomainTransform = 'None') {
+        super(worley3DShader(second_closest), true, transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderRandomPoints3D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${worley3DShader(this.second_closest)}
-            ${noiseShader(true, color_format)}
-        `
     }
 }

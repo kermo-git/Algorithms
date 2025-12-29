@@ -1,8 +1,8 @@
 import {
-    noiseShader,
     shaderUnitVectors2D,
     shaderUnitVectors3D,
     ProceduralNoise,
+    type DomainTransform,
 } from '../NoiseUtils'
 
 export function perlin2DShader(): string {
@@ -44,16 +44,12 @@ export function perlin2DShader(): string {
 }
 
 export class Perlin2D extends ProceduralNoise {
-    is_3D = false
+    constructor() {
+        super(perlin2DShader())
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderUnitVectors2D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${perlin2DShader()}
-            ${noiseShader(false, color_format)}
-        `
     }
 }
 
@@ -109,15 +105,11 @@ export function perlin3DShader(): string {
 }
 
 export class Perlin3D extends ProceduralNoise {
-    is_3D = true
+    constructor(transform: DomainTransform = 'None') {
+        super(perlin3DShader(), true, transform)
+    }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
         return shaderUnitVectors3D(n)
-    }
-    createShader(color_format: GPUTextureFormat): string {
-        return `
-            ${perlin3DShader()}
-            ${noiseShader(true, color_format)}
-        `
     }
 }
