@@ -7,8 +7,7 @@ import { RouterLink, RouterView } from 'vue-router'
         <nav>
             <RouterLink class="router-link" to="/ca1d">1D cellular automata</RouterLink>
             <RouterLink class="router-link" to="/nca">Neural Cellular Automata</RouterLink>
-            <RouterLink class="router-link" to="/noise">Noise</RouterLink>
-            <RouterLink class="router-link" to="/gpu-noise">GPU noise (in progress)</RouterLink>
+            <RouterLink class="router-link" to="/noise">Procedural noise</RouterLink>
         </nav>
         <RouterView />
     </div>

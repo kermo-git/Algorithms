@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Automata1DView from '@/views/Automata1DView/Automata1DView.vue'
 import NeuralAutomataView from '@/views/NeuralAutomataView/NeuralAutomataView.vue'
-import NoiseView from '@/views/NoiseView/NoiseView.vue'
-import GPUNoiseView from '@/views/GPUNoiseView/GPUNoiseView.vue'
+import ProceduralNoiseView from '@/views/ProceduralNoiseView/ProceduralNoiseView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,12 +23,7 @@ const router = createRouter({
         {
             path: '/noise',
             name: 'noise',
-            component: NoiseView,
-        },
-        {
-            path: '/gpu-noise',
-            name: 'gpu-noise',
-            component: GPUNoiseView,
+            component: ProceduralNoiseView,
         },
     ],
 })
