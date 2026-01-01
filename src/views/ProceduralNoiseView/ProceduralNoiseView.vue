@@ -8,29 +8,31 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
-import { Perlin2D, Perlin3D } from './Noise/Perlin'
-import { Worley2D, Worley3D } from './Noise/Worley'
-import { defaultColorPoints, type DomainTransform, type NoiseUniforms } from './NoiseUtils'
-import { Value2D, Value3D } from './Noise/Value'
-import { Simplex2D, Simplex3D } from './Noise/Simplex'
-import { Cubic2D, Cubic3D } from './Noise/Cubic'
+import { Perlin2D, Perlin3D, Perlin4D } from './Noise/Perlin'
+import { Simplex2D, Simplex3D, Simplex4D } from './Noise/Simplex'
+import { Cubic2D, Cubic3D, Cubic4D } from './Noise/Cubic'
+import { Worley2D, Worley3D, Worley4D } from './Noise/Worley'
+import { Value2D, Value3D, Value4D } from './Noise/Value'
+import {
+    defaultColorPoints,
+    type DomainTransform,
+    type NoiseDimension,
+    type NoiseUniforms,
+} from './NoiseUtils'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
-const dimension = ref<'2D' | '3D'>('2D')
+const dimension = ref<NoiseDimension>('2D')
 const domain_transform = ref<DomainTransform>('None')
 const warp_strength = ref(1)
 const z_coord = ref(0)
+const w_coord = ref(0)
 const grid_size = ref(16)
 const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
-function createRenderer(
-    algorithm: string,
-    dimension: '2D' | '3D',
-    domain_transform: DomainTransform,
-) {
+function createRenderer(algorithm: string, dimension: NoiseDimension, transform: DomainTransform) {
     let render_logic: RenderLogic<NoiseUniforms>
 
     if (algorithm.startsWith('Worley')) {
@@ -38,32 +40,42 @@ function createRenderer(
 
         if (dimension === '2D') {
             render_logic = new Worley2D(second_closest)
+        } else if (dimension === '3D') {
+            render_logic = new Worley3D(second_closest, transform)
         } else {
-            render_logic = new Worley3D(second_closest, domain_transform)
+            render_logic = new Worley4D(second_closest, transform)
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
             render_logic = new Value2D()
+        } else if (dimension === '3D') {
+            render_logic = new Value3D(transform)
         } else {
-            render_logic = new Value3D(domain_transform)
+            render_logic = new Value4D(transform)
         }
     } else if (algorithm === 'Simplex') {
         if (dimension === '2D') {
             render_logic = new Simplex2D()
+        } else if (dimension === '3D') {
+            render_logic = new Simplex3D(transform)
         } else {
-            render_logic = new Simplex3D(domain_transform)
+            render_logic = new Simplex4D(transform)
         }
     } else if (algorithm === 'Cubic') {
         if (dimension === '2D') {
             render_logic = new Cubic2D()
+        } else if (dimension === '3D') {
+            render_logic = new Cubic3D(transform)
         } else {
-            render_logic = new Cubic3D(domain_transform)
+            render_logic = new Cubic4D(transform)
         }
     } else {
         if (dimension === '2D') {
             render_logic = new Perlin2D()
+        } else if (dimension === '3D') {
+            render_logic = new Perlin3D(transform)
         } else {
-            render_logic = new Perlin3D(domain_transform)
+            render_logic = new Perlin4D(transform)
         }
     }
     return markRaw(new ComputeRenderer(render_logic))
@@ -75,6 +87,7 @@ function getNoiseParams(): NoiseUniforms {
         n_octaves: n_octaves.value,
         persistence: persistence.value,
         z_coord: z_coord.value,
+        w_coord: w_coord.value,
         warp_strength: warp_strength.value,
         color_points: color_points.value,
     }
@@ -90,17 +103,33 @@ function onCanvasReady(canvas: HTMLCanvasElement) {
     renderer.value.init(canvas, getNoiseParams())
 }
 
-watch([n_octaves, persistence], ([new_n_octaves, new_persistence]) => {
+watch(n_octaves, (new_n_octaves) => {
     renderer.value.update({
         n_octaves: new_n_octaves,
+    })
+})
+
+watch(grid_size, (new_grid_size) => {
+    renderer.value.update({
+        n_grid_columns: new_grid_size,
+    })
+})
+
+watch(persistence, (new_persistence) => {
+    renderer.value.update({
         persistence: new_persistence,
     })
 })
 
-watch([grid_size, z_coord], ([new_grid_size, new_z_coord]) => {
+watch(z_coord, (new_z_coord) => {
     renderer.value.update({
-        n_grid_columns: new_grid_size,
         z_coord: new_z_coord,
+    })
+})
+
+watch(w_coord, (new_w_coord) => {
+    renderer.value.update({
+        w_coord: new_w_coord,
     })
 })
 
@@ -153,14 +182,18 @@ onBeforeUnmount(() => {
                 <TextSingleSelect
                     text="Noise dimension"
                     name="dimension"
-                    :options="['2D', '3D']"
+                    :options="['2D', '3D', '4D']"
                     v-model="dimension"
                 />
 
-                <template v-if="dimension === '3D'">
+                <template v-if="dimension !== '2D'">
                     <p>Z coordinate: {{ z_coord }}</p>
-
                     <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
+
+                    <template v-if="dimension === '4D'">
+                        <p>W coordinate: {{ w_coord }}</p>
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
+                    </template>
 
                     <TextSingleSelect
                         text="Domain transformation"

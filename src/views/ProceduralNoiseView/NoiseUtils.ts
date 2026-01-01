@@ -1,11 +1,10 @@
-import { parseHexColor } from '@/utils/Colors'
 import {
-    createFloatUniform,
     createIntUniform,
-    createStorageBuffer,
-    updateArrayBuffer,
-    updateFloatUniform,
     updateIntUniform,
+    createFloatUniform,
+    updateFloatUniform,
+    createStorageBuffer,
+    updateStorageBuffer,
     WG_DIM,
 } from './ShaderUtils'
 import type { RenderLogic } from './ComputeRenderer'
@@ -22,6 +21,7 @@ export interface NoiseUniforms {
     n_octaves?: number
     persistence?: number
     z_coord?: number
+    w_coord?: number
     warp_strength?: number
     color_points?: Float32Array<ArrayBuffer>
 }
@@ -67,6 +67,19 @@ export function shaderRandomPoints3D(n: number = 256) {
     return array
 }
 
+export function shaderRandomPoints4D(n: number = 256) {
+    const array = new Float32Array(4 * n)
+
+    for (let i = 0; i < n; i++) {
+        const offset = 4 * i
+        array[offset] = Math.random()
+        array[offset + 1] = Math.random()
+        array[offset + 2] = Math.random()
+        array[offset + 3] = Math.random()
+    }
+    return array
+}
+
 export function shaderUnitVectors2D(n: number = 256) {
     const array = new Float32Array(2 * n)
 
@@ -106,26 +119,60 @@ export function shaderUnitVectors3D(n: number = 256) {
     return array
 }
 
+export function shaderUnitVectors4D(n: number = 256) {
+    const array = new Float32Array(4 * n)
+
+    for (let i = 0; i < n; i++) {
+        const theta_1 = Math.PI * Math.random()
+        const theta_2 = Math.PI * Math.random()
+        const phi = 2 * Math.PI * Math.random()
+
+        const sin_theta_1 = Math.sin(theta_1)
+        const cos_theta_1 = Math.cos(theta_1)
+
+        const sin_theta_2 = Math.sin(theta_2)
+        const cos_theta_2 = Math.cos(theta_2)
+
+        const sin_phi = Math.sin(phi)
+        const cos_phi = Math.cos(phi)
+
+        const x = cos_theta_1
+        const y = sin_theta_1 * cos_theta_2
+        const z = sin_theta_1 * sin_theta_2 * cos_phi
+        const w = sin_theta_1 * sin_theta_2 * sin_phi
+
+        const offset = 4 * i
+        array[offset] = x
+        array[offset + 1] = y
+        array[offset + 2] = z
+        array[offset + 3] = w
+    }
+    return array
+}
+
 export type DomainTransform = 'None' | 'Rotate' | 'Warp'
+export type NoiseDimension = '2D' | '3D' | '4D'
 
 export function noiseShader(
-    is_3D: boolean,
+    dimension: NoiseDimension,
     transform: DomainTransform,
     color_format: GPUTextureFormat,
 ): string {
-    const only_2D = is_3D ? '//' : ''
-    const only_3D = is_3D ? '' : '//'
-    const only_warp = is_3D && transform == 'Warp' ? '' : '//'
-    const vec_type = is_3D ? 'vec3f' : 'vec2f'
+    const only_2D = dimension === '2D' ? '' : '//'
+    const high_dim = dimension === '3D' || dimension == '4D' ? '' : '//'
+    const only_3D = dimension === '3D' ? '' : '//'
+    const only_4D = dimension === '4D' ? '' : '//'
+    const only_warp = dimension !== '2D' && transform == 'Warp' ? '' : '//'
+    const pos_type = dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
 
-    let final_noise_pos = 'scaled_pos'
-    let rotate_function = ''
+    const final_noise_pos = transform === 'None' ? 'scaled_pos' : 'transform(scaled_pos)'
+    let transform_function = ''
 
-    if (is_3D) {
-        if (transform == 'Rotate') {
-            rotate_function = /* wgsl */ `
-                // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
-                fn rotate(pos: vec3f) -> vec3f {
+    if (transform == 'Rotate') {
+        // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
+        if (dimension === '3D') {
+            transform_function = /* wgsl */ `
+                fn transform(pos: vec3f) -> vec3f {
                     let xz = pos.x + pos.z;
                     let s2 = xz * -0.211324865405187;
                     let yy = pos.y * 0.577350269189626;
@@ -135,38 +182,66 @@ export function noiseShader(
                     return vec3f(xr, yr, zr);
                 }
             `
-            final_noise_pos = 'rotate(scaled_pos)'
-        } else if (transform == 'Warp') {
-            final_noise_pos =
-                'vec3f(scaled_pos.xy, scaled_pos.z + noise(scaled_pos) * warp_strength)'
+        } else if (dimension === '4D') {
+            transform_function = /* wgsl */ `
+                fn transform(pos: vec4f) -> vec4f {
+                    let xyz = pos.x + pos.y + pos.z;
+                    let s3 = xyz * (-1.0 / 6.0);
+                    let ww = pos.w * 0.5;
+
+                    let xr = pos.x + s3 + ww;
+                    let yr = pos.y + s3 + ww;
+                    let zr = pos.z + s3 + ww;
+                    let wr = xyz * -0.5 + ww;
+
+                    return vec4f(xr, yr, zr, wr);
+                }
+            `
+        }
+    } else if (transform === 'Warp') {
+        if (dimension === '3D') {
+            transform_function = /* wgsl*/ `
+                fn transform(pos: vec3f) -> vec3f {
+                    return vec3f(pos.xy, pos.z + noise(pos) * warp_strength);
+                }
+            `
+        } else if (dimension === '4D') {
+            transform_function = /* wgsl*/ `
+                fn transform(pos: vec4f) -> vec4f {
+                    return vec4f(pos.xyz, pos.w + noise(pos) * warp_strength);
+                }
+            `
         }
     }
+
     return /* wgsl */ `
         // Define the noise function here:
         // fn noise(pos: vec2f) -> f32 { ... } (2D noise)
         // fn noise(pos: vec3f) -> f32 { ... } (3D noise)
+        // fn noise(pos: vec4f) -> f32 { ... } (4D noise)
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         @group(1) @binding(2) var<uniform> n_grid_columns: f32;
         @group(1) @binding(3) var<uniform> n_octaves: u32;
         @group(1) @binding(4) var<uniform> persistence: f32;
-        ${only_3D} @group(1) @binding(5) var<uniform> z_coordinate: f32;
-        ${only_warp} @group(1) @binding(6) var<uniform> warp_strength: f32;
+        ${high_dim} @group(1) @binding(5) var<uniform> z_coordinate: f32;
+        ${only_4D} @group(1) @binding(6) var<uniform> w_coordinate: f32;
+        ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
-        ${rotate_function}
+        ${transform_function}
 
-        fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${vec_type} {
+        fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${pos_type} {
             let n_grid_rows = n_grid_columns * texture_dims.y / texture_dims.x;
             let grid_dims = vec2f(n_grid_columns, n_grid_rows);
+            let noise_pos = grid_dims * texture_pos / texture_dims;
 
-            ${only_2D} return grid_dims * texture_pos / texture_dims;
-
-            ${only_3D} let noise_pos_2d = grid_dims * texture_pos / texture_dims;
-            ${only_3D} return vec3f(noise_pos_2d, z_coordinate);
+            ${only_2D} return noise_pos;
+            ${only_3D} return vec3f(noise_pos, z_coordinate);
+            ${only_4D} return vec4f(noise_pos, z_coordinate, w_coordinate);
         }
         
-        fn find_noise_value(noise_pos: ${vec_type}) -> f32 {
+        fn find_noise_value(noise_pos: ${pos_type}) -> f32 {
             var amplitude: f32 = 1;
             var frequency: f32 = 1;
             var noise_value: f32 = 0;
@@ -229,16 +304,16 @@ export function noiseShader(
 }
 
 export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
-    is_3D: boolean
+    dimension: NoiseDimension
     transform: DomainTransform
     noise_shader_code: string
 
     constructor(
         noise_shader_code: string,
-        is_3D: boolean = false,
+        dimension: NoiseDimension = '2D',
         transform: DomainTransform = 'None',
     ) {
-        this.is_3D = is_3D
+        this.dimension = dimension
         this.transform = transform
         this.noise_shader_code = noise_shader_code
     }
@@ -248,7 +323,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     createShader(color_format: GPUTextureFormat): string {
         return `
             ${this.noise_shader_code}
-            ${noiseShader(this.is_3D, this.transform, color_format)}
+            ${noiseShader(this.dimension, this.transform, color_format)}
         `
     }
 
@@ -258,6 +333,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     n_octaves!: GPUBuffer
     persistence!: GPUBuffer
     z_coord!: GPUBuffer
+    w_coord!: GPUBuffer
     warp_strength!: GPUBuffer
 
     static_bind_group!: GPUBindGroup
@@ -296,16 +372,23 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
             },
         ]
 
-        if (this.is_3D) {
+        if (this.dimension !== '2D') {
             this.z_coord = createFloatUniform(data.z_coord || 0, device)
             bind_group_entries.push({
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
+            if (this.dimension === '4D') {
+                this.w_coord = createFloatUniform(data.w_coord || 0, device)
+                bind_group_entries.push({
+                    binding: 6,
+                    resource: { buffer: this.w_coord },
+                })
+            }
             if (this.transform === 'Warp') {
                 this.warp_strength = createFloatUniform(data.warp_strength || 1, device)
                 bind_group_entries.push({
-                    binding: 6,
+                    binding: 7,
                     resource: { buffer: this.warp_strength },
                 })
             }
@@ -349,16 +432,19 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
         if (data.persistence) {
             updateFloatUniform(this.persistence, data.persistence, device)
         }
-        if (this.is_3D) {
+        if (this.dimension !== '2D') {
             if (data.z_coord !== undefined) {
                 updateFloatUniform(this.z_coord, data.z_coord, device)
+            }
+            if (this.dimension === '4D' && data.w_coord !== undefined) {
+                updateFloatUniform(this.w_coord, data.w_coord, device)
             }
             if (data.warp_strength) {
                 updateFloatUniform(this.warp_strength, data.warp_strength, device)
             }
         }
         if (data.color_points) {
-            updateArrayBuffer(this.color_points, data.color_points, device)
+            updateStorageBuffer(this.color_points, data.color_points, device)
             const new_n_colors = data.color_points.length / 4
 
             if (new_n_colors != this.n_colors) {

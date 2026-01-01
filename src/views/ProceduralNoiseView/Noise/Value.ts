@@ -84,7 +84,74 @@ export function value3DShader(): string {
 
 export class Value3D extends ProceduralNoise {
     constructor(transform: DomainTransform = 'None') {
-        super(value3DShader(), true, transform)
+        super(value3DShader(), '3D', transform)
+    }
+
+    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
+        return new Float32Array(n).map(Math.random)
+    }
+}
+
+export function value4DShader(): string {
+    return /* wgsl */ `
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<storage> values: array<f32>;
+
+        fn get_value(x: i32, y: i32, z: i32, w: i32) -> f32 {
+            let hash = hash_table[hash_table[hash_table[hash_table[x] + y] + z] + w];
+            return values[hash];
+        }
+
+        fn fade(t: vec4f) -> vec4f {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+
+        fn noise(global_pos: vec4f) -> f32 {
+            let floor_pos = floor(global_pos);
+            let p0 = vec4i(floor_pos) & vec4i(255, 255, 255, 255);
+            let p1 = (p0 + 1i) & vec4i(255, 255, 255, 255);
+            
+            let a = get_value(p0.x, p0.y, p0.z, p0.w);
+            let b = get_value(p1.x, p0.y, p0.z, p0.w);
+            let c = get_value(p0.x, p1.y, p0.z, p0.w);
+            let d = get_value(p1.x, p1.y, p0.z, p0.w);
+            let e = get_value(p0.x, p0.y, p1.z, p0.w);
+            let f = get_value(p1.x, p0.y, p1.z, p0.w);
+            let g = get_value(p0.x, p1.y, p1.z, p0.w);
+            let h = get_value(p1.x, p1.y, p1.z, p0.w);
+
+            let i = get_value(p0.x, p0.y, p0.z, p1.w);
+            let j = get_value(p1.x, p0.y, p0.z, p1.w);
+            let k = get_value(p0.x, p1.y, p0.z, p1.w);
+            let l = get_value(p1.x, p1.y, p0.z, p1.w);
+            let m = get_value(p0.x, p0.y, p1.z, p1.w);
+            let n = get_value(p1.x, p0.y, p1.z, p1.w);
+            let o = get_value(p0.x, p1.y, p1.z, p1.w);
+            let p = get_value(p1.x, p1.y, p1.z, p1.w);
+            
+            let local_pos = global_pos - floor_pos;
+            let s = fade(local_pos);
+            
+            return mix(
+                mix(
+                    mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
+                    mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
+                    s.z
+                ),
+                mix(
+                    mix(mix(i, j, s.x), mix(k, l, s.x), s.y),
+                    mix(mix(m, n, s.x), mix(o, p, s.x), s.y),
+                    s.z
+                ),
+                s.w
+            );
+        }
+    `
+}
+
+export class Value4D extends ProceduralNoise {
+    constructor(transform: DomainTransform = 'None') {
+        super(value4DShader(), '4D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {
