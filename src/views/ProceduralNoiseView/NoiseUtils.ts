@@ -32,7 +32,7 @@ export function generateHashTable(n: number = 256) {
     for (let i = 0; i < n; i++) {
         hash_table[i] = i
     }
-    for (let i = 0; i < 256; i++) {
+    for (let i = 0; i < n; i++) {
         const temp = hash_table[i]
         const swap_index = Math.floor(Math.random() * n)
         hash_table[i] = hash_table[swap_index]
