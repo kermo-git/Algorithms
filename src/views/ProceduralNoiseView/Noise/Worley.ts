@@ -49,8 +49,8 @@ export function worley2DShader(second_closest = false): string {
 }
 
 export class Worley2D extends ProceduralNoise {
-    constructor(second_closest: boolean) {
-        super(worley2DShader(second_closest))
+    constructor(second_closest: boolean, transform: DomainTransform = 'None') {
+        super(worley2DShader(second_closest), '2D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

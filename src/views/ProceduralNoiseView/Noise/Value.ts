@@ -33,8 +33,8 @@ export function value2DShader(): string {
 }
 
 export class Value2D extends ProceduralNoise {
-    constructor() {
-        super(value2DShader())
+    constructor(transform: DomainTransform = 'None') {
+        super(value2DShader(), '2D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

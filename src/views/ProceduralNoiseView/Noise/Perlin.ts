@@ -45,8 +45,8 @@ export function perlin2DShader(): string {
 }
 
 export class Perlin2D extends ProceduralNoise {
-    constructor() {
-        super(perlin2DShader())
+    constructor(transform: DomainTransform = 'None') {
+        super(perlin2DShader(), '2D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

@@ -75,8 +75,8 @@ export function simplex2DShader(): string {
 }
 
 export class Simplex2D extends ProceduralNoise {
-    constructor() {
-        super(simplex2DShader())
+    constructor(transform: DomainTransform = 'None') {
+        super(simplex2DShader(), '2D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

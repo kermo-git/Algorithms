@@ -70,8 +70,8 @@ export function cubic2DShader(): string {
 }
 
 export class Cubic2D extends ProceduralNoise {
-    constructor() {
-        super(cubic2DShader())
+    constructor(transform: DomainTransform = 'None') {
+        super(cubic2DShader(), '2D', transform)
     }
 
     generateRandomElements(n: number): Float32Array<ArrayBuffer> {

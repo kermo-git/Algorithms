@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
@@ -39,7 +39,7 @@ function createRenderer(algorithm: string, dimension: NoiseDimension, transform:
         const second_closest = algorithm === 'Worley (2nd closest)'
 
         if (dimension === '2D') {
-            render_logic = new Worley2D(second_closest)
+            render_logic = new Worley2D(second_closest, transform)
         } else if (dimension === '3D') {
             render_logic = new Worley3D(second_closest, transform)
         } else {
@@ -47,7 +47,7 @@ function createRenderer(algorithm: string, dimension: NoiseDimension, transform:
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
-            render_logic = new Value2D()
+            render_logic = new Value2D(transform)
         } else if (dimension === '3D') {
             render_logic = new Value3D(transform)
         } else {
@@ -55,7 +55,7 @@ function createRenderer(algorithm: string, dimension: NoiseDimension, transform:
         }
     } else if (algorithm === 'Simplex') {
         if (dimension === '2D') {
-            render_logic = new Simplex2D()
+            render_logic = new Simplex2D(transform)
         } else if (dimension === '3D') {
             render_logic = new Simplex3D(transform)
         } else {
@@ -63,7 +63,7 @@ function createRenderer(algorithm: string, dimension: NoiseDimension, transform:
         }
     } else if (algorithm === 'Cubic') {
         if (dimension === '2D') {
-            render_logic = new Cubic2D()
+            render_logic = new Cubic2D(transform)
         } else if (dimension === '3D') {
             render_logic = new Cubic3D(transform)
         } else {
@@ -71,7 +71,7 @@ function createRenderer(algorithm: string, dimension: NoiseDimension, transform:
         }
     } else {
         if (dimension === '2D') {
-            render_logic = new Perlin2D()
+            render_logic = new Perlin2D(transform)
         } else if (dimension === '3D') {
             render_logic = new Perlin3D(transform)
         } else {
@@ -145,6 +145,15 @@ watch(color_points, (new_color_points) => {
     })
 })
 
+watch(dimension, (new_dimension) => {
+    if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
+        domain_transform.value = 'None'
+    }
+    if (new_dimension === '4D' && domain_transform.value === 'Warp') {
+        domain_transform.value = 'None'
+    }
+})
+
 watch(
     [algorithm, dimension, domain_transform],
     ([new_algorithm, new_dimension, new_domain_transform]) => {
@@ -159,6 +168,14 @@ watch(
 onBeforeUnmount(() => {
     renderer.value.cleanup()
 })
+
+const available_transforms = computed(() =>
+    dimension.value === '2D'
+        ? ['None', 'Warp']
+        : dimension.value === '3D'
+          ? ['None', 'Rotate', 'Warp']
+          : ['None', 'Rotate'],
+)
 </script>
 
 <template>
@@ -194,18 +211,18 @@ onBeforeUnmount(() => {
                         <p>W coordinate: {{ w_coord }}</p>
                         <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
                     </template>
+                </template>
 
-                    <TextSingleSelect
-                        text="Domain transformation"
-                        name="domain_transform"
-                        :options="['None', 'Rotate', 'Warp']"
-                        v-model="domain_transform"
-                    />
+                <TextSingleSelect
+                    text="Domain transformation"
+                    name="domain_transform"
+                    :options="available_transforms"
+                    v-model="domain_transform"
+                />
 
-                    <template v-if="domain_transform === 'Warp'">
-                        <p>Warp strength: {{ warp_strength }}</p>
-                        <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
-                    </template>
+                <template v-if="domain_transform === 'Warp'">
+                    <p>Warp strength: {{ warp_strength }}</p>
+                    <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
                 </template>
 
                 <NumberSingleSelect
