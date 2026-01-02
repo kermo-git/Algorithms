@@ -165,7 +165,16 @@ export function noiseShader(
     const only_warp = dimension !== '2D' && transform == 'Warp' ? '' : '//'
     const pos_type = dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
 
-    const final_noise_pos = transform === 'None' ? 'scaled_pos' : 'transform(scaled_pos)'
+    let noise_pos_expr = 'noise_pos'
+
+    if (dimension === '3D') {
+        noise_pos_expr = 'vec3f(noise_pos, z_coordinate)'
+    } else if (dimension === '4D') {
+        noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
+    }
+    if (transform !== 'None') {
+        noise_pos_expr = `transform(${noise_pos_expr})`
+    }
     let transform_function = ''
 
     if (transform == 'Rotate') {
@@ -236,9 +245,7 @@ export function noiseShader(
             let grid_dims = vec2f(n_grid_columns, n_grid_rows);
             let noise_pos = grid_dims * texture_pos / texture_dims;
 
-            ${only_2D} return noise_pos;
-            ${only_3D} return vec3f(noise_pos, z_coordinate);
-            ${only_4D} return vec4f(noise_pos, z_coordinate, w_coordinate);
+            return ${noise_pos_expr};
         }
         
         fn find_noise_value(noise_pos: ${pos_type}) -> f32 {
@@ -249,7 +256,7 @@ export function noiseShader(
 
             for (var i = 0u; i < n_octaves; i++) {
                 let scaled_pos = noise_pos * frequency;
-                noise_value += amplitude * noise(${final_noise_pos});
+                noise_value += amplitude * noise(scaled_pos);
                 max_noise_value += amplitude;
                 frequency *= 2;
                 amplitude *= persistence;

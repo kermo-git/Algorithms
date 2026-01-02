@@ -27,13 +27,14 @@ export function simplex2DShader(): string {
             if (t < 0) {
                 return 0;
             }
-            let hash = hash_table[hash_table[skew_c.x] + skew_c.y];
+            let hash = hash_table[
+                hash_table[skew_c.x & 255] + skew_c.y & 255
+            ];
             return t * t * t * t * dot(gradients[hash], c_pos);
         }
 
         const SKEW_CONSTANT = ${skew_constant(2)};
         const UNSKEW_CONSTANT = ${unskew_constant(2)};
-        const MASK = vec2i(255, 255);
         
         fn skew(v: vec2f) -> vec2f {
             return v + (v.x + v.y) * SKEW_CONSTANT;
@@ -63,9 +64,9 @@ export function simplex2DShader(): string {
             let skew_c1 = skew_c0 + skew_c0_c1;
             let skew_c2 = skew_c0 + skew_c0_c2;
 
-            let i0 = influence(skew_c0 & MASK, c0_pos);
-            let i1 = influence(skew_c1 & MASK, c1_pos);
-            let i2 = influence(skew_c2 & MASK, c2_pos);
+            let i0 = influence(skew_c0, c0_pos);
+            let i1 = influence(skew_c1, c1_pos);
+            let i2 = influence(skew_c2, c2_pos);
 
             let n = 70 * (i0 + i1 + i2);
             return (clamp(n, -1, 1) + 1) * 0.5;
@@ -94,15 +95,15 @@ export function simplex3DShader(): string {
             if (t < 0) {
                 return 0;
             }
+            let mask_c = skew_c & vec3i(255);
             let hash = hash_table[
-                hash_table[hash_table[skew_c.x] + skew_c.y] + skew_c.z
+                hash_table[hash_table[mask_c.x] + mask_c.y] + mask_c.z
             ];
             return t * t * t * t * dot(gradients[hash], c_pos);
         }
 
         const SKEW_CONSTANT = ${skew_constant(3)};
         const UNSKEW_CONSTANT = ${unskew_constant(3)};
-        const MASK = vec3i(255, 255, 255);
         
         fn skew(v: vec3f) -> vec3f {
             return v + (v.x + v.y + v.z) * SKEW_CONSTANT;
@@ -159,10 +160,10 @@ export function simplex3DShader(): string {
             let skew_c2 = skew_c0 + skew_c0_c2;
             let skew_c3 = skew_c0 + skew_c0_c3;
 
-            let i0 = influence(skew_c0 & MASK, c0_pos);
-            let i1 = influence(skew_c1 & MASK, c1_pos);
-            let i2 = influence(skew_c2 & MASK, c2_pos);
-            let i3 = influence(skew_c3 & MASK, c3_pos);
+            let i0 = influence(skew_c0, c0_pos);
+            let i1 = influence(skew_c1, c1_pos);
+            let i2 = influence(skew_c2, c2_pos);
+            let i3 = influence(skew_c3, c3_pos);
 
             let n = 32 * (i0 + i1 + i2 + i3);
             return (clamp(n, -1, 1) + 1) * 0.5;
@@ -191,19 +192,19 @@ export function simplex4DShader(): string {
             if (t < 0) {
                 return 0;
             }
+            let mask_c = skew_c & vec4i(255);
             let hash = hash_table[
                 hash_table[
                     hash_table[
-                        hash_table[skew_c.x] + skew_c.y
-                    ] + skew_c.z
-                ] + skew_c.w
+                        hash_table[mask_c.x] + mask_c.y
+                    ] + mask_c.z
+                ] + mask_c.w
             ];
             return t * t * t * t * dot(gradients[hash], c_pos);
         }
 
         const SKEW_CONSTANT = ${skew_constant(4)};
         const UNSKEW_CONSTANT = ${unskew_constant(4)};
-        const MASK = vec4i(255, 255, 255, 255);
         
         fn skew(v: vec4f) -> vec4f {
             return v + (v.x + v.y + v.z + v.w) * SKEW_CONSTANT;
@@ -385,11 +386,11 @@ export function simplex4DShader(): string {
             let skew_c3 = skew_c0 + skew_c0_c3;
             let skew_c4 = skew_c0 + skew_c0_c4;
 
-            let i0 = influence(skew_c0 & MASK, c0_pos);
-            let i1 = influence(skew_c1 & MASK, c1_pos);
-            let i2 = influence(skew_c2 & MASK, c2_pos);
-            let i3 = influence(skew_c3 & MASK, c3_pos);
-            let i4 = influence(skew_c4 & MASK, c4_pos);
+            let i0 = influence(skew_c0, c0_pos);
+            let i1 = influence(skew_c1, c1_pos);
+            let i2 = influence(skew_c2, c2_pos);
+            let i3 = influence(skew_c3, c3_pos);
+            let i4 = influence(skew_c4, c4_pos);
 
             let n = 27 * (i0 + i1 + i2 + i3 + i4);
             return (clamp(n, -1, 1) + 1) * 0.5;
