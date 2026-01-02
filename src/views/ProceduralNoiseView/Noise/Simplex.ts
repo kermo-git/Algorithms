@@ -28,7 +28,7 @@ export function simplex2DShader(): string {
                 return 0;
             }
             let hash = hash_table[
-                hash_table[skew_c.x & 255] + skew_c.y & 255
+                hash_table[skew_c.x & 255] + (skew_c.y & 255)
             ];
             return t * t * t * t * dot(gradients[hash], c_pos);
         }
