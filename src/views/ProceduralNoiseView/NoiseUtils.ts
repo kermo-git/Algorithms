@@ -10,7 +10,7 @@ import {
     randVec3f,
     randVec4f,
 } from './ShaderUtils'
-import type { RenderLogic } from './ComputeRenderer'
+import { compileShader, createComputePipeline, type Scene } from './ComputeRenderer'
 
 export interface ShaderBindIndexes {
     bindGroup: number
@@ -326,7 +326,7 @@ export function noiseShader(
     `
 }
 
-export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
+export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
     dimension: NoiseDimension
     transform: DomainTransform
     noise_shader_code: string
@@ -349,6 +349,11 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
             ${noiseShader(this.dimension, this.transform, color_format)}
         `
     }
+    pipeline!: GPUComputePipeline
+
+    getPipeline(): GPUComputePipeline {
+        return this.pipeline
+    }
 
     hash_table!: GPUBuffer
     random_elements!: GPUBuffer
@@ -365,7 +370,10 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
-    createBuffers(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+    async init(data: NoiseUniforms, device: GPUDevice, color_format: GPUTextureFormat) {
+        const shader_code = this.createShader(color_format)
+        this.pipeline = await createComputePipeline(shader_code, device)
+
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.random_elements = createStorageBuffer(this.generateRandomElements(256), device)
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
@@ -418,7 +426,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
         }
 
         this.static_bind_group = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(1),
+            layout: this.pipeline.getBindGroupLayout(1),
             entries: bind_group_entries,
         })
 
@@ -427,7 +435,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
         this.color_points = createStorageBuffer(color_points_data, device, 256)
 
         this.color_bind_group = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(2),
+            layout: this.pipeline.getBindGroupLayout(2),
             entries: [
                 {
                     binding: 0,
@@ -440,12 +448,23 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
         })
     }
 
-    bindBuffers(encoder: GPUComputePassEncoder): void {
+    render(encoder: GPUComputePassEncoder, device: GPUDevice, texture_view: GPUTextureView): void {
+        const canvas_bind_group = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture_view,
+                },
+            ],
+        })
+        encoder.setPipeline(this.pipeline)
+        encoder.setBindGroup(0, canvas_bind_group)
         encoder.setBindGroup(1, this.static_bind_group)
         encoder.setBindGroup(2, this.color_bind_group)
     }
 
-    update(data: NoiseUniforms, device: GPUDevice, pipeline: GPUComputePipeline): void {
+    update(data: NoiseUniforms, device: GPUDevice): void {
         if (data.n_grid_columns) {
             updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
         }
@@ -473,7 +492,7 @@ export abstract class ProceduralNoise implements RenderLogic<NoiseUniforms> {
             if (new_n_colors != this.n_colors) {
                 this.n_colors = new_n_colors
                 this.color_bind_group = device.createBindGroup({
-                    layout: pipeline.getBindGroupLayout(2),
+                    layout: this.pipeline.getBindGroupLayout(2),
                     entries: [
                         {
                             binding: 0,

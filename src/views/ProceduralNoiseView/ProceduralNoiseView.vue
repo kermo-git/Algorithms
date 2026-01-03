@@ -7,7 +7,7 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
-import ComputeRenderer, { type RenderLogic } from './ComputeRenderer'
+import ComputeRenderer, { type Scene } from './ComputeRenderer'
 import { Perlin2D, Perlin3D, Perlin4D } from './Noise/Perlin'
 import { Simplex2D, Simplex3D, Simplex4D } from './Noise/Simplex'
 import { Cubic2D, Cubic3D, Cubic4D } from './Noise/Cubic'
@@ -33,7 +33,7 @@ const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
 function createRenderer(algorithm: string, dimension: NoiseDimension, transform: DomainTransform) {
-    let render_logic: RenderLogic<NoiseUniforms>
+    let render_logic: Scene<NoiseUniforms>
 
     if (algorithm.startsWith('Worley')) {
         const second_closest = algorithm === 'Worley (2nd closest)'

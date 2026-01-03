@@ -1,6 +1,9 @@
 import { WG_DIM } from './ShaderUtils'
 
-async function compileShader(device: GPUDevice, shader_code: string): Promise<GPUShaderModule> {
+export async function compileShader(
+    device: GPUDevice,
+    shader_code: string,
+): Promise<GPUShaderModule> {
     const trimmed_code = shader_code.trim()
 
     const module = device.createShaderModule({
@@ -20,24 +23,33 @@ async function compileShader(device: GPUDevice, shader_code: string): Promise<GP
     return module
 }
 
-export interface RenderLogic<UniformData> {
-    createShader(color_format: GPUTextureFormat): string
-    createBuffers(data: UniformData, device: GPUDevice, pipeline: GPUComputePipeline): void
-    bindBuffers(encoder: GPUComputePassEncoder): void
-    update(data: UniformData, device: GPUDevice, pipeline: GPUComputePipeline): void
+export async function createComputePipeline(shader_code: string, device: GPUDevice) {
+    const shader_module = await compileShader(device, shader_code)
+
+    return device.createComputePipeline({
+        layout: 'auto',
+        compute: {
+            module: shader_module,
+        },
+    })
+}
+
+export interface Scene<UniformData> {
+    init(data: UniformData, device: GPUDevice, color_format: GPUTextureFormat): Promise<void>
+    render(encoder: GPUComputePassEncoder, device: GPUDevice, texture_view: GPUTextureView): void
+    update(data: UniformData, device: GPUDevice): void
     cleanup(): void
 }
 
 export default class ComputeRenderer<UniformData> {
-    logic: RenderLogic<UniformData>
+    scene: Scene<UniformData>
 
     device!: GPUDevice
-    pipeline!: GPUComputePipeline
     context!: GPUCanvasContext
     observer!: ResizeObserver
 
-    constructor(logic: RenderLogic<UniformData>) {
-        this.logic = logic
+    constructor(scene: Scene<UniformData>) {
+        this.scene = scene
     }
 
     async init(canvas: HTMLCanvasElement, data: UniformData) {
@@ -65,17 +77,7 @@ export default class ComputeRenderer<UniformData> {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
 
-        const shader_code = this.logic.createShader(color_format)
-        const shader_module = await compileShader(this.device, shader_code)
-
-        this.pipeline = this.device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: shader_module,
-            },
-        })
-
-        this.logic.createBuffers(data, this.device, this.pipeline)
+        await this.scene.init(data, this.device, color_format)
 
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
@@ -94,45 +96,28 @@ export default class ComputeRenderer<UniformData> {
     }
 
     update(data: UniformData) {
-        this.logic.update(data, this.device, this.pipeline)
+        this.scene.update(data, this.device)
         this.render()
     }
 
-    frame_id = 0
     render() {
-        const render_callback = () => {
-            const texture = this.context.getCurrentTexture()
+        const texture = this.context.getCurrentTexture()
+        const cmd_encoder = this.device.createCommandEncoder()
+        const pass_encoder = cmd_encoder.beginComputePass()
 
-            const canvas_bind_group = this.device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(0),
-                entries: [
-                    {
-                        binding: 0,
-                        resource: texture.createView(),
-                    },
-                ],
-            })
-            const cmd_encoder = this.device.createCommandEncoder()
-            const pass_encoder = cmd_encoder.beginComputePass()
+        this.scene.render(pass_encoder, this.device, texture.createView())
+        pass_encoder.dispatchWorkgroups(
+            Math.ceil(texture.width / WG_DIM),
+            Math.ceil(texture.height / WG_DIM),
+        )
+        pass_encoder.end()
 
-            pass_encoder.setPipeline(this.pipeline)
-            pass_encoder.setBindGroup(0, canvas_bind_group)
-            this.logic.bindBuffers(pass_encoder)
-            pass_encoder.dispatchWorkgroups(
-                Math.ceil(texture.width / WG_DIM),
-                Math.ceil(texture.height / WG_DIM),
-            )
-            pass_encoder.end()
-
-            this.device.queue.submit([cmd_encoder.finish()])
-        }
-        this.frame_id = requestAnimationFrame(render_callback)
+        this.device.queue.submit([cmd_encoder.finish()])
     }
 
     cleanup() {
-        cancelAnimationFrame(this.frame_id)
         this.context.unconfigure()
         this.observer.disconnect()
-        this.logic.cleanup()
+        this.scene.cleanup()
     }
 }
