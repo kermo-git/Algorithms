@@ -7,19 +7,19 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
-import ComputeRenderer, { type Scene } from './ComputeRenderer'
-import { Perlin2D, Perlin3D, Perlin4D } from './Noise/Perlin'
-import { Simplex2D, Simplex3D, Simplex4D } from './Noise/Simplex'
-import { Cubic2D, Cubic3D, Cubic4D } from './Noise/Cubic'
-import { Worley2D, Worley3D, Worley4D } from './Noise/Worley'
-import { Value2D, Value3D, Value4D } from './Noise/Value'
+import ComputeRenderer from './ComputeRenderer'
+import { Perlin2D, Perlin3D, Perlin4D } from './NoiseFunctions/Perlin'
+import { Simplex2D, Simplex3D, Simplex4D } from './NoiseFunctions/Simplex'
+import { Cubic2D, Cubic3D, Cubic4D } from './NoiseFunctions/Cubic'
+import { Worley2D, Worley3D, Worley4D } from './NoiseFunctions/Worley'
+import { Value2D, Value3D, Value4D } from './NoiseFunctions/Value'
 import {
-    defaultColorPoints,
-    ProceduralNoise,
+    NoiseScene,
     type DomainTransform,
     type NoiseDimension,
     type NoiseUniforms,
-} from './NoiseUtils'
+} from './NoiseUtils/NoiseScene'
+import { defaultColorPoints } from './NoiseUtils/Buffers'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
@@ -37,7 +37,7 @@ function createScene(
     algorithm: string,
     dimension: NoiseDimension,
     transform: DomainTransform,
-): ProceduralNoise {
+): NoiseScene {
     if (algorithm.startsWith('Worley')) {
         const second_closest = algorithm === 'Worley (2nd closest)'
 

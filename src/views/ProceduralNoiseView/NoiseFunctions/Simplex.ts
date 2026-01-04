@@ -1,12 +1,11 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
 import {
-    ProceduralNoise,
     shaderUnitVectors2D,
     shaderUnitVectors3D,
     shaderUnitVectors4D,
-    type DomainTransform,
-} from '../NoiseUtils'
+} from '../NoiseUtils/Buffers'
+import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 function skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions
@@ -74,7 +73,7 @@ export function simplex2DShader(): string {
     `
 }
 
-export class Simplex2D extends ProceduralNoise {
+export class Simplex2D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(simplex2DShader(), '2D', transform)
     }
@@ -171,7 +170,7 @@ export function simplex3DShader(): string {
     `
 }
 
-export class Simplex3D extends ProceduralNoise {
+export class Simplex3D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(simplex3DShader(), '3D', transform)
     }
@@ -398,7 +397,7 @@ export function simplex4DShader(): string {
     `
 }
 
-export class Simplex4D extends ProceduralNoise {
+export class Simplex4D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(simplex4DShader(), '4D', transform)
     }

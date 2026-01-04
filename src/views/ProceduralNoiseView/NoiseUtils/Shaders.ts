@@ -1,0 +1,184 @@
+import { WG_DIM } from '../ShaderUtils'
+import type { DomainTransform, NoiseDimension } from './NoiseScene'
+
+export function randVec2f(max_value = 5) {
+    return `vec2f(${max_value * Math.random()}, ${max_value * Math.random()})`
+}
+
+export function randVec3f(max_value = 5) {
+    return `vec3f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
+}
+
+export function randVec4f(max_value = 5) {
+    return `vec4f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
+}
+
+export function noiseShader(
+    dimension: NoiseDimension,
+    transform: DomainTransform,
+    color_format: GPUTextureFormat,
+): string {
+    const high_dim = dimension === '3D' || dimension == '4D' ? '' : '//'
+    const only_4D = dimension === '4D' ? '' : '//'
+    const only_warp = transform == 'Warp' ? '' : '//'
+    const pos_type = dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
+
+    let noise_pos_expr = 'noise_pos'
+    let rotate_function = ''
+
+    let main_noise_function_name = 'octave_noise'
+    let warp_function = ''
+
+    if (dimension === '3D') {
+        noise_pos_expr = 'vec3f(noise_pos, z_coordinate)'
+    } else if (dimension === '4D') {
+        noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
+    }
+
+    if (dimension !== '2D' && transform === 'Rotate') {
+        noise_pos_expr = `rotate(${noise_pos_expr})`
+
+        // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
+        if (dimension === '3D') {
+            rotate_function = /* wgsl */ `
+                fn rotate(pos: vec3f) -> vec3f {
+                    let xz = pos.x + pos.z;
+                    let s2 = xz * -0.211324865405187;
+                    let yy = pos.y * 0.577350269189626;
+                    let xr = pos.x + (s2 + yy);
+                    let zr = pos.z + (s2 + yy);
+                    let yr = xz * -0.577350269189626 + yy;
+                    return vec3f(xr, yr, zr);
+                }
+            `
+        } else if (dimension === '4D') {
+            rotate_function = /* wgsl */ `
+                fn rotate(pos: vec4f) -> vec4f {
+                    let xyz = pos.x + pos.y + pos.z;
+                    let s3 = xyz * (-1.0 / 6.0);
+                    let ww = pos.w * 0.5;
+
+                    let xr = pos.x + s3 + ww;
+                    let yr = pos.y + s3 + ww;
+                    let zr = pos.z + s3 + ww;
+                    let wr = xyz * -0.5 + ww;
+
+                    return vec4f(xr, yr, zr, wr);
+                }
+            `
+        }
+    } else if (dimension !== '4D' && transform === 'Warp') {
+        main_noise_function_name = 'warp_noise'
+
+        if (dimension === '2D') {
+            warp_function = /* wgsl */ `
+                fn warp_noise(noise_pos: vec2f) -> f32 {
+                    let pos_q = vec2f(
+                        octave_noise(noise_pos + ${randVec2f()}),
+                        octave_noise(noise_pos + ${randVec2f()})
+                    );
+                    return octave_noise(noise_pos + warp_strength * pos_q);
+                }
+            `
+        } else if (dimension === '3D') {
+            warp_function = /* wgsl */ `
+                fn warp_noise(noise_pos: vec3f) -> f32 {
+                    let pos_q = vec3f(
+                        octave_noise(noise_pos + ${randVec3f()}),
+                        octave_noise(noise_pos + ${randVec3f()}),
+                        octave_noise(noise_pos + ${randVec3f()})
+                    );
+                    return octave_noise(noise_pos + warp_strength * pos_q);
+                }
+            `
+        }
+    }
+
+    return /* wgsl */ `
+        // Define the noise function here:
+        // fn noise(pos: vec2f) -> f32 { ... } (2D noise)
+        // fn noise(pos: vec3f) -> f32 { ... } (3D noise)
+        // fn noise(pos: vec4f) -> f32 { ... } (4D noise)
+
+        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(1) @binding(2) var<uniform> n_grid_columns: f32;
+        @group(1) @binding(3) var<uniform> n_octaves: u32;
+        @group(1) @binding(4) var<uniform> persistence: f32;
+        ${high_dim} @group(1) @binding(5) var<uniform> z_coordinate: f32;
+        ${only_4D} @group(1) @binding(6) var<uniform> w_coordinate: f32;
+        ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
+        @group(2) @binding(0) var<storage> color_points: array<vec4f>;
+
+        ${rotate_function}
+
+        fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${pos_type} {
+            let n_grid_rows = n_grid_columns * texture_dims.y / texture_dims.x;
+            let grid_dims = vec2f(n_grid_columns, n_grid_rows);
+            let noise_pos = grid_dims * texture_pos / texture_dims;
+
+            return ${noise_pos_expr};
+        }
+        
+        fn octave_noise(noise_pos: ${pos_type}) -> f32 {
+            var amplitude: f32 = 1;
+            var frequency: f32 = 1;
+            var noise_value: f32 = 0;
+            var max_noise_value: f32 = 0;
+
+            for (var i = 0u; i < n_octaves; i++) {
+                let scaled_pos = noise_pos * frequency;
+                noise_value += amplitude * noise(scaled_pos);
+                max_noise_value += amplitude;
+                frequency *= 2;
+                amplitude *= persistence;
+            }
+            return noise_value / max_noise_value;
+        }
+
+        ${warp_function}
+
+        fn interpolate_colors(noise_value: f32) -> vec4f {
+            let n_colors = arrayLength(&color_points);
+
+            if noise_value <= color_points[0].w {
+                return vec4f(color_points[0].xyz, 1);
+            } else if noise_value > color_points[n_colors - 1].w {
+                return vec4f(color_points[n_colors - 1].xyz, 1);
+            } else {
+                var prev_color = color_points[0].xyz;
+                var prev_point = color_points[0].w;
+
+                for (var i = 1u; i < n_colors; i++) {
+                    var current_color = color_points[i].xyz;
+                    var current_point = color_points[i].w;
+
+                    if noise_value <= current_point {
+                        let blend_factor = (noise_value - prev_point) / (current_point - prev_point);
+                        let color = mix(prev_color, current_color, blend_factor);
+                        return vec4f(color, 1);
+                    }
+                    prev_color = current_color;
+                    prev_point = current_point;
+                }
+            }
+            return vec4f(vec3f(noise_value), 1);
+        }
+        
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+        fn main(
+            @builtin(global_invocation_id) gid: vec3u
+        ) {
+            let texture_pos = gid.xy;
+            let texture_dims = textureDimensions(texture);
+
+            if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
+                return;
+            }
+            let noise_pos = find_noise_pos(vec2f(texture_pos), vec2f(texture_dims));
+            let noise_value = ${main_noise_function_name}(noise_pos);
+            let color = interpolate_colors(noise_value);
+
+            textureStore(texture, texture_pos, color);
+        }
+    `
+}

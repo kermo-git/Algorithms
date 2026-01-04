@@ -1,4 +1,4 @@
-import { ProceduralNoise, type DomainTransform } from '../NoiseUtils'
+import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 export function cubic2DShader(): string {
     return /* wgsl */ `
@@ -69,7 +69,7 @@ export function cubic2DShader(): string {
     `
 }
 
-export class Cubic2D extends ProceduralNoise {
+export class Cubic2D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(cubic2DShader(), '2D', transform)
     }
@@ -148,7 +148,7 @@ export function cubic3DShader(): string {
     `
 }
 
-export class Cubic3D extends ProceduralNoise {
+export class Cubic3D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(cubic3DShader(), '3D', transform)
     }
@@ -240,7 +240,7 @@ export function cubic4DShader(): string {
     `
 }
 
-export class Cubic4D extends ProceduralNoise {
+export class Cubic4D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(cubic4DShader(), '4D', transform)
     }

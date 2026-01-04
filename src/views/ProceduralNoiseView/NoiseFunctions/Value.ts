@@ -1,4 +1,4 @@
-import { noiseShader, ProceduralNoise, type DomainTransform } from '../NoiseUtils'
+import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 export function value2DShader(): string {
     return /* wgsl */ `
@@ -32,7 +32,7 @@ export function value2DShader(): string {
     `
 }
 
-export class Value2D extends ProceduralNoise {
+export class Value2D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(value2DShader(), '2D', transform)
     }
@@ -82,7 +82,7 @@ export function value3DShader(): string {
     `
 }
 
-export class Value3D extends ProceduralNoise {
+export class Value3D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(value3DShader(), '3D', transform)
     }
@@ -149,7 +149,7 @@ export function value4DShader(): string {
     `
 }
 
-export class Value4D extends ProceduralNoise {
+export class Value4D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(value4DShader(), '4D', transform)
     }

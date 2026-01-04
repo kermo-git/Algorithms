@@ -1,10 +1,9 @@
 import {
-    ProceduralNoise,
     shaderUnitVectors2D,
     shaderUnitVectors3D,
     shaderUnitVectors4D,
-    type DomainTransform,
-} from '../NoiseUtils'
+} from '../NoiseUtils/Buffers'
+import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 export function perlin2DShader(): string {
     return /* wgsl */ `
@@ -44,7 +43,7 @@ export function perlin2DShader(): string {
     `
 }
 
-export class Perlin2D extends ProceduralNoise {
+export class Perlin2D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(perlin2DShader(), '2D', transform)
     }
@@ -105,7 +104,7 @@ export function perlin3DShader(): string {
     `
 }
 
-export class Perlin3D extends ProceduralNoise {
+export class Perlin3D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(perlin3DShader(), '3D', transform)
     }
@@ -193,7 +192,7 @@ export function perlin4DShader(): string {
     `
 }
 
-export class Perlin4D extends ProceduralNoise {
+export class Perlin4D extends NoiseScene {
     constructor(transform: DomainTransform = 'None') {
         super(perlin4DShader(), '4D', transform)
     }

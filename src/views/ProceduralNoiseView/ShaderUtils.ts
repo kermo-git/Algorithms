@@ -48,15 +48,3 @@ export function createStorageBuffer(
 export function updateStorageBuffer(buffer: GPUBuffer, data: BufferData, device: GPUDevice) {
     device.queue.writeBuffer(buffer, 0, data, 0, data.length)
 }
-
-export function randVec2f(max_value = 5) {
-    return `vec2f(${max_value * Math.random()}, ${max_value * Math.random()})`
-}
-
-export function randVec3f(max_value = 5) {
-    return `vec3f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
-}
-
-export function randVec4f(max_value = 5) {
-    return `vec4f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
-}

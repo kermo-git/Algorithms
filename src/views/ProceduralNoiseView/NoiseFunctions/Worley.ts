@@ -1,10 +1,9 @@
 import {
-    ProceduralNoise,
     shaderRandomPoints2D,
     shaderRandomPoints3D,
     shaderRandomPoints4D,
-    type DomainTransform,
-} from '../NoiseUtils'
+} from '../NoiseUtils/Buffers'
+import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 export function worley2DShader(second_closest = false): string {
     const min_check_code = second_closest
@@ -48,7 +47,7 @@ export function worley2DShader(second_closest = false): string {
     `
 }
 
-export class Worley2D extends ProceduralNoise {
+export class Worley2D extends NoiseScene {
     constructor(second_closest: boolean, transform: DomainTransform = 'None') {
         super(worley2DShader(second_closest), '2D', transform)
     }
@@ -104,7 +103,7 @@ export function worley3DShader(second_closest = false): string {
     `
 }
 
-export class Worley3D extends ProceduralNoise {
+export class Worley3D extends NoiseScene {
     constructor(second_closest: boolean, transform: DomainTransform = 'None') {
         super(worley3DShader(second_closest), '3D', transform)
     }
@@ -164,7 +163,7 @@ export function worley4DShader(second_closest = false): string {
     `
 }
 
-export class Worley4D extends ProceduralNoise {
+export class Worley4D extends NoiseScene {
     constructor(second_closest: boolean, transform: DomainTransform = 'None') {
         super(worley4DShader(second_closest), '4D', transform)
     }
