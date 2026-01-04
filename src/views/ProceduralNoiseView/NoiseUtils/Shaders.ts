@@ -1,17 +1,65 @@
 import { WG_DIM } from '../ShaderUtils'
 import type { DomainTransform, NoiseDimension } from './NoiseScene'
 
-export function randVec2f(max_value = 5) {
-    return `vec2f(${max_value * Math.random()}, ${max_value * Math.random()})`
+function randStrFloat(max: number) {
+    return (max * Math.random()).toFixed(2)
 }
 
-export function randVec3f(max_value = 5) {
-    return `vec3f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
+function randVec2f(max = 5) {
+    return `vec2f(${randStrFloat(max)}, ${randStrFloat(max)})`
 }
 
-export function randVec4f(max_value = 5) {
-    return `vec4f(${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()}, ${max_value * Math.random()})`
+function randVec3f(max = 5) {
+    return `vec3f(${randStrFloat(max)}, ${randStrFloat(max)}, ${randStrFloat(max)})`
 }
+
+const rotate3D = /* wgsl */ `
+    fn rotate(pos: vec3f) -> vec3f {
+        let xz = pos.x + pos.z;
+        let s2 = xz * -0.211324865405187;
+        let yy = pos.y * 0.577350269189626;
+        let xr = pos.x + (s2 + yy);
+        let zr = pos.z + (s2 + yy);
+        let yr = xz * -0.577350269189626 + yy;
+        return vec3f(xr, yr, zr);
+    }
+`
+
+const rotate4D = /* wgsl */ `
+    fn rotate(pos: vec4f) -> vec4f {
+        let xyz = pos.x + pos.y + pos.z;
+        let s3 = xyz * (-1.0 / 6.0);
+        let ww = pos.w * 0.5;
+
+        let xr = pos.x + s3 + ww;
+        let yr = pos.y + s3 + ww;
+        let zr = pos.z + s3 + ww;
+        let wr = xyz * -0.5 + ww;
+
+        return vec4f(xr, yr, zr, wr);
+    }
+`
+
+const warp2D = /* wgsl */ `
+    fn warp_noise(noise_pos: vec2f) -> f32 {
+        let pos_q = vec2f(
+            octave_noise(noise_pos + ${randVec2f()}),
+            octave_noise(noise_pos + ${randVec2f()})
+        );
+        return octave_noise(noise_pos + warp_strength * pos_q);
+    }
+`
+
+const warp3D = /* wgsl */ `
+    fn warp_noise(noise_pos: vec3f) -> f32 {
+        let pos_q = vec3f(
+            octave_noise(noise_pos + ${randVec3f()}),
+            octave_noise(noise_pos + ${randVec3f()}),
+            octave_noise(noise_pos + ${randVec3f()})
+        );
+        return octave_noise(noise_pos + warp_strength * pos_q);
+    }
+`
 
 export function noiseShader(
     dimension: NoiseDimension,
@@ -40,57 +88,17 @@ export function noiseShader(
 
         // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
         if (dimension === '3D') {
-            rotate_function = /* wgsl */ `
-                fn rotate(pos: vec3f) -> vec3f {
-                    let xz = pos.x + pos.z;
-                    let s2 = xz * -0.211324865405187;
-                    let yy = pos.y * 0.577350269189626;
-                    let xr = pos.x + (s2 + yy);
-                    let zr = pos.z + (s2 + yy);
-                    let yr = xz * -0.577350269189626 + yy;
-                    return vec3f(xr, yr, zr);
-                }
-            `
+            rotate_function = rotate3D
         } else if (dimension === '4D') {
-            rotate_function = /* wgsl */ `
-                fn rotate(pos: vec4f) -> vec4f {
-                    let xyz = pos.x + pos.y + pos.z;
-                    let s3 = xyz * (-1.0 / 6.0);
-                    let ww = pos.w * 0.5;
-
-                    let xr = pos.x + s3 + ww;
-                    let yr = pos.y + s3 + ww;
-                    let zr = pos.z + s3 + ww;
-                    let wr = xyz * -0.5 + ww;
-
-                    return vec4f(xr, yr, zr, wr);
-                }
-            `
+            rotate_function = rotate4D
         }
     } else if (dimension !== '4D' && transform === 'Warp') {
         main_noise_function_name = 'warp_noise'
 
         if (dimension === '2D') {
-            warp_function = /* wgsl */ `
-                fn warp_noise(noise_pos: vec2f) -> f32 {
-                    let pos_q = vec2f(
-                        octave_noise(noise_pos + ${randVec2f()}),
-                        octave_noise(noise_pos + ${randVec2f()})
-                    );
-                    return octave_noise(noise_pos + warp_strength * pos_q);
-                }
-            `
+            warp_function = warp2D
         } else if (dimension === '3D') {
-            warp_function = /* wgsl */ `
-                fn warp_noise(noise_pos: vec3f) -> f32 {
-                    let pos_q = vec3f(
-                        octave_noise(noise_pos + ${randVec3f()}),
-                        octave_noise(noise_pos + ${randVec3f()}),
-                        octave_noise(noise_pos + ${randVec3f()})
-                    );
-                    return octave_noise(noise_pos + warp_strength * pos_q);
-                }
-            `
+            warp_function = warp3D
         }
     }
 
