@@ -453,54 +453,60 @@ export abstract class ProceduralNoise implements Scene {
         encoder.setBindGroup(2, this.color_bind_group)
     }
 
-    update(data: NoiseUniforms, device: GPUDevice): void {
-        if (data.n_grid_columns) {
-            updateFloatUniform(this.n_grid_columns, data.n_grid_columns, device)
-        }
-        if (data.n_octaves) {
-            updateIntUniform(this.n_octaves, data.n_octaves, device)
-        }
-        if (data.persistence) {
-            updateFloatUniform(this.persistence, data.persistence, device)
-        }
-        if (this.dimension !== '2D') {
-            if (data.z_coord !== undefined) {
-                updateFloatUniform(this.z_coord, data.z_coord, device)
-            }
-            if (this.dimension === '4D' && data.w_coord !== undefined) {
-                updateFloatUniform(this.w_coord, data.w_coord, device)
-            }
-        }
-        if (data.warp_strength) {
-            updateFloatUniform(this.warp_strength, data.warp_strength, device)
-        }
-        if (data.color_points) {
-            updateStorageBuffer(this.color_points, data.color_points, device)
-            const new_n_colors = data.color_points.length / 4
+    updateNGridColumns(value: number, device: GPUDevice) {
+        updateFloatUniform(this.n_grid_columns, value, device)
+    }
 
-            if (new_n_colors != this.n_colors) {
-                this.n_colors = new_n_colors
-                this.color_bind_group = device.createBindGroup({
-                    layout: this.pipeline.getBindGroupLayout(2),
-                    entries: [
-                        {
-                            binding: 0,
-                            resource: {
-                                buffer: this.color_points,
-                                size: data.color_points.byteLength,
-                            },
+    updateNOctaves(value: number, device: GPUDevice) {
+        updateIntUniform(this.n_octaves, value, device)
+    }
+
+    updatePersistence(value: number, device: GPUDevice) {
+        updateFloatUniform(this.persistence, value, device)
+    }
+
+    updateZCoord(value: number, device: GPUDevice) {
+        updateFloatUniform(this.z_coord, value, device)
+    }
+
+    updateWCoord(value: number, device: GPUDevice) {
+        updateFloatUniform(this.w_coord, value, device)
+    }
+
+    updateWarpStrength(value: number, device: GPUDevice) {
+        updateFloatUniform(this.warp_strength, value, device)
+    }
+
+    updateColorPoints(data: Float32Array<ArrayBuffer>, device: GPUDevice) {
+        updateStorageBuffer(this.color_points, data, device)
+        const new_n_colors = data.length / 4
+
+        if (new_n_colors != this.n_colors) {
+            this.n_colors = new_n_colors
+            this.color_bind_group = device.createBindGroup({
+                layout: this.pipeline.getBindGroupLayout(2),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.color_points,
+                            size: data.byteLength,
                         },
-                    ],
-                })
-            }
+                    },
+                ],
+            })
         }
     }
 
     cleanup() {
-        this.n_grid_columns?.destroy()
-        this.z_coord?.destroy()
         this.hash_table?.destroy()
         this.random_elements?.destroy()
+        this.n_grid_columns?.destroy()
+        this.n_octaves?.destroy()
+        this.persistence?.destroy()
+        this.z_coord?.destroy()
+        this.w_coord?.destroy()
+        this.warp_strength?.destroy()
         this.color_points?.destroy()
     }
 }

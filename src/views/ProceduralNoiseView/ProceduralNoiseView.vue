@@ -109,73 +109,38 @@ async function initScene(canvas: HTMLCanvasElement) {
     renderer.value.initObserver(canvas, scene.value)
 }
 
-watch(n_octaves, (new_n_octaves) => {
-    scene.value.update(
-        {
-            n_octaves: new_n_octaves,
-        },
-        renderer.value.device,
-    )
+watch(grid_size, (new_grid_size) => {
+    scene.value.updateNGridColumns(new_grid_size, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
-watch(grid_size, (new_grid_size) => {
-    scene.value.update(
-        {
-            n_grid_columns: new_grid_size,
-        },
-        renderer.value.device,
-    )
+watch(n_octaves, (new_n_octaves) => {
+    scene.value.updateNOctaves(new_n_octaves, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
 watch(persistence, (new_persistence) => {
-    scene.value.update(
-        {
-            persistence: new_persistence,
-        },
-        renderer.value.device,
-    )
+    scene.value.updatePersistence(new_persistence, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
 watch(z_coord, (new_z_coord) => {
-    scene.value.update(
-        {
-            z_coord: new_z_coord,
-        },
-        renderer.value.device,
-    )
+    scene.value.updateZCoord(new_z_coord, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
 watch(w_coord, (new_w_coord) => {
-    scene.value.update(
-        {
-            w_coord: new_w_coord,
-        },
-        renderer.value.device,
-    )
+    scene.value.updateWCoord(new_w_coord, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
 watch(warp_strength, (new_warp_strength) => {
-    scene.value.update(
-        {
-            warp_strength: new_warp_strength,
-        },
-        renderer.value.device,
-    )
+    scene.value.updateWarpStrength(new_warp_strength, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
 watch(color_points, (new_color_points) => {
-    scene.value.update(
-        {
-            color_points: new_color_points,
-        },
-        renderer.value.device,
-    )
+    scene.value.updateColorPoints(new_color_points, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
