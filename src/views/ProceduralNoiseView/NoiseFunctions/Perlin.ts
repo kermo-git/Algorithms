@@ -5,17 +5,10 @@ import {
 } from '../NoiseUtils/Buffers'
 import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
-// https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-function perlinNormalizingFactor(n_dimensions: number) {
-    return Math.sqrt(4 / n_dimensions)
-}
-
 export function perlin2DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<storage> gradients: array<vec2f>;
-
-        const normalizing_factor = ${perlinNormalizingFactor(2)};
 
         fn get_gradient(x: i32, y: i32) -> vec2f {
             let hash = hash_table[hash_table[x] + y];
@@ -44,8 +37,8 @@ export function perlin2DShader(): string {
             let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
             let s = fade(local);
-            let n = normalizing_factor * mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
-            return (n + 1)*0.5;
+            let n = 1.55 * mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
+            return clamp((n + 1)*0.5, 0, 1);
         }
     `
 }
@@ -64,8 +57,6 @@ export function perlin3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<storage> gradients: array<vec3f>;
-
-        const normalizing_factor = ${perlinNormalizingFactor(3)};
 
         fn get_gradient(x: i32, y: i32, z: i32) -> vec3f {
             let hash = hash_table[hash_table[hash_table[x] + y] + z];
@@ -103,12 +94,12 @@ export function perlin3DShader(): string {
 
             let s = fade(local);
             
-            let n = normalizing_factor * mix(
+            let n = 1.55 * mix(
                 mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
                 mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
                 s.z
             );
-            return (n + 1)*0.5;
+            return clamp((n + 1)*0.5, 0, 1);
         }
     `
 }
@@ -183,7 +174,7 @@ export function perlin4DShader(): string {
 
             let s = fade(local);
             
-            let result = mix(
+            let result = 1.55 * mix(
                 mix(
                     mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
                     mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
@@ -196,7 +187,7 @@ export function perlin4DShader(): string {
                 ),
                 s.w
             );
-            return (result + 1)*0.5;
+            return clamp((result + 1)*0.5, 0, 1);
         }
     `
 }
