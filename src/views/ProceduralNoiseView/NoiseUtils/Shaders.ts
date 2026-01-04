@@ -54,6 +54,29 @@ const warp2D = /* wgsl */ `
     }
 `
 
+const double_warp2D = /* wgsl */ `
+    fn warp_noise(noise_pos: vec2f) -> f32 {
+        let warp_qx = noise_pos + ${randVec2f()};
+        let warp_qy = noise_pos + ${randVec2f()};
+
+        let pos_q = vec2f(
+            octave_noise(warp_qx, n_warp_octaves),
+            octave_noise(warp_qy, n_warp_octaves)
+        );
+
+        let warp_r = noise_pos + warp_strength * pos_q;
+        let warp_rx = warp_r + ${randVec2f()};
+        let warp_ry = warp_r + ${randVec2f()};
+
+        let pos_r = vec2f(
+            octave_noise(warp_rx, n_warp_octaves),
+            octave_noise(warp_ry, n_warp_octaves)
+        );
+        let final_pos = noise_pos + warp_strength * pos_r;
+        return octave_noise(final_pos, n_main_octaves);
+    }
+`
+
 const warp3D = /* wgsl */ `
     fn warp_noise(noise_pos: vec3f) -> f32 {
         let warp_x = noise_pos + ${randVec3f()};
@@ -70,6 +93,33 @@ const warp3D = /* wgsl */ `
     }
 `
 
+const double_warp3D = /* wgsl */ `
+    fn warp_noise(noise_pos: vec3f) -> f32 {
+        let warp_qx = noise_pos + ${randVec3f()};
+        let warp_qy = noise_pos + ${randVec3f()};
+        let warp_qz = noise_pos + ${randVec3f()};
+
+        let pos_q = vec3f(
+            octave_noise(warp_qx, n_warp_octaves),
+            octave_noise(warp_qy, n_warp_octaves),
+            octave_noise(warp_qz, n_warp_octaves)
+        );
+
+        let warp_r = noise_pos + warp_strength * pos_q;
+        let warp_rx = warp_r + ${randVec3f()};
+        let warp_ry = warp_r + ${randVec3f()};
+        let warp_rz = warp_r + ${randVec3f()};
+
+        let pos_r = vec3f(
+            octave_noise(warp_rx, n_warp_octaves),
+            octave_noise(warp_ry, n_warp_octaves),
+            octave_noise(warp_rz, n_warp_octaves)
+        );
+        let final_pos = noise_pos + warp_strength * pos_r;
+        return octave_noise(final_pos, n_main_octaves);
+    }
+`
+
 export function noiseShader(
     dimension: NoiseDimension,
     transform: DomainTransform,
@@ -77,7 +127,7 @@ export function noiseShader(
 ): string {
     const high_dim = dimension === '3D' || dimension == '4D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
-    const only_warp = transform == 'Warp' ? '' : '//'
+    const only_warp = transform.startsWith('Warp') ? '' : '//'
     const pos_type = dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
 
     let noise_pos_expr = 'noise_pos'
@@ -108,6 +158,14 @@ export function noiseShader(
             warp_function = warp2D
         } else if (dimension === '3D') {
             warp_function = warp3D
+        }
+    } else if (dimension !== '4D' && transform === 'Warp 2X') {
+        main_noise_expr = 'warp_noise(noise_pos)'
+
+        if (dimension === '2D') {
+            warp_function = double_warp2D
+        } else if (dimension === '3D') {
+            warp_function = double_warp3D
         }
     }
 

@@ -155,7 +155,7 @@ watch(dimension, (new_dimension) => {
     if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
         domain_transform.value = 'None'
     }
-    if (new_dimension === '4D' && domain_transform.value === 'Warp') {
+    if (new_dimension === '4D' && domain_transform.value.startsWith('Warp')) {
         domain_transform.value = 'None'
     }
 })
@@ -180,9 +180,9 @@ onBeforeUnmount(() => {
 
 const available_transforms = computed(() =>
     dimension.value === '2D'
-        ? ['None', 'Warp']
+        ? ['None', 'Warp', 'Warp 2X']
         : dimension.value === '3D'
-          ? ['None', 'Rotate', 'Warp']
+          ? ['None', 'Rotate', 'Warp', 'Warp 2X']
           : ['None', 'Rotate'],
 )
 </script>
@@ -229,7 +229,7 @@ const available_transforms = computed(() =>
                     v-model="domain_transform"
                 />
 
-                <template v-if="domain_transform === 'Warp'">
+                <template v-if="domain_transform.startsWith('Warp')">
                     <p>Warp strength: {{ warp_strength }}</p>
                     <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
                 </template>
@@ -242,7 +242,7 @@ const available_transforms = computed(() =>
                 />
 
                 <NumberSingleSelect
-                    v-if="domain_transform === 'Warp'"
+                    v-if="domain_transform.startsWith('Warp')"
                     text="Warp octaves"
                     name="n_warp_octaves"
                     :options="[1, 2, 3, 4, 5]"
@@ -250,14 +250,17 @@ const available_transforms = computed(() =>
                 />
 
                 <NumberSingleSelect
-                    :text="domain_transform === 'Warp' ? 'Main octaves' : 'Octaves'"
+                    :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
                     name="n_main_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_main_octaves"
                 />
 
                 <template
-                    v-if="n_main_octaves > 1 || (domain_transform === 'Warp' && n_warp_octaves > 1)"
+                    v-if="
+                        n_main_octaves > 1 ||
+                        (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
+                    "
                 >
                     <p>Persistence: {{ persistence }}</p>
                     <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />

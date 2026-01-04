@@ -26,7 +26,7 @@ export interface NoiseUniforms {
     color_points?: Float32Array<ArrayBuffer>
 }
 
-export type DomainTransform = 'None' | 'Rotate' | 'Warp'
+export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 export type NoiseDimension = '2D' | '3D' | '4D'
 
 export abstract class NoiseScene implements Scene {
@@ -120,7 +120,7 @@ export abstract class NoiseScene implements Scene {
                 })
             }
         }
-        if (this.transform === 'Warp') {
+        if (this.transform.startsWith('Warp')) {
             this.n_warp_octaves = createIntUniform(data.n_warp_octaves || 1, info.device)
             this.warp_strength = createFloatUniform(data.warp_strength || 1, info.device)
 
