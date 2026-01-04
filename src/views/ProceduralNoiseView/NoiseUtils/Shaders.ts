@@ -42,22 +42,31 @@ const rotate4D = /* wgsl */ `
 
 const warp2D = /* wgsl */ `
     fn warp_noise(noise_pos: vec2f) -> f32 {
+        let warp_x = noise_pos + ${randVec2f()};
+        let warp_y = noise_pos + ${randVec2f()};
+
         let pos_q = vec2f(
-            octave_noise(noise_pos + ${randVec2f()}),
-            octave_noise(noise_pos + ${randVec2f()})
+            octave_noise(warp_x, n_warp_octaves),
+            octave_noise(warp_y, n_warp_octaves)
         );
-        return octave_noise(noise_pos + warp_strength * pos_q);
+        let final_pos = noise_pos + warp_strength * pos_q;
+        return octave_noise(final_pos, n_main_octaves);
     }
 `
 
 const warp3D = /* wgsl */ `
     fn warp_noise(noise_pos: vec3f) -> f32 {
+        let warp_x = noise_pos + ${randVec3f()};
+        let warp_y = noise_pos + ${randVec3f()};
+        let warp_z = noise_pos + ${randVec3f()};
+
         let pos_q = vec3f(
-            octave_noise(noise_pos + ${randVec3f()}),
-            octave_noise(noise_pos + ${randVec3f()}),
-            octave_noise(noise_pos + ${randVec3f()})
+            octave_noise(warp_x, n_warp_octaves),
+            octave_noise(warp_y, n_warp_octaves),
+            octave_noise(warp_z, n_warp_octaves)
         );
-        return octave_noise(noise_pos + warp_strength * pos_q);
+        let final_pos = noise_pos + warp_strength * pos_q;
+        return octave_noise(final_pos, n_main_octaves);
     }
 `
 
@@ -74,7 +83,7 @@ export function noiseShader(
     let noise_pos_expr = 'noise_pos'
     let rotate_function = ''
 
-    let main_noise_function_name = 'octave_noise'
+    let main_noise_expr = 'octave_noise(noise_pos, n_main_octaves)'
     let warp_function = ''
 
     if (dimension === '3D') {
@@ -93,7 +102,7 @@ export function noiseShader(
             rotate_function = rotate4D
         }
     } else if (dimension !== '4D' && transform === 'Warp') {
-        main_noise_function_name = 'warp_noise'
+        main_noise_expr = 'warp_noise(noise_pos)'
 
         if (dimension === '2D') {
             warp_function = warp2D
@@ -110,11 +119,12 @@ export function noiseShader(
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         @group(1) @binding(2) var<uniform> n_grid_columns: f32;
-        @group(1) @binding(3) var<uniform> n_octaves: u32;
+        @group(1) @binding(3) var<uniform> n_main_octaves: u32;
         @group(1) @binding(4) var<uniform> persistence: f32;
         ${high_dim} @group(1) @binding(5) var<uniform> z_coordinate: f32;
         ${only_4D} @group(1) @binding(6) var<uniform> w_coordinate: f32;
-        ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
+        ${only_warp} @group(1) @binding(7) var<uniform> n_warp_octaves: u32;
+        ${only_warp} @group(1) @binding(8) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
         ${rotate_function}
@@ -127,7 +137,7 @@ export function noiseShader(
             return ${noise_pos_expr};
         }
         
-        fn octave_noise(noise_pos: ${pos_type}) -> f32 {
+        fn octave_noise(noise_pos: ${pos_type}, n_octaves: u32) -> f32 {
             var amplitude: f32 = 1;
             var frequency: f32 = 1;
             var noise_value: f32 = 0;
@@ -183,7 +193,7 @@ export function noiseShader(
                 return;
             }
             let noise_pos = find_noise_pos(vec2f(texture_pos), vec2f(texture_dims));
-            let noise_value = ${main_noise_function_name}(noise_pos);
+            let noise_value = ${main_noise_expr};
             let color = interpolate_colors(noise_value);
 
             textureStore(texture, texture_pos, color);

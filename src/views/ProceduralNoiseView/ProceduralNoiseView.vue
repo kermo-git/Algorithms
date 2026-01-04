@@ -25,12 +25,13 @@ const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
 const dimension = ref<NoiseDimension>('2D')
 const domain_transform = ref<DomainTransform>('None')
-const warp_strength = ref(4)
+const grid_size = ref(16)
+const n_main_octaves = ref(1)
+const persistence = ref(0.5)
 const z_coord = ref(0)
 const w_coord = ref(0)
-const grid_size = ref(16)
-const n_octaves = ref(1)
-const persistence = ref(0.5)
+const warp_strength = ref(4)
+const n_warp_octaves = ref(1)
 const activeTab = ref('Configuration')
 
 function createScene(
@@ -86,10 +87,11 @@ function createScene(
 function getNoiseParams(): NoiseUniforms {
     return {
         n_grid_columns: grid_size.value,
-        n_octaves: n_octaves.value,
+        n_main_octaves: n_main_octaves.value,
         persistence: persistence.value,
         z_coord: z_coord.value,
         w_coord: w_coord.value,
+        n_warp_octaves: n_warp_octaves.value,
         warp_strength: warp_strength.value,
         color_points: color_points.value,
     }
@@ -114,8 +116,8 @@ watch(grid_size, (new_grid_size) => {
     renderer.value.render(scene.value)
 })
 
-watch(n_octaves, (new_n_octaves) => {
-    scene.value.updateNOctaves(new_n_octaves, renderer.value.device)
+watch(n_main_octaves, (new_n_octaves) => {
+    scene.value.updateNMainOctaves(new_n_octaves, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
@@ -131,6 +133,11 @@ watch(z_coord, (new_z_coord) => {
 
 watch(w_coord, (new_w_coord) => {
     scene.value.updateWCoord(new_w_coord, renderer.value.device)
+    renderer.value.render(scene.value)
+})
+
+watch(n_warp_octaves, (new_n_octaves) => {
+    scene.value.updateNWarpOctaves(new_n_octaves, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
@@ -235,13 +242,23 @@ const available_transforms = computed(() =>
                 />
 
                 <NumberSingleSelect
-                    text="Octaves"
-                    name="n_octaves"
+                    v-if="domain_transform === 'Warp'"
+                    text="Warp octaves"
+                    name="n_warp_octaves"
                     :options="[1, 2, 3, 4, 5]"
-                    v-model="n_octaves"
+                    v-model="n_warp_octaves"
                 />
 
-                <template v-if="n_octaves > 1">
+                <NumberSingleSelect
+                    :text="domain_transform === 'Warp' ? 'Main octaves' : 'Octaves'"
+                    name="n_main_octaves"
+                    :options="[1, 2, 3, 4, 5]"
+                    v-model="n_main_octaves"
+                />
+
+                <template
+                    v-if="n_main_octaves > 1 || (domain_transform === 'Warp' && n_warp_octaves > 1)"
+                >
                     <p>Persistence: {{ persistence }}</p>
                     <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
                 </template>
