@@ -128,8 +128,6 @@ export function perlin4DShader(): string {
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<storage> gradients: array<vec4f>;
 
-        const normalizing_factor = ${perlinNormalizingFactor(3)};
-
         fn get_gradient(x: i32, y: i32, z: i32, w: i32) -> vec4f {
             let hash = hash_table[hash_table[hash_table[hash_table[x] + y] + z] + w];
             return gradients[hash];
@@ -185,7 +183,7 @@ export function perlin4DShader(): string {
 
             let s = fade(local);
             
-            let result = normalizing_factor * mix(
+            let result = mix(
                 mix(
                     mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
                     mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
