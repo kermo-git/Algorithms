@@ -10,7 +10,7 @@ const model = defineModel()
 
 <template>
     <div class="label-options">
-        <p>{{ props.text }}</p>
+        <p class="caption">{{ props.text }}</p>
         <div class="options">
             <template v-for="value in props.options" :key="value">
                 <input
@@ -28,17 +28,16 @@ const model = defineModel()
 
 <style scoped>
 .label-options {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2em;
     width: 100%;
+}
+
+.caption {
+    margin-top: 0;
 }
 
 .options {
     display: flex;
     flex-wrap: wrap;
-    flex-grow: grow;
     gap: 0.5em;
 }
 
