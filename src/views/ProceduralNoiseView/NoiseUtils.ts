@@ -10,7 +10,7 @@ import {
     randVec3f,
     randVec4f,
 } from './ShaderUtils'
-import { compileShader, createComputePipeline, type Scene } from './ComputeRenderer'
+import { compileShader, createComputePipeline, type InitInfo, type Scene } from './ComputeRenderer'
 
 export interface ShaderBindIndexes {
     bindGroup: number
@@ -326,7 +326,7 @@ export function noiseShader(
     `
 }
 
-export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
+export abstract class ProceduralNoise implements Scene {
     dimension: NoiseDimension
     transform: DomainTransform
     noise_shader_code: string
@@ -370,15 +370,15 @@ export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
-    async init(data: NoiseUniforms, device: GPUDevice, color_format: GPUTextureFormat) {
-        const shader_code = this.createShader(color_format)
-        this.pipeline = await createComputePipeline(shader_code, device)
+    async init(data: NoiseUniforms, info: InitInfo) {
+        const shader_code = this.createShader(info.color_format)
+        this.pipeline = await createComputePipeline(shader_code, info.device)
 
-        this.hash_table = createStorageBuffer(generateHashTable(256), device)
-        this.random_elements = createStorageBuffer(this.generateRandomElements(256), device)
-        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
-        this.n_octaves = createIntUniform(data.n_octaves || 1, device)
-        this.persistence = createFloatUniform(data.persistence || 0.5, device)
+        this.hash_table = createStorageBuffer(generateHashTable(256), info.device)
+        this.random_elements = createStorageBuffer(this.generateRandomElements(256), info.device)
+        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, info.device)
+        this.n_octaves = createIntUniform(data.n_octaves || 1, info.device)
+        this.persistence = createFloatUniform(data.persistence || 0.5, info.device)
 
         const bind_group_entries = [
             {
@@ -404,13 +404,13 @@ export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
         ]
 
         if (this.dimension !== '2D') {
-            this.z_coord = createFloatUniform(data.z_coord || 0, device)
+            this.z_coord = createFloatUniform(data.z_coord || 0, info.device)
             bind_group_entries.push({
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
             if (this.dimension === '4D') {
-                this.w_coord = createFloatUniform(data.w_coord || 0, device)
+                this.w_coord = createFloatUniform(data.w_coord || 0, info.device)
                 bind_group_entries.push({
                     binding: 6,
                     resource: { buffer: this.w_coord },
@@ -418,23 +418,23 @@ export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
             }
         }
         if (this.transform === 'Warp') {
-            this.warp_strength = createFloatUniform(data.warp_strength || 1, device)
+            this.warp_strength = createFloatUniform(data.warp_strength || 1, info.device)
             bind_group_entries.push({
                 binding: 7,
                 resource: { buffer: this.warp_strength },
             })
         }
 
-        this.static_bind_group = device.createBindGroup({
+        this.static_bind_group = info.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
             entries: bind_group_entries,
         })
 
         const color_points_data = data.color_points || defaultColorPoints
         this.n_colors = color_points_data.length / 4
-        this.color_points = createStorageBuffer(color_points_data, device, 256)
+        this.color_points = createStorageBuffer(color_points_data, info.device, 256)
 
-        this.color_bind_group = device.createBindGroup({
+        this.color_bind_group = info.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
             entries: [
                 {
@@ -448,18 +448,7 @@ export abstract class ProceduralNoise implements Scene<NoiseUniforms> {
         })
     }
 
-    render(encoder: GPUComputePassEncoder, device: GPUDevice, texture_view: GPUTextureView): void {
-        const canvas_bind_group = device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: texture_view,
-                },
-            ],
-        })
-        encoder.setPipeline(this.pipeline)
-        encoder.setBindGroup(0, canvas_bind_group)
+    render(encoder: GPUComputePassEncoder): void {
         encoder.setBindGroup(1, this.static_bind_group)
         encoder.setBindGroup(2, this.color_bind_group)
     }

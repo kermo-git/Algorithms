@@ -34,25 +34,24 @@ export async function createComputePipeline(shader_code: string, device: GPUDevi
     })
 }
 
-export interface Scene<UniformData> {
-    init(data: UniformData, device: GPUDevice, color_format: GPUTextureFormat): Promise<void>
-    render(encoder: GPUComputePassEncoder, device: GPUDevice, texture_view: GPUTextureView): void
-    update(data: UniformData, device: GPUDevice): void
+export interface Scene {
+    init(data: unknown, info: InitInfo): Promise<void>
+    getPipeline(): GPUComputePipeline
+    render(encoder: GPUComputePassEncoder): void
     cleanup(): void
 }
 
-export default class ComputeRenderer<UniformData> {
-    scene: Scene<UniformData>
+export interface InitInfo {
+    device: GPUDevice
+    color_format: GPUTextureFormat
+}
 
+export default class ComputeRenderer {
     device!: GPUDevice
     context!: GPUCanvasContext
     observer!: ResizeObserver
 
-    constructor(scene: Scene<UniformData>) {
-        this.scene = scene
-    }
-
-    async init(canvas: HTMLCanvasElement, data: UniformData) {
+    async init(canvas: HTMLCanvasElement): Promise<InitInfo> {
         const context = canvas.getContext('webgpu')
         if (!context) {
             throw Error('HTML Canvas not found!')
@@ -77,8 +76,13 @@ export default class ComputeRenderer<UniformData> {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
 
-        await this.scene.init(data, this.device, color_format)
+        return {
+            device: this.device,
+            color_format: color_format,
+        }
+    }
 
+    initObserver(canvas: HTMLCanvasElement, scene: Scene) {
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
                 const width = entry.contentBoxSize[0].inlineSize
@@ -89,23 +93,32 @@ export default class ComputeRenderer<UniformData> {
                 canvas.width = Math.min(width, max_size)
                 canvas.height = Math.min(height, max_size)
 
-                this.render()
+                this.render(scene)
             })
         })
         this.observer.observe(canvas)
     }
 
-    update(data: UniformData) {
-        this.scene.update(data, this.device)
-        this.render()
-    }
-
-    render() {
+    render(scene: Scene) {
         const texture = this.context.getCurrentTexture()
         const cmd_encoder = this.device.createCommandEncoder()
         const pass_encoder = cmd_encoder.beginComputePass()
 
-        this.scene.render(pass_encoder, this.device, texture.createView())
+        const pipeline = scene.getPipeline()
+        const canvas_bind_group = this.device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture.createView(),
+                },
+            ],
+        })
+        pass_encoder.setPipeline(pipeline)
+        pass_encoder.setBindGroup(0, canvas_bind_group)
+
+        scene.render(pass_encoder)
+
         pass_encoder.dispatchWorkgroups(
             Math.ceil(texture.width / WG_DIM),
             Math.ceil(texture.height / WG_DIM),
@@ -118,6 +131,5 @@ export default class ComputeRenderer<UniformData> {
     cleanup() {
         this.context.unconfigure()
         this.observer.disconnect()
-        this.scene.cleanup()
     }
 }

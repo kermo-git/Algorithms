@@ -15,6 +15,7 @@ import { Worley2D, Worley3D, Worley4D } from './Noise/Worley'
 import { Value2D, Value3D, Value4D } from './Noise/Value'
 import {
     defaultColorPoints,
+    ProceduralNoise,
     type DomainTransform,
     type NoiseDimension,
     type NoiseUniforms,
@@ -24,7 +25,7 @@ const color_points = ref(defaultColorPoints)
 const algorithm = ref('Perlin')
 const dimension = ref<NoiseDimension>('2D')
 const domain_transform = ref<DomainTransform>('None')
-const warp_strength = ref(1)
+const warp_strength = ref(4)
 const z_coord = ref(0)
 const w_coord = ref(0)
 const grid_size = ref(16)
@@ -32,53 +33,54 @@ const n_octaves = ref(1)
 const persistence = ref(0.5)
 const activeTab = ref('Configuration')
 
-function createRenderer(algorithm: string, dimension: NoiseDimension, transform: DomainTransform) {
-    let render_logic: Scene<NoiseUniforms>
-
+function createScene(
+    algorithm: string,
+    dimension: NoiseDimension,
+    transform: DomainTransform,
+): ProceduralNoise {
     if (algorithm.startsWith('Worley')) {
         const second_closest = algorithm === 'Worley (2nd closest)'
 
         if (dimension === '2D') {
-            render_logic = new Worley2D(second_closest, transform)
+            return new Worley2D(second_closest, transform)
         } else if (dimension === '3D') {
-            render_logic = new Worley3D(second_closest, transform)
+            return new Worley3D(second_closest, transform)
         } else {
-            render_logic = new Worley4D(second_closest, transform)
+            return new Worley4D(second_closest, transform)
         }
     } else if (algorithm === 'Value') {
         if (dimension === '2D') {
-            render_logic = new Value2D(transform)
+            return new Value2D(transform)
         } else if (dimension === '3D') {
-            render_logic = new Value3D(transform)
+            return new Value3D(transform)
         } else {
-            render_logic = new Value4D(transform)
+            return new Value4D(transform)
         }
     } else if (algorithm === 'Simplex') {
         if (dimension === '2D') {
-            render_logic = new Simplex2D(transform)
+            return new Simplex2D(transform)
         } else if (dimension === '3D') {
-            render_logic = new Simplex3D(transform)
+            return new Simplex3D(transform)
         } else {
-            render_logic = new Simplex4D(transform)
+            return new Simplex4D(transform)
         }
     } else if (algorithm === 'Cubic') {
         if (dimension === '2D') {
-            render_logic = new Cubic2D(transform)
+            return new Cubic2D(transform)
         } else if (dimension === '3D') {
-            render_logic = new Cubic3D(transform)
+            return new Cubic3D(transform)
         } else {
-            render_logic = new Cubic4D(transform)
+            return new Cubic4D(transform)
         }
     } else {
         if (dimension === '2D') {
-            render_logic = new Perlin2D(transform)
+            return new Perlin2D(transform)
         } else if (dimension === '3D') {
-            render_logic = new Perlin3D(transform)
+            return new Perlin3D(transform)
         } else {
-            render_logic = new Perlin4D(transform)
+            return new Perlin4D(transform)
         }
     }
-    return markRaw(new ComputeRenderer(render_logic))
 }
 
 function getNoiseParams(): NoiseUniforms {
@@ -93,56 +95,88 @@ function getNoiseParams(): NoiseUniforms {
     }
 }
 
-const renderer = shallowRef<ComputeRenderer<NoiseUniforms>>(
-    createRenderer(algorithm.value, dimension.value, domain_transform.value),
+const scene = shallowRef(
+    markRaw(createScene(algorithm.value, dimension.value, domain_transform.value)),
 )
+
+const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function onCanvasReady(canvas: HTMLCanvasElement) {
+async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    renderer.value.init(canvas, getNoiseParams())
+    const init_info = await renderer.value.init(canvas)
+    await scene.value.init(getNoiseParams(), init_info)
+    renderer.value.initObserver(canvas, scene.value)
 }
 
 watch(n_octaves, (new_n_octaves) => {
-    renderer.value.update({
-        n_octaves: new_n_octaves,
-    })
+    scene.value.update(
+        {
+            n_octaves: new_n_octaves,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(grid_size, (new_grid_size) => {
-    renderer.value.update({
-        n_grid_columns: new_grid_size,
-    })
+    scene.value.update(
+        {
+            n_grid_columns: new_grid_size,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(persistence, (new_persistence) => {
-    renderer.value.update({
-        persistence: new_persistence,
-    })
+    scene.value.update(
+        {
+            persistence: new_persistence,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(z_coord, (new_z_coord) => {
-    renderer.value.update({
-        z_coord: new_z_coord,
-    })
+    scene.value.update(
+        {
+            z_coord: new_z_coord,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(w_coord, (new_w_coord) => {
-    renderer.value.update({
-        w_coord: new_w_coord,
-    })
+    scene.value.update(
+        {
+            w_coord: new_w_coord,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(warp_strength, (new_warp_strength) => {
-    renderer.value.update({
-        warp_strength: new_warp_strength,
-    })
+    scene.value.update(
+        {
+            warp_strength: new_warp_strength,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(color_points, (new_color_points) => {
-    renderer.value.update({
-        color_points: new_color_points,
-    })
+    scene.value.update(
+        {
+            color_points: new_color_points,
+        },
+        renderer.value.device,
+    )
+    renderer.value.render(scene.value)
 })
 
 watch(dimension, (new_dimension) => {
@@ -158,15 +192,18 @@ watch(
     [algorithm, dimension, domain_transform],
     ([new_algorithm, new_dimension, new_domain_transform]) => {
         renderer.value.cleanup()
-        renderer.value = createRenderer(new_algorithm, new_dimension, new_domain_transform)
+        scene.value.cleanup()
+        scene.value = createScene(new_algorithm, new_dimension, new_domain_transform)
+
         if (canvasRef.value) {
-            renderer.value.init(canvasRef.value, getNoiseParams())
+            initScene(canvasRef.value)
         }
     },
 )
 
 onBeforeUnmount(() => {
     renderer.value.cleanup()
+    scene.value.cleanup()
 })
 
 const available_transforms = computed(() =>
@@ -248,7 +285,7 @@ const available_transforms = computed(() =>
                 <ColorPanel v-model="color_points" />
             </template>
         </TabControl>
-        <Canvas @canvas-ready="onCanvasReady" />
+        <Canvas @canvas-ready="initScene" />
     </div>
 </template>
 
