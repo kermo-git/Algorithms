@@ -28,11 +28,16 @@ const model = defineModel()
 
 <style scoped>
 .label-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5em;
     width: 100%;
 }
 
 .caption {
-    margin-top: 0;
+    flex-basis: 20%;
+    flex-grow: 1;
 }
 
 .options {
