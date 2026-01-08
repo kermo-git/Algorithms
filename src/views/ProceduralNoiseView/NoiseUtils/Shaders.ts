@@ -16,19 +16,22 @@ function randVec3f(max = 5) {
 function octave_noise_shader(pos_type: string) {
     return /* wgsl */ `
         fn octave_noise(noise_pos: ${pos_type}, n_octaves: u32) -> f32 {
-            var amplitude: f32 = 1;
-            var frequency: f32 = 1;
-            var noise_value: f32 = 0;
-            var max_noise_value: f32 = 0;
+            var noise_value: f32 = noise(noise_pos);
+            var min_noise_value: f32 = 0;
+            var max_noise_value: f32 = 1;
 
-            for (var i = 0u; i < n_octaves; i++) {
-                let scaled_pos = noise_pos * frequency;
-                noise_value += amplitude * noise(scaled_pos);
-                max_noise_value += amplitude;
+            var frequency: f32 = 2;
+            var amplitude: f32 = 0.5;
+
+            for (var i = 1u; i < n_octaves; i++) {
+                noise_value += amplitude * noise(noise_pos * frequency);
+                min_noise_value += amplitude * 0.4;
+                max_noise_value += amplitude * 0.6;
+
                 frequency *= 2;
                 amplitude *= persistence;
             }
-            return noise_value / max_noise_value;
+            return (noise_value - min_noise_value) / (max_noise_value - min_noise_value);
         }
     `
 }
