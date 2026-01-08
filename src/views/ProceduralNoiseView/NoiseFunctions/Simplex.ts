@@ -67,8 +67,8 @@ export function simplex2DShader(): string {
             let i1 = influence(skew_c1, c1_pos);
             let i2 = influence(skew_c2, c2_pos);
 
-            let n = 70 * (i0 + i1 + i2);
-            return (clamp(n, -1, 1) + 1) * 0.5;
+            let n = 99 * (i0 + i1 + i2);
+            return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
 }
@@ -164,8 +164,8 @@ export function simplex3DShader(): string {
             let i2 = influence(skew_c2, c2_pos);
             let i3 = influence(skew_c3, c3_pos);
 
-            let n = 32 * (i0 + i1 + i2 + i3);
-            return (clamp(n, -1, 1) + 1) * 0.5;
+            let n = 40 * (i0 + i1 + i2 + i3);
+            return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
 }
@@ -391,8 +391,8 @@ export function simplex4DShader(): string {
             let i3 = influence(skew_c3, c3_pos);
             let i4 = influence(skew_c4, c4_pos);
 
-            let n = 27 * (i0 + i1 + i2 + i3 + i4);
-            return (clamp(n, -1, 1) + 1) * 0.5;
+            let n = 44 * (i0 + i1 + i2 + i3 + i4);
+            return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
 }
