@@ -21,7 +21,7 @@ export function worley2DShader(second_closest = false): string {
 
     const return_expr = second_closest
         ? /* wgsl */ `(sqrt(${result_var}) - 0.07) * 0.79`
-        : /* wgsl */ `sqrt(${result_var}) * 0.91`
+        : /* wgsl */ `sqrt(${result_var}) * 1.05`
 
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -75,8 +75,8 @@ export function worley3DShader(second_closest = false): string {
     const result_var = second_closest ? 'min_2nd_dist_sqr' : 'min_dist_sqr'
 
     const return_expr = second_closest
-        ? /* wgsl */ `(sqrt(${result_var}) - 0.1) * 0.85`
-        : /* wgsl */ `sqrt(${result_var}) * 0.88`
+        ? /* wgsl */ `(sqrt(${result_var}) - 0.1) * 0.92`
+        : /* wgsl */ `sqrt(${result_var}) * 0.92`
 
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -134,8 +134,8 @@ export function worley4DShader(second_closest = false): string {
     const result_var = second_closest ? 'min_2nd_dist_sqr' : 'min_dist_sqr'
 
     const return_expr = second_closest
-        ? /* wgsl */ `(sqrt(${result_var}) - 0.15) * 0.97`
-        : /* wgsl */ `sqrt(${result_var}) * 0.9`
+        ? /* wgsl */ `(sqrt(${result_var}) - 0.18) * 0.97`
+        : /* wgsl */ `sqrt(${result_var}) * 0.95`
 
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
