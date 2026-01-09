@@ -122,4 +122,4 @@ export function shaderUnitVectors4D(n: number = 256) {
     return array
 }
 
-export const defaultColorPoints = new Float32Array([1, 1, 1, 0, 0, 0, 0, 1])
+export const defaultColorPoints = new Float32Array([0, 0, 0, 0, 1, 1, 1, 1])

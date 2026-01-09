@@ -17,7 +17,7 @@ import {
     shaderUnitVectors3D,
     shaderUnitVectors4D,
 } from './Buffers'
-import { flatNoiseShader } from './FlatNoiseShader'
+import noiseSliceShader from './NoiseSliceShader'
 import { perlin2DShader, perlin3DShader, perlin4DShader } from '../NoiseFunctions/Perlin'
 import { simplex2DShader, simplex3DShader, simplex4DShader } from '../NoiseFunctions/Simplex'
 import { cubic2DShader, cubic3DShader } from '../NoiseFunctions/Cubic'
@@ -149,7 +149,7 @@ export class NoiseScene implements Scene {
     createShader(color_format: GPUTextureFormat): string {
         return `
             ${getNoiseShaderFunction(this.setup.algorithm, this.setup.dimension)}
-            ${flatNoiseShader(this.setup.dimension, this.setup.transform, color_format)}
+            ${noiseSliceShader(this.setup.dimension, this.setup.transform, color_format)}
         `
     }
     pipeline!: GPUComputePipeline

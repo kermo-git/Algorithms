@@ -1,6 +1,7 @@
 import { WG_DIM } from '../ShaderDataUtils'
 import type { DomainTransform, NoiseDimension } from './NoiseScene'
 import {
+    double_warp2D_shader,
     double_warp3D_shader,
     interpolate_colors_shader,
     octave_noise_shader,
@@ -10,21 +11,78 @@ import {
     warp3D_shader,
 } from './ShaderFunctions'
 
-export function flatNoiseShader(
+function get_pos_type(dimension: NoiseDimension) {
+    return dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
+}
+
+function compose_noise_function(dimension: NoiseDimension, transform: DomainTransform) {
+    const pos_type = get_pos_type(dimension)
+
+    let functions = octave_noise_shader(pos_type)
+    let noise_expr = ''
+    let pos_expr = 'noise_pos'
+
+    if (transform === 'Rotate') {
+        pos_expr = 'rotate(noise_pos)'
+
+        if (dimension === '3D') {
+            functions = `
+                ${functions}
+                ${rotate3D_shader}
+            `
+        } else if (dimension === '4D') {
+            functions = `
+                ${functions}
+                ${rotate4D_shader}
+            `
+        }
+    }
+    if (transform === 'Warp') {
+        if (dimension === '2D') {
+            functions = `
+                ${functions}
+                ${warp2D_shader}
+            `
+        } else if (dimension === '3D') {
+            functions = `
+                ${functions}
+                ${warp3D_shader}
+            `
+        }
+        noise_expr = `warp_noise(${pos_expr})`
+    } else if (transform === 'Warp 2X') {
+        if (dimension === '2D') {
+            functions = `
+                ${functions}
+                ${double_warp2D_shader}
+            `
+        } else if (dimension === '3D') {
+            functions = `
+                ${functions}
+                ${double_warp3D_shader}
+            `
+        }
+        noise_expr = `warp_noise(${pos_expr})`
+    } else {
+        noise_expr = `octave_noise(${pos_expr}, n_main_octaves)`
+    }
+    return {
+        functions,
+        noise_expr,
+    }
+}
+
+export default function noiseSliceShader(
     dimension: NoiseDimension,
     transform: DomainTransform,
     color_format: GPUTextureFormat,
 ): string {
-    const high_dim = dimension === '3D' || dimension == '4D' ? '' : '//'
+    const high_dim = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
-    const pos_type = dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
+    const pos_type = get_pos_type(dimension)
 
     let noise_pos_expr = 'noise_pos'
-    let rotate_function = ''
-
-    let main_noise_expr = 'octave_noise(noise_pos, n_main_octaves)'
-    let warp_function = ''
 
     if (dimension === '3D') {
         noise_pos_expr = 'vec3f(noise_pos, z_coordinate)'
@@ -32,31 +90,7 @@ export function flatNoiseShader(
         noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
     }
 
-    if (dimension !== '2D' && transform === 'Rotate') {
-        noise_pos_expr = `rotate(${noise_pos_expr})`
-
-        if (dimension === '3D') {
-            rotate_function = rotate3D_shader
-        } else if (dimension === '4D') {
-            rotate_function = rotate4D_shader
-        }
-    } else if (dimension !== '4D' && transform === 'Warp') {
-        main_noise_expr = 'warp_noise(noise_pos)'
-
-        if (dimension === '2D') {
-            warp_function = warp2D_shader
-        } else if (dimension === '3D') {
-            warp_function = warp3D_shader
-        }
-    } else if (dimension !== '4D' && transform === 'Warp 2X') {
-        main_noise_expr = 'warp_noise(noise_pos)'
-
-        if (dimension === '2D') {
-            warp_function = double_warp3D_shader
-        } else if (dimension === '3D') {
-            warp_function = double_warp3D_shader
-        }
-    }
+    const { functions, noise_expr } = compose_noise_function(dimension, transform)
 
     return /* wgsl */ `
         // Define the noise function here:
@@ -74,8 +108,6 @@ export function flatNoiseShader(
         ${only_warp} @group(1) @binding(8) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
-        ${rotate_function}
-
         fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${pos_type} {
             let n_grid_rows = n_grid_columns * texture_dims.y / texture_dims.x;
             let grid_dims = vec2f(n_grid_columns, n_grid_rows);
@@ -83,10 +115,8 @@ export function flatNoiseShader(
 
             return ${noise_pos_expr};
         }
-        
-        ${octave_noise_shader(pos_type)}
 
-        ${warp_function}
+        ${functions}
 
         ${interpolate_colors_shader}
         
@@ -101,7 +131,7 @@ export function flatNoiseShader(
                 return;
             }
             let noise_pos = find_noise_pos(vec2f(texture_pos), vec2f(texture_dims));
-            let noise_value = ${main_noise_expr};
+            let noise_value = ${noise_expr};
             let color = interpolate_colors(noise_value);
 
             textureStore(texture, texture_pos, color);
