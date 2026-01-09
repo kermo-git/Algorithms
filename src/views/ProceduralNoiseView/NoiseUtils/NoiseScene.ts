@@ -7,12 +7,38 @@ import {
     updateStorageBuffer,
 } from '../ShaderDataUtils'
 import { createComputePipeline, type InitInfo, type Scene } from '../ComputeRenderer'
-import { defaultColorPoints, generateHashTable } from './Buffers'
+import {
+    defaultColorPoints,
+    generateHashTable,
+    shaderRandomPoints2D,
+    shaderRandomPoints3D,
+    shaderRandomPoints4D,
+    shaderUnitVectors2D,
+    shaderUnitVectors3D,
+    shaderUnitVectors4D,
+} from './Buffers'
 import { flatNoiseShader } from './FlatNoiseShader'
+import { perlin2DShader, perlin3DShader, perlin4DShader } from '../NoiseFunctions/Perlin'
+import { simplex2DShader, simplex3DShader, simplex4DShader } from '../NoiseFunctions/Simplex'
+import { cubic2DShader, cubic3DShader } from '../NoiseFunctions/Cubic'
+import { value2DShader, value3DShader, value4DShader } from '../NoiseFunctions/Value'
+import { worley2DShader, worley3DShader, worley4DShader } from '../NoiseFunctions/Worley'
 
-export interface ShaderBindIndexes {
-    bindGroup: number
-    bindingStart: number
+export type NoiseAlgorithm =
+    | 'Perlin'
+    | 'Simplex'
+    | 'Cubic'
+    | 'Value'
+    | 'Worley'
+    | 'Worley (2nd closest)'
+
+export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
+export type NoiseDimension = '2D' | '3D' | '4D'
+
+export interface NoiseSceneSetup {
+    algorithm: NoiseAlgorithm
+    dimension: NoiseDimension
+    transform: DomainTransform
 }
 
 export interface NoiseUniforms {
@@ -26,30 +52,104 @@ export interface NoiseUniforms {
     color_points?: Float32Array<ArrayBuffer>
 }
 
-export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
-export type NoiseDimension = '2D' | '3D' | '4D'
-
-export abstract class NoiseScene implements Scene {
-    dimension: NoiseDimension
-    transform: DomainTransform
-    noise_shader_code: string
-
-    constructor(
-        noise_shader_code: string,
-        dimension: NoiseDimension = '2D',
-        transform: DomainTransform = 'None',
-    ) {
-        this.dimension = dimension
-        this.transform = transform
-        this.noise_shader_code = noise_shader_code
+function getNoiseShaderRandomElements(
+    algorithm: NoiseAlgorithm,
+    dimension: NoiseDimension,
+    n_random_elements: number,
+) {
+    if (algorithm === 'Perlin' || algorithm === 'Simplex') {
+        switch (dimension) {
+            case '2D':
+                return shaderUnitVectors2D(n_random_elements)
+            case '3D':
+                return shaderUnitVectors3D(n_random_elements)
+            case '4D':
+                return shaderUnitVectors4D(n_random_elements)
+        }
+    } else if (algorithm === 'Worley' || algorithm === 'Worley (2nd closest)') {
+        switch (dimension) {
+            case '2D':
+                return shaderRandomPoints2D(n_random_elements)
+            case '3D':
+                return shaderRandomPoints3D(n_random_elements)
+            case '4D':
+                return shaderRandomPoints4D(n_random_elements)
+        }
+    } else {
+        return new Float32Array(n_random_elements).map(Math.random)
     }
+}
 
-    abstract generateRandomElements(n: number): Float32Array<ArrayBuffer>
+function getNoiseShaderFunction(algorithm: NoiseAlgorithm, dimension: NoiseDimension) {
+    switch (algorithm) {
+        case 'Perlin':
+            switch (dimension) {
+                case '2D':
+                    return perlin2DShader()
+                case '3D':
+                    return perlin3DShader()
+                case '4D':
+                    return perlin4DShader()
+            }
+        case 'Simplex':
+            switch (dimension) {
+                case '2D':
+                    return simplex2DShader()
+                case '3D':
+                    return simplex3DShader()
+                case '4D':
+                    return simplex4DShader()
+            }
+        case 'Cubic':
+            switch (dimension) {
+                case '2D':
+                    return cubic2DShader()
+                case '3D':
+                    return cubic3DShader()
+                case '4D':
+                    return cubic3DShader()
+            }
+        case 'Value':
+            switch (dimension) {
+                case '2D':
+                    return value2DShader()
+                case '3D':
+                    return value3DShader()
+                case '4D':
+                    return value4DShader()
+            }
+        case 'Worley':
+            switch (dimension) {
+                case '2D':
+                    return worley2DShader(false)
+                case '3D':
+                    return worley3DShader(false)
+                case '4D':
+                    return worley4DShader(false)
+            }
+        case 'Worley (2nd closest)':
+            switch (dimension) {
+                case '2D':
+                    return worley2DShader(true)
+                case '3D':
+                    return worley3DShader(true)
+                case '4D':
+                    return worley4DShader(true)
+            }
+    }
+}
+
+export class NoiseScene implements Scene {
+    setup: NoiseSceneSetup
+
+    constructor(setup: NoiseSceneSetup) {
+        this.setup = setup
+    }
 
     createShader(color_format: GPUTextureFormat): string {
         return `
-            ${this.noise_shader_code}
-            ${flatNoiseShader(this.dimension, this.transform, color_format)}
+            ${getNoiseShaderFunction(this.setup.algorithm, this.setup.dimension)}
+            ${flatNoiseShader(this.setup.dimension, this.setup.transform, color_format)}
         `
     }
     pipeline!: GPUComputePipeline
@@ -74,11 +174,13 @@ export abstract class NoiseScene implements Scene {
     color_bind_group!: GPUBindGroup
 
     async init(data: NoiseUniforms, info: InitInfo) {
+        const setup = this.setup
         const shader_code = this.createShader(info.color_format)
-        this.pipeline = await createComputePipeline(shader_code, info.device)
+        const random_elements = getNoiseShaderRandomElements(setup.algorithm, setup.dimension, 256)
 
+        this.pipeline = await createComputePipeline(shader_code, info.device)
         this.hash_table = createStorageBuffer(generateHashTable(256), info.device)
-        this.random_elements = createStorageBuffer(this.generateRandomElements(256), info.device)
+        this.random_elements = createStorageBuffer(random_elements, info.device)
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, info.device)
         this.n_main_octaves = createIntUniform(data.n_main_octaves || 1, info.device)
         this.persistence = createFloatUniform(data.persistence || 0.5, info.device)
@@ -106,13 +208,13 @@ export abstract class NoiseScene implements Scene {
             },
         ]
 
-        if (this.dimension !== '2D') {
+        if (setup.dimension !== '2D') {
             this.z_coord = createFloatUniform(data.z_coord || 0, info.device)
             bind_group_entries.push({
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
-            if (this.dimension === '4D') {
+            if (setup.dimension === '4D') {
                 this.w_coord = createFloatUniform(data.w_coord || 0, info.device)
                 bind_group_entries.push({
                     binding: 6,
@@ -120,7 +222,7 @@ export abstract class NoiseScene implements Scene {
                 })
             }
         }
-        if (this.transform.startsWith('Warp')) {
+        if (setup.transform === 'Warp' || setup.transform === 'Warp 2X') {
             this.n_warp_octaves = createIntUniform(data.n_warp_octaves || 1, info.device)
             this.warp_strength = createFloatUniform(data.warp_strength || 1, info.device)
 

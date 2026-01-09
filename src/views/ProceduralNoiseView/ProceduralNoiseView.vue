@@ -8,21 +8,17 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from './ColorPanel.vue'
 import Canvas from '@/components/Canvas.vue'
 import ComputeRenderer from './ComputeRenderer'
-import { Perlin2D, Perlin3D, Perlin4D } from './NoiseFunctions/Perlin'
-import { Simplex2D, Simplex3D, Simplex4D } from './NoiseFunctions/Simplex'
-import { Cubic2D, Cubic3D, Cubic4D } from './NoiseFunctions/Cubic'
-import { Worley2D, Worley3D, Worley4D } from './NoiseFunctions/Worley'
-import { Value2D, Value3D, Value4D } from './NoiseFunctions/Value'
 import {
     NoiseScene,
-    type DomainTransform,
+    type NoiseAlgorithm,
     type NoiseDimension,
+    type DomainTransform,
     type NoiseUniforms,
 } from './NoiseUtils/NoiseScene'
 import { defaultColorPoints } from './NoiseUtils/Buffers'
 
 const color_points = ref(defaultColorPoints)
-const algorithm = ref('Perlin')
+const algorithm = ref<NoiseAlgorithm>('Perlin')
 const dimension = ref<NoiseDimension>('2D')
 const domain_transform = ref<DomainTransform>('None')
 const grid_size = ref(16)
@@ -33,56 +29,6 @@ const w_coord = ref(0)
 const warp_strength = ref(4)
 const n_warp_octaves = ref(1)
 const activeTab = ref('Configuration')
-
-function createScene(
-    algorithm: string,
-    dimension: NoiseDimension,
-    transform: DomainTransform,
-): NoiseScene {
-    if (algorithm.startsWith('Worley')) {
-        const second_closest = algorithm === 'Worley (2nd closest)'
-
-        if (dimension === '2D') {
-            return new Worley2D(second_closest, transform)
-        } else if (dimension === '3D') {
-            return new Worley3D(second_closest, transform)
-        } else {
-            return new Worley4D(second_closest, transform)
-        }
-    } else if (algorithm === 'Value') {
-        if (dimension === '2D') {
-            return new Value2D(transform)
-        } else if (dimension === '3D') {
-            return new Value3D(transform)
-        } else {
-            return new Value4D(transform)
-        }
-    } else if (algorithm === 'Simplex') {
-        if (dimension === '2D') {
-            return new Simplex2D(transform)
-        } else if (dimension === '3D') {
-            return new Simplex3D(transform)
-        } else {
-            return new Simplex4D(transform)
-        }
-    } else if (algorithm === 'Cubic') {
-        if (dimension === '2D') {
-            return new Cubic2D(transform)
-        } else if (dimension === '3D') {
-            return new Cubic3D(transform)
-        } else {
-            return new Cubic4D(transform)
-        }
-    } else {
-        if (dimension === '2D') {
-            return new Perlin2D(transform)
-        } else if (dimension === '3D') {
-            return new Perlin3D(transform)
-        } else {
-            return new Perlin4D(transform)
-        }
-    }
-}
 
 function getNoiseParams(): NoiseUniforms {
     return {
@@ -98,7 +44,13 @@ function getNoiseParams(): NoiseUniforms {
 }
 
 const scene = shallowRef(
-    markRaw(createScene(algorithm.value, dimension.value, domain_transform.value)),
+    markRaw(
+        new NoiseScene({
+            algorithm: algorithm.value,
+            dimension: dimension.value,
+            transform: domain_transform.value,
+        }),
+    ),
 )
 
 const renderer = shallowRef(markRaw(new ComputeRenderer()))
@@ -165,7 +117,11 @@ watch(
     ([new_algorithm, new_dimension, new_domain_transform]) => {
         renderer.value.cleanup()
         scene.value.cleanup()
-        scene.value = createScene(new_algorithm, new_dimension, new_domain_transform)
+        scene.value = new NoiseScene({
+            algorithm: new_algorithm,
+            dimension: new_dimension,
+            transform: new_domain_transform,
+        })
 
         if (canvasRef.value) {
             initScene(canvasRef.value)

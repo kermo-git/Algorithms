@@ -35,7 +35,6 @@ export function flatNoiseShader(
     if (dimension !== '2D' && transform === 'Rotate') {
         noise_pos_expr = `rotate(${noise_pos_expr})`
 
-        // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
         if (dimension === '3D') {
             rotate_function = rotate3D_shader
         } else if (dimension === '4D') {

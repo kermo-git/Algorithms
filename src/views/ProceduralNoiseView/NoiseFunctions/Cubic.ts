@@ -1,3 +1,6 @@
+// Blog post: https://jobtalle.com/cubic_noise.html
+// GitHub repo: https://github.com/jobtalle/CubicNoise
+
 import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
 
 export function cubic2DShader(): string {
@@ -69,16 +72,6 @@ export function cubic2DShader(): string {
     `
 }
 
-export class Cubic2D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(cubic2DShader(), '2D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
-}
-
 export function cubic3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -146,16 +139,6 @@ export function cubic3DShader(): string {
             return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
         }
     `
-}
-
-export class Cubic3D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(cubic3DShader(), '3D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
 }
 
 export function cubic4DShader(): string {
@@ -238,14 +221,4 @@ export function cubic4DShader(): string {
             return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
         }
     `
-}
-
-export class Cubic4D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(cubic4DShader(), '4D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
 }

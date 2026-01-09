@@ -32,16 +32,6 @@ export function value2DShader(): string {
     `
 }
 
-export class Value2D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(value2DShader(), '2D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
-}
-
 export function value3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -80,16 +70,6 @@ export function value3DShader(): string {
             );
         }
     `
-}
-
-export class Value3D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(value3DShader(), '3D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
 }
 
 export function value4DShader(): string {
@@ -147,14 +127,4 @@ export function value4DShader(): string {
             );
         }
     `
-}
-
-export class Value4D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(value4DShader(), '4D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return new Float32Array(n).map(Math.random)
-    }
 }

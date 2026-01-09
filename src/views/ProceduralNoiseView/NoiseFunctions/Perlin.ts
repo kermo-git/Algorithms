@@ -46,16 +46,6 @@ export function perlin2DShader(): string {
     `
 }
 
-export class Perlin2D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(perlin2DShader(), '2D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors2D(n)
-    }
-}
-
 export function perlin3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -105,16 +95,6 @@ export function perlin3DShader(): string {
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
-}
-
-export class Perlin3D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(perlin3DShader(), '3D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors3D(n)
-    }
 }
 
 export function perlin4DShader(): string {
@@ -193,14 +173,4 @@ export function perlin4DShader(): string {
             return clamp(result, -1, 1) * 0.5 + 0.5;
         }
     `
-}
-
-export class Perlin4D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(perlin4DShader(), '4D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors4D(n)
-    }
 }

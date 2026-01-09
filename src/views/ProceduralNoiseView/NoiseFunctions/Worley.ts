@@ -50,16 +50,6 @@ export function worley2DShader(second_closest = false): string {
     `
 }
 
-export class Worley2D extends NoiseScene {
-    constructor(second_closest: boolean, transform: DomainTransform = 'None') {
-        super(worley2DShader(second_closest), '2D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderRandomPoints2D(n)
-    }
-}
-
 export function worley3DShader(second_closest = false): string {
     const min_check_code = second_closest
         ? /* wgsl */ `
@@ -107,16 +97,6 @@ export function worley3DShader(second_closest = false): string {
             return clamp(${return_expr}, 0, 1);
         }
     `
-}
-
-export class Worley3D extends NoiseScene {
-    constructor(second_closest: boolean, transform: DomainTransform = 'None') {
-        super(worley3DShader(second_closest), '3D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderRandomPoints3D(n)
-    }
 }
 
 export function worley4DShader(second_closest = false): string {
@@ -170,14 +150,4 @@ export function worley4DShader(second_closest = false): string {
             return clamp(${return_expr}, 0, 1);
         }
     `
-}
-
-export class Worley4D extends NoiseScene {
-    constructor(second_closest: boolean, transform: DomainTransform = 'None') {
-        super(worley4DShader(second_closest), '4D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderRandomPoints4D(n)
-    }
 }

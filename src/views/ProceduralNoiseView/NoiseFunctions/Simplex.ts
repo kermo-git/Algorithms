@@ -73,16 +73,6 @@ export function simplex2DShader(): string {
     `
 }
 
-export class Simplex2D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(simplex2DShader(), '2D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors2D(n)
-    }
-}
-
 export function simplex3DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
@@ -168,16 +158,6 @@ export function simplex3DShader(): string {
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
-}
-
-export class Simplex3D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(simplex3DShader(), '3D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors3D(n)
-    }
 }
 
 export function simplex4DShader(): string {
@@ -395,14 +375,4 @@ export function simplex4DShader(): string {
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
-}
-
-export class Simplex4D extends NoiseScene {
-    constructor(transform: DomainTransform = 'None') {
-        super(simplex4DShader(), '4D', transform)
-    }
-
-    generateRandomElements(n: number): Float32Array<ArrayBuffer> {
-        return shaderUnitVectors4D(n)
-    }
 }

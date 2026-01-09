@@ -10,6 +10,8 @@ function randVec3f(max = 5) {
     return `vec3f(${randStrFloat(max)}, ${randStrFloat(max)}, ${randStrFloat(max)})`
 }
 
+// https://iquilezles.org/articles/fbm/
+
 export function octave_noise_shader(pos_type: string) {
     return /* wgsl */ `
         fn octave_noise(noise_pos: ${pos_type}, n_octaves: u32) -> f32 {
@@ -32,6 +34,8 @@ export function octave_noise_shader(pos_type: string) {
         }
     `
 }
+
+// https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
 
 export const rotate3D_shader = /* wgsl */ `
     fn rotate(pos: vec3f) -> vec3f {
@@ -59,6 +63,8 @@ export const rotate4D_shader = /* wgsl */ `
         return vec4f(xr, yr, zr, wr);
     }
 `
+
+// https://iquilezles.org/articles/warp/
 
 export const warp2D_shader = /* wgsl */ `
     fn warp_noise(noise_pos: vec2f) -> f32 {
