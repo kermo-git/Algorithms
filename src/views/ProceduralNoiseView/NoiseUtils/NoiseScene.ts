@@ -5,10 +5,10 @@ import {
     updateFloatUniform,
     createStorageBuffer,
     updateStorageBuffer,
-} from '../ShaderUtils'
+} from '../ShaderDataUtils'
 import { createComputePipeline, type InitInfo, type Scene } from '../ComputeRenderer'
 import { defaultColorPoints, generateHashTable } from './Buffers'
-import { noiseShader } from './Shaders'
+import { flatNoiseShader } from './FlatNoiseShader'
 
 export interface ShaderBindIndexes {
     bindGroup: number
@@ -49,7 +49,7 @@ export abstract class NoiseScene implements Scene {
     createShader(color_format: GPUTextureFormat): string {
         return `
             ${this.noise_shader_code}
-            ${noiseShader(this.dimension, this.transform, color_format)}
+            ${flatNoiseShader(this.dimension, this.transform, color_format)}
         `
     }
     pipeline!: GPUComputePipeline
