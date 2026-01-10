@@ -282,12 +282,12 @@ export function noiseFunctionShader(algorithm: NoiseAlgorithm, dimension: NoiseD
     }
 }
 
-export function get_pos_type(dimension: NoiseDimension) {
+export function shaderVecType(dimension: NoiseDimension) {
     return dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
 }
 
-export function compose_noise_function(dimension: NoiseDimension, transform: DomainTransform) {
-    const pos_type = get_pos_type(dimension)
+export function enchancedNoiseShader(dimension: NoiseDimension, transform: DomainTransform) {
+    const pos_type = shaderVecType(dimension)
 
     let functions = octave_noise_shader(pos_type)
     let noise_expr = ''

@@ -1,9 +1,5 @@
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
-import {
-    compose_noise_function,
-    get_pos_type,
-    interpolate_colors_shader,
-} from '@/Noise/ShaderUtils'
+import { enchancedNoiseShader, shaderVecType, interpolate_colors_shader } from '@/Noise/ShaderUtils'
 import type { DomainTransform, NoiseDimension } from '@/Noise/Types'
 
 export default function noiseSliceShader(
@@ -14,7 +10,7 @@ export default function noiseSliceShader(
     const high_dim = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
-    const pos_type = get_pos_type(dimension)
+    const pos_type = shaderVecType(dimension)
 
     let noise_pos_expr = 'noise_pos'
 
@@ -24,7 +20,7 @@ export default function noiseSliceShader(
         noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
     }
 
-    const { functions, noise_expr } = compose_noise_function(dimension, transform)
+    const { functions, noise_expr } = enchancedNoiseShader(dimension, transform)
 
     return /* wgsl */ `
         // Define the noise function here:
