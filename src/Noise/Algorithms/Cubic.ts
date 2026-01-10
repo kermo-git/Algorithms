@@ -24,45 +24,33 @@ export function cubic2DShader(): string {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
-            let x1 = i32(floor_pos.x) & 255;
-            let x0 = (x1 - 1) & 255;
-            let x2 = (x1 + 1) & 255;
-            let x3 = (x1 + 2) & 255;
+            let floor_x = i32(floor_pos.x);
+            let floor_y = i32(floor_pos.y);
+
+            let x0 = (floor_x - 1) & 255;
+            let x1 = floor_x & 255;
+            let x2 = (floor_x + 1) & 255;
+            let x3 = (floor_x + 2) & 255;
             
-            let y1 = i32(floor_pos.y) & 255;
-            let y0 = i32(y1 - 1) & 255;
-            let y2 = i32(y1 + 1) & 255;
-            let y3 = i32(y1 + 2) & 255;
+            var interpolated_x = array<f32, 4>(0, 0, 0, 0);
+
+            for (var i = 0; i < 4; i++) {
+                let yi = (floor_y - 1 + i) & 255;
+
+                interpolated_x[i] = interpolate(
+                    get_value(x0, yi),
+                    get_value(x1, yi),
+                    get_value(x2, yi),
+                    get_value(x3, yi),
+                    local_pos.x
+                );
+            }
 
             let n = interpolate(
-                interpolate(
-                    get_value(x0, y0),
-                    get_value(x1, y0),
-                    get_value(x2, y0),
-                    get_value(x3, y0),
-                    local_pos.x
-                ),
-                interpolate(
-                    get_value(x0, y1),
-                    get_value(x1, y1),
-                    get_value(x2, y1),
-                    get_value(x3, y1),
-                    local_pos.x
-                ),
-                interpolate(
-                    get_value(x0, y2),
-                    get_value(x1, y2),
-                    get_value(x2, y2),
-                    get_value(x3, y2),
-                    local_pos.x
-                ),
-                interpolate(
-                    get_value(x0, y3),
-                    get_value(x1, y3),
-                    get_value(x2, y3),
-                    get_value(x3, y3),
-                    local_pos.x
-                ),
+                interpolated_x[0],
+                interpolated_x[1],
+                interpolated_x[2],
+                interpolated_x[3],
                 local_pos.y
             );
             return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
@@ -93,22 +81,23 @@ export function cubic3DShader(): string {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
-            let x1 = i32(floor_pos.x) & 255;
-            let y1 = i32(floor_pos.y) & 255;
-            let z1 = i32(floor_pos.z) & 255;
+            let floor_x = i32(floor_pos.x);
+            let floor_y = i32(floor_pos.y);
+            let floor_z = i32(floor_pos.z);
 
-            let x0 = x1 - 1;
-            let x2 = x1 + 1;
-            let x3 = x1 + 2;
+            let x0 = (floor_x - 1) & 255;
+            let x1 = floor_x & 255;
+            let x2 = (floor_x + 1) & 255;
+            let x3 = (floor_x + 2) & 255;
 
             var interpolated_z = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0; i < 4; i++) {
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                let yi = y1 - 1 + i;
+                let yi = (floor_y - 1 + i) & 255;
 
                 for (var j = 0; j < 4; j++) {
-                    let zj = z1 - 1 + j;
+                    let zj = (floor_z - 1 + j) & 255;
 
                     interpolated_x[j] = interpolate(
                         get_value(x0, yi, zj),
@@ -118,6 +107,7 @@ export function cubic3DShader(): string {
                         local_pos.x
                     );
                 }
+
                 interpolated_z[i] = interpolate(
                     interpolated_x[0],
                     interpolated_x[1],
@@ -162,27 +152,28 @@ export function cubic4DShader(): string {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
-            let x1 = i32(floor_pos.x) & 255;
-            let y1 = i32(floor_pos.y) & 255;
-            let z1 = i32(floor_pos.z) & 255;
-            let w1 = i32(floor_pos.w) & 255;
+            let floor_x = i32(floor_pos.x);
+            let floor_y = i32(floor_pos.y);
+            let floor_z = i32(floor_pos.z);
+            let floor_w = i32(floor_pos.w);
 
-            let x0 = x1 - 1;
-            let x2 = x1 + 1;
-            let x3 = x1 + 2;
+            let x0 = (floor_x - 1) & 255;
+            let x1 = floor_x & 255;
+            let x2 = (floor_x + 1) & 255;
+            let x3 = (floor_x + 2) & 255;
 
             var interpolated_y = array<f32, 4>(0, 0, 0, 0);
 
             for (var k = 0; k < 4; k++) {
                 var interpolated_z = array<f32, 4>(0, 0, 0, 0);
-                let wk = w1 - 1 + k;
+                let wk = (floor_w - 1 + k) & 255;
 
                 for (var i = 0; i < 4; i++) {
                     var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                    let yi = y1 - 1 + i;
+                    let yi = (floor_y - 1 + i) & 255;
 
                     for (var j = 0; j < 4; j++) {
-                        let zj = z1 - 1 + j;
+                        let zj = (floor_z - 1 + j) & 255;
 
                         interpolated_x[j] = interpolate(
                             get_value(x0, yi, zj, wk),
@@ -192,6 +183,7 @@ export function cubic4DShader(): string {
                             local_pos.x
                         );
                     }
+
                     interpolated_z[i] = interpolate(
                         interpolated_x[0],
                         interpolated_x[1],
@@ -209,6 +201,7 @@ export function cubic4DShader(): string {
                     local_pos.y
                 );
             }
+
             let n = interpolate(
                 interpolated_y[0],
                 interpolated_y[1],
