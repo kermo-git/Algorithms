@@ -4,6 +4,7 @@ import { mdiSwapHorizontal } from '@mdi/js'
 
 import PanelButton from './PanelButton.vue'
 import PanelSection from './PanelSection.vue'
+import ColorInput from './ColorInput.vue'
 
 interface Props {
     modelValue: string[]
@@ -63,12 +64,10 @@ function onSwapClick(ev: Event) {
 <template>
     <PanelSection>
         <template v-for="(color, i) in props.modelValue" :key="i">
-            <input
-                type="color"
+            <ColorInput
                 :value="color"
-                :style="`background-color: ${color}`"
-                @change="
-                    (ev) => {
+                @input="
+                    (ev: Event) => {
                         const before = props.modelValue.slice(0, i)
                         const new_color = (ev.target as HTMLInputElement).value
                         const after = props.modelValue.slice(i + 1)
@@ -103,18 +102,6 @@ function onSwapClick(ev: Event) {
 </template>
 
 <style scoped>
-input[type='color'] {
-    height: 4em;
-    aspect-ratio: 1;
-    border-radius: 30%;
-    border: var(--border);
-    cursor: pointer;
-}
-
-input[type='color']:hover {
-    border: var(--accent-border);
-}
-
 .swap {
     background-color: transparent;
     border: none;

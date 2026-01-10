@@ -12,7 +12,7 @@ import {
     neuralAutomatonStep,
 } from '@/views/NeuralAutomataView/NeuralCellularAutomaton'
 
-import ColorSelector from '@/components/ColorSelector.vue'
+import ColorPalette from '@/components/ColorPalette.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
@@ -231,7 +231,7 @@ const activeTab = ref('Configuration')
             <template v-else-if="activeTab === 'Style'">
                 <p>Colors</p>
 
-                <ColorSelector v-model="colors" />
+                <ColorPalette v-model="colors" />
 
                 <NumberSingleSelect
                     text="Grid size"

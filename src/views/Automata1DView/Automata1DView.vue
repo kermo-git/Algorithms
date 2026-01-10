@@ -5,7 +5,7 @@ import { mdiContentCopy, mdiDice5 } from '@mdi/js'
 import { generatePattern, createRule, type FirstGenType, getNumRules } from './Automaton1D'
 import { Matrix } from '@/utils/Matrix'
 
-import ColorSelector from '@/components/ColorSelector.vue'
+import ColorPalette from '@/components/ColorPalette.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
@@ -182,7 +182,7 @@ const matrix = computed(() => {
             <template v-if="activeTab === 'Style'">
                 <p>Colors</p>
 
-                <ColorSelector v-model="colors" />
+                <ColorPalette v-model="colors" />
 
                 <NumberSingleSelect
                     text="Grid size"

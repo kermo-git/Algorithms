@@ -6,6 +6,7 @@ import PanelButton from '@/components/PanelButton.vue'
 
 import { parseHexColor, toHexColor } from '@/utils/Colors'
 import { computed } from 'vue'
+import ColorInput from '@/components/ColorInput.vue'
 
 interface Props {
     /**
@@ -135,13 +136,7 @@ function onDeleteClick(ev: Event) {
 <template>
     <template v-for="(info, i) in color_info" :key="i">
         <div class="color-buttons">
-            <input
-                type="color"
-                :style="`background-color: ${info.hexColor}`"
-                :value="info.hexColor"
-                :data-index="i"
-                @input="onColorInput"
-            />
+            <ColorInput :value="info.hexColor" :data-index="i" @input="onColorInput" />
             <p class="color-point-value">{{ info.point.toFixed(2) }}</p>
             <PanelButton
                 v-if="i > 0"
@@ -179,18 +174,6 @@ function onDeleteClick(ev: Event) {
 </template>
 
 <style scoped>
-input[type='color'] {
-    height: 4em;
-    aspect-ratio: 1;
-    border-radius: 30%;
-    border: var(--border);
-    cursor: pointer;
-}
-
-input[type='color']:hover {
-    border: var(--accent-border);
-}
-
 .color-buttons {
     width: 100%;
     display: flex;
