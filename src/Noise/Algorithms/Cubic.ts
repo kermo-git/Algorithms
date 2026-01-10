@@ -90,39 +90,39 @@ export function cubic3DShader(): string {
             let x2 = (floor_x + 1) & 255;
             let x3 = (floor_x + 2) & 255;
 
-            var interpolated_z = array<f32, 4>(0, 0, 0, 0);
+            var interpolated_y = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0; i < 4; i++) {
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                let yi = (floor_y - 1 + i) & 255;
-
+                let zi = (floor_z - 1 + i) & 255;
+                
                 for (var j = 0; j < 4; j++) {
-                    let zj = (floor_z - 1 + j) & 255;
+                    let yj = (floor_y - 1 + j) & 255;
 
                     interpolated_x[j] = interpolate(
-                        get_value(x0, yi, zj),
-                        get_value(x1, yi, zj),
-                        get_value(x2, yi, zj),
-                        get_value(x3, yi, zj),
+                        get_value(x0, yj, zi),
+                        get_value(x1, yj, zi),
+                        get_value(x2, yj, zi),
+                        get_value(x3, yj, zi),
                         local_pos.x
                     );
                 }
 
-                interpolated_z[i] = interpolate(
+                interpolated_y[i] = interpolate(
                     interpolated_x[0],
                     interpolated_x[1],
                     interpolated_x[2],
                     interpolated_x[3],
-                    local_pos.z
+                    local_pos.y
                 );
             }
 
             let n = interpolate(
-                interpolated_z[0],
-                interpolated_z[1],
-                interpolated_z[2],
-                interpolated_z[3],
-                local_pos.y
+                interpolated_y[0],
+                interpolated_y[1],
+                interpolated_y[2],
+                interpolated_y[3],
+                local_pos.z
             );
             return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
         }
@@ -162,51 +162,51 @@ export function cubic4DShader(): string {
             let x2 = (floor_x + 1) & 255;
             let x3 = (floor_x + 2) & 255;
 
-            var interpolated_y = array<f32, 4>(0, 0, 0, 0);
+            var interpolated_z = array<f32, 4>(0, 0, 0, 0);
 
-            for (var k = 0; k < 4; k++) {
-                var interpolated_z = array<f32, 4>(0, 0, 0, 0);
-                let wk = (floor_w - 1 + k) & 255;
+            for (var i = 0; i < 4; i++) {
+                var interpolated_y = array<f32, 4>(0, 0, 0, 0);
+                let wi = (floor_w - 1 + i) & 255;
 
-                for (var i = 0; i < 4; i++) {
+                for (var j = 0; j < 4; j++) {
                     var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                    let yi = (floor_y - 1 + i) & 255;
+                    let zj = (floor_z - 1 + j) & 255;
+                    
+                    for (var k = 0; k < 4; k++) {
+                        let yk = (floor_y - 1 + k) & 255;
 
-                    for (var j = 0; j < 4; j++) {
-                        let zj = (floor_z - 1 + j) & 255;
-
-                        interpolated_x[j] = interpolate(
-                            get_value(x0, yi, zj, wk),
-                            get_value(x1, yi, zj, wk),
-                            get_value(x2, yi, zj, wk),
-                            get_value(x3, yi, zj, wk),
+                        interpolated_x[k] = interpolate(
+                            get_value(x0, yk, zj, wi),
+                            get_value(x1, yk, zj, wi),
+                            get_value(x2, yk, zj, wi),
+                            get_value(x3, yk, zj, wi),
                             local_pos.x
                         );
                     }
 
-                    interpolated_z[i] = interpolate(
+                    interpolated_y[j] = interpolate(
                         interpolated_x[0],
                         interpolated_x[1],
                         interpolated_x[2],
                         interpolated_x[3],
-                        local_pos.z
+                        local_pos.y
                     );
                 }
 
-                interpolated_y[k] = interpolate(
-                    interpolated_z[0],
-                    interpolated_z[1],
-                    interpolated_z[2],
-                    interpolated_z[3],
-                    local_pos.y
+                interpolated_z[i] = interpolate(
+                    interpolated_y[0],
+                    interpolated_y[1],
+                    interpolated_y[2],
+                    interpolated_y[3],
+                    local_pos.z
                 );
             }
 
             let n = interpolate(
-                interpolated_y[0],
-                interpolated_y[1],
-                interpolated_y[2],
-                interpolated_y[3],
+                interpolated_z[0],
+                interpolated_z[1],
+                interpolated_z[2],
+                interpolated_z[3],
                 local_pos.w
             );
             return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
