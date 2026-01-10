@@ -156,7 +156,7 @@ function onDeleteClick(ev: Event) {
                 @click="onAddColorClick"
             />
             <PanelButton
-                v-if="props.modelValue.length > 2"
+                v-if="color_info.length > 2"
                 :mdi-path="mdiDelete"
                 :data-index="i"
                 @click="onDeleteClick"
