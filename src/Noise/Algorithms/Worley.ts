@@ -1,10 +1,3 @@
-import {
-    shaderRandomPoints2D,
-    shaderRandomPoints3D,
-    shaderRandomPoints4D,
-} from '../NoiseUtils/Buffers'
-import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
-
 export function worley2DShader(second_closest = false): string {
     const min_check_code = second_closest
         ? /* wgsl */ `

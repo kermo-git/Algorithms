@@ -1,12 +1,5 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import {
-    shaderUnitVectors2D,
-    shaderUnitVectors3D,
-    shaderUnitVectors4D,
-} from '../NoiseUtils/Buffers'
-import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
-
 function skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions
 }

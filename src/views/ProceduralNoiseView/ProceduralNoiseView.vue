@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+
+import ComputeRenderer from '@/WebGPU/ComputeRenderer'
+import { defaultColorPoints } from '@/Noise/Buffers'
+import type { DomainTransform, NoiseAlgorithm, NoiseDimension, NoiseUniforms } from '@/Noise/Types'
+
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import TabControl from '@/components/TabControl.vue'
 import RangeInput from '@/components/RangeInput.vue'
+import Canvas from '@/components/Canvas.vue'
 
 import ColorPanel from './ColorPanel.vue'
-import Canvas from '@/components/Canvas.vue'
-import ComputeRenderer from './ComputeRenderer'
-import {
-    NoiseScene,
-    type NoiseAlgorithm,
-    type NoiseDimension,
-    type DomainTransform,
-    type NoiseUniforms,
-} from './NoiseUtils/NoiseScene'
-import { defaultColorPoints } from './NoiseUtils/Buffers'
+import NoiseScene from './NoiseScene'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')

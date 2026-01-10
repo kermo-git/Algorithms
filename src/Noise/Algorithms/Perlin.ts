@@ -1,10 +1,3 @@
-import {
-    shaderUnitVectors2D,
-    shaderUnitVectors3D,
-    shaderUnitVectors4D,
-} from '../NoiseUtils/Buffers'
-import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
-
 export function perlin2DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;

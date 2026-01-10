@@ -1,5 +1,3 @@
-export const WG_DIM = 8
-
 type BufferData = Float32Array<ArrayBuffer> | Int32Array<ArrayBuffer>
 
 export function createFloatUniform(value: number, device: GPUDevice): GPUBuffer {

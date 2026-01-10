@@ -1,76 +1,10 @@
-import { WG_DIM } from '../ShaderDataUtils'
-import type { DomainTransform, NoiseDimension } from './NoiseScene'
+import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 import {
-    double_warp2D_shader,
-    double_warp3D_shader,
+    compose_noise_function,
+    get_pos_type,
     interpolate_colors_shader,
-    octave_noise_shader,
-    rotate3D_shader,
-    rotate4D_shader,
-    warp2D_shader,
-    warp3D_shader,
-} from './ShaderFunctions'
-
-function get_pos_type(dimension: NoiseDimension) {
-    return dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
-}
-
-function compose_noise_function(dimension: NoiseDimension, transform: DomainTransform) {
-    const pos_type = get_pos_type(dimension)
-
-    let functions = octave_noise_shader(pos_type)
-    let noise_expr = ''
-    let pos_expr = 'noise_pos'
-
-    if (transform === 'Rotate') {
-        pos_expr = 'rotate(noise_pos)'
-
-        if (dimension === '3D') {
-            functions = `
-                ${functions}
-                ${rotate3D_shader}
-            `
-        } else if (dimension === '4D') {
-            functions = `
-                ${functions}
-                ${rotate4D_shader}
-            `
-        }
-    }
-    if (transform === 'Warp') {
-        if (dimension === '2D') {
-            functions = `
-                ${functions}
-                ${warp2D_shader}
-            `
-        } else if (dimension === '3D') {
-            functions = `
-                ${functions}
-                ${warp3D_shader}
-            `
-        }
-        noise_expr = `warp_noise(${pos_expr})`
-    } else if (transform === 'Warp 2X') {
-        if (dimension === '2D') {
-            functions = `
-                ${functions}
-                ${double_warp2D_shader}
-            `
-        } else if (dimension === '3D') {
-            functions = `
-                ${functions}
-                ${double_warp3D_shader}
-            `
-        }
-        noise_expr = `warp_noise(${pos_expr})`
-    } else {
-        noise_expr = `octave_noise(${pos_expr}, n_main_octaves)`
-    }
-    return {
-        functions,
-        noise_expr,
-    }
-}
+} from '@/Noise/ShaderUtils'
+import type { DomainTransform, NoiseDimension } from '@/Noise/Types'
 
 export default function noiseSliceShader(
     dimension: NoiseDimension,

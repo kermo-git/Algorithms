@@ -1,8 +1,6 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
-
 export function cubic2DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;

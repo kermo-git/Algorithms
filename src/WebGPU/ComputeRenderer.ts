@@ -1,4 +1,4 @@
-import { WG_DIM } from './ShaderDataUtils'
+export const WG_DIM = 8
 
 export async function compileShader(
     device: GPUDevice,

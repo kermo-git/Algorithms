@@ -1,5 +1,3 @@
-import { NoiseScene, type DomainTransform } from '../NoiseUtils/NoiseScene'
-
 export function value2DShader(): string {
     return /* wgsl */ `
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
