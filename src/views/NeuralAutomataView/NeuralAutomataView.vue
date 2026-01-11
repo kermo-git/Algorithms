@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { mdiPlay, mdiDice5, mdiPlus, mdiMinus, mdiNumeric0 } from '@mdi/js'
 import SvgIcon from '@jamescoyle/vue-icon'
-
-import { createMatrix, Matrix } from '@/utils/Matrix'
-import {
-    randomize,
-    discrete,
-    sigmoid,
-    invertedGaussian,
-    neuralAutomatonStep,
-} from '@/views/NeuralAutomataView/NeuralCellularAutomaton'
 
 import ColorPalette from '@/components/ColorPalette.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
-import PixelCanvas from '@/components/PixelCanvas.vue'
-import TabControl from '@/components/TabControl.vue'
 import MatrixEditor from '@/views/NeuralAutomataView/MatrixEditor.vue'
+import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
+
+import { createMatrix, Matrix } from '@/utils/Matrix'
+import { drawContinuousColors, drawDiscreteColors } from '@/utils/DrawPixels'
+import {
+    randomize,
+    discrete,
+    sigmoid,
+    invertedGaussian,
+    neuralAutomatonStep,
+} from './NeuralCellularAutomaton'
 
 const grid_size = ref(64)
 const kernelDesignMethod = ref('Toggle -/0/+')
@@ -163,113 +163,119 @@ function reset() {
 }
 
 const activeTab = ref('Configuration')
+
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+function onCanvasReady(canvas: HTMLCanvasElement) {
+    canvasRef.value = canvas
+    drawDiscreteColors(canvas, current_gen.value, colors.value)
+}
+
+watch([current_gen, colors], ([new_current_gen, new_colors]) => {
+    if (canvasRef.value) {
+        if (activationChoice.value === 'Discrete') {
+            drawDiscreteColors(canvasRef.value, new_current_gen, new_colors)
+        } else {
+            drawContinuousColors(canvasRef.value, new_current_gen, new_colors)
+        }
+    }
+})
 </script>
 
 <template>
-    <div class="container">
-        <TabControl :captions="['Configuration', 'Style', 'Run']" v-model="activeTab">
-            <template v-if="activeTab === 'Configuration'">
-                <TextSingleSelect
-                    text="Activation"
-                    name="activation"
-                    :options="['Discrete', 'Sigmoid', 'Inverted Gaussian']"
-                    v-model="activationChoice"
-                />
+    <SidePanelCanvas
+        :tab-captions="['Configuration', 'Style', 'Run']"
+        v-model="activeTab"
+        @canvas-ready="onCanvasReady"
+    >
+        <template v-if="activeTab === 'Configuration'">
+            <TextSingleSelect
+                text="Activation"
+                name="activation"
+                :options="['Discrete', 'Sigmoid', 'Inverted Gaussian']"
+                v-model="activationChoice"
+            />
 
-                <NumberSingleSelect
-                    text="Kernel size"
-                    name="radius"
-                    :options="[5, 7, 9, 11]"
-                    v-model="kernel_size"
-                    @update:model-value="
-                        (new_value: number) => {
-                            kernel_size = new_value
-                            weightSign = new Matrix<sign>(kernel_size, kernel_size, '-')
-                            weights = new Matrix(kernel_size, kernel_size, 0)
-                            reset()
+            <NumberSingleSelect
+                text="Kernel size"
+                name="radius"
+                :options="[5, 7, 9, 11]"
+                v-model="kernel_size"
+                @update:model-value="
+                    (new_value: number) => {
+                        kernel_size = new_value
+                        weightSign = new Matrix<sign>(kernel_size, kernel_size, '-')
+                        weights = new Matrix(kernel_size, kernel_size, 0)
+                        reset()
+                    }
+                "
+            />
+
+            <TextSingleSelect
+                text="Kernel design method"
+                name="kernel-design-method"
+                :options="['Toggle -/0/+', 'Direct input']"
+                v-model="kernelDesignMethod"
+                @update:model-value="
+                    (new_value: string) => {
+                        if (new_value == 'Toggle -/0/+') {
+                            weights = createWeightMatrix(weightSign)
                         }
-                    "
-                />
+                    }
+                "
+            />
 
-                <TextSingleSelect
-                    text="Kernel design method"
-                    name="kernel-design-method"
-                    :options="['Toggle -/0/+', 'Direct input']"
-                    v-model="kernelDesignMethod"
-                    @update:model-value="
-                        (new_value: string) => {
-                            if (new_value == 'Toggle -/0/+') {
-                                weights = createWeightMatrix(weightSign)
-                            }
-                        }
-                    "
-                />
+            <div
+                v-if="kernelDesignMethod === 'Toggle -/0/+'"
+                class="matrix"
+                :style="{
+                    gridTemplateColumns: `repeat(${kernel_size}, 1fr)`,
+                }"
+            >
+                <template v-for="row in kernel_size" :key="row">
+                    <div
+                        v-for="col in kernel_size"
+                        :key="col"
+                        :style="getWeightStyle(row - 1, col - 1)"
+                        class="cell"
+                        :data-row="row - 1"
+                        :data-col="col - 1"
+                        @click="onSignCellClick"
+                    >
+                        <svg-icon type="mdi" :path="getWeightMdiPath(row - 1, col - 1)" />
+                    </div>
+                </template>
+            </div>
+            <MatrixEditor v-else v-model="weights" />
+        </template>
+        <template v-else-if="activeTab === 'Style'">
+            <p>Colors</p>
 
-                <div
-                    v-if="kernelDesignMethod === 'Toggle -/0/+'"
-                    class="matrix"
-                    :style="{
-                        gridTemplateColumns: `repeat(${kernel_size}, 1fr)`,
-                    }"
-                >
-                    <template v-for="row in kernel_size" :key="row">
-                        <div
-                            v-for="col in kernel_size"
-                            :key="col"
-                            :style="getWeightStyle(row - 1, col - 1)"
-                            class="cell"
-                            :data-row="row - 1"
-                            :data-col="col - 1"
-                            @click="onSignCellClick"
-                        >
-                            <svg-icon type="mdi" :path="getWeightMdiPath(row - 1, col - 1)" />
-                        </div>
-                    </template>
-                </div>
-                <MatrixEditor v-else v-model="weights" />
-            </template>
-            <template v-else-if="activeTab === 'Style'">
-                <p>Colors</p>
+            <ColorPalette v-model="colors" />
 
-                <ColorPalette v-model="colors" />
-
-                <NumberSingleSelect
-                    text="Grid size"
-                    name="grid-size"
-                    :options="[64, 128]"
-                    v-model="grid_size"
-                    @update:model-value="
-                        (new_value: number) => {
-                            grid_size = new_value
-                            reset()
-                        }
-                    "
-                />
-            </template>
-            <template v-else>
-                <PanelSection>
-                    <PanelButton :mdi-path="mdiDice5" text="Randomize" @click="reset" />
-                    <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
-                </PanelSection>
-            </template>
-        </TabControl>
-        <PixelCanvas
-            class="canvas"
-            :matrix="current_gen"
-            :colors="colors"
-            :continuousColors="activationChoice != 'Discrete'"
-        />
-    </div>
+            <NumberSingleSelect
+                text="Grid size"
+                name="grid-size"
+                :options="[64, 128]"
+                v-model="grid_size"
+                @update:model-value="
+                    (new_value: number) => {
+                        grid_size = new_value
+                        reset()
+                    }
+                "
+            />
+        </template>
+        <template v-else>
+            <PanelSection>
+                <PanelButton :mdi-path="mdiDice5" text="Randomize" @click="reset" />
+                <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
+            </PanelSection>
+        </template>
+    </SidePanelCanvas>
 </template>
 
 <style scoped>
-.container {
-    display: grid;
-    grid-template-columns: 30% 70%;
-    flex-grow: 1;
-    overflow-y: scroll;
-}
-
 .matrix {
     display: grid;
     border-right: var(--border);

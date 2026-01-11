@@ -3,7 +3,7 @@ interface Props {
     captions: string[]
 }
 const props = defineProps<Props>()
-const model = defineModel<string>()
+const active_tab = defineModel<string>()
 </script>
 
 <template>
@@ -12,8 +12,8 @@ const model = defineModel<string>()
             <button
                 v-for="caption in props.captions"
                 :key="caption"
-                @click="model = caption"
-                :class="caption === model ? 'tab active' : 'tab inactive'"
+                @click="active_tab = caption"
+                :class="caption === active_tab ? 'tab active' : 'tab inactive'"
             >
                 {{ caption }}
             </button>

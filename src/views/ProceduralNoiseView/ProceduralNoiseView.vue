@@ -13,6 +13,7 @@ import Canvas from '@/components/Canvas.vue'
 
 import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './NoiseScene'
+import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')
@@ -25,7 +26,7 @@ const z_coord = ref(0)
 const w_coord = ref(0)
 const warp_strength = ref(4)
 const n_warp_octaves = ref(1)
-const activeTab = ref('Configuration')
+const active_tab = ref('Configuration')
 
 function getNoiseParams(): NoiseUniforms {
     return {
@@ -142,8 +143,12 @@ const available_transforms = computed(() =>
 
 <template>
     <div class="container">
-        <TabControl :captions="['Configuration', 'Colors']" v-model="activeTab">
-            <template v-if="activeTab === 'Configuration'">
+        <SidePanelCanvas
+            :tab-captions="['Configuration', 'Colors']"
+            v-model="active_tab"
+            @canvas-ready="initScene"
+        >
+            <template v-if="active_tab === 'Configuration'">
                 <TextSingleSelect
                     text="Noise algorithm"
                     name="algorithm"
@@ -222,19 +227,11 @@ const available_transforms = computed(() =>
             <template v-else>
                 <ColorPanel v-model="color_points" />
             </template>
-        </TabControl>
-        <Canvas @canvas-ready="initScene" />
+        </SidePanelCanvas>
     </div>
 </template>
 
 <style scoped>
-.container {
-    display: grid;
-    grid-template-columns: 30% 70%;
-    flex-grow: 1;
-    overflow-y: scroll;
-}
-
 .field {
     width: 100%;
 }
