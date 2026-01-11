@@ -1,5 +1,10 @@
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
-import { enchancedNoiseShader, shaderVecType, interpolate_colors_shader } from '@/Noise/ShaderUtils'
+import {
+    enchancedNoiseShader,
+    shaderVecType,
+    interpolate_colors_shader,
+    findGridPosShader,
+} from '@/Noise/ShaderUtils'
 import type { DomainTransform, NoiseDimension } from '@/Noise/Types'
 
 export default function noiseSliceShader(
@@ -10,17 +15,8 @@ export default function noiseSliceShader(
     const high_dim = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
-    const pos_type = shaderVecType(dimension)
 
-    let noise_pos_expr = 'noise_pos'
-
-    if (dimension === '3D') {
-        noise_pos_expr = 'vec3f(noise_pos, z_coordinate)'
-    } else if (dimension === '4D') {
-        noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
-    }
-
-    const { functions, noise_expr } = enchancedNoiseShader(dimension, transform)
+    const { noise_functions, noise_expr } = enchancedNoiseShader(dimension, transform)
 
     return /* wgsl */ `
         // Define the noise function here:
@@ -38,15 +34,9 @@ export default function noiseSliceShader(
         ${only_warp} @group(1) @binding(8) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
-        fn find_noise_pos(texture_pos: vec2f, texture_dims: vec2f) -> ${pos_type} {
-            let n_grid_rows = n_grid_columns * texture_dims.y / texture_dims.x;
-            let grid_dims = vec2f(n_grid_columns, n_grid_rows);
-            let noise_pos = grid_dims * texture_pos / texture_dims;
+        ${findGridPosShader(dimension, 'find_noise_pos')}
 
-            return ${noise_pos_expr};
-        }
-
-        ${functions}
+        ${noise_functions}
 
         ${interpolate_colors_shader}
         
@@ -60,7 +50,7 @@ export default function noiseSliceShader(
             if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
                 return;
             }
-            let noise_pos = find_noise_pos(vec2f(texture_pos), vec2f(texture_dims));
+            let noise_pos = find_noise_pos(texture_pos, texture_dims, n_grid_columns);
             let noise_value = ${noise_expr};
             let color = interpolate_colors(noise_value);
 

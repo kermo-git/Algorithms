@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
+import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
+import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
+import TextSingleSelect from '@/components/TextSingleSelect.vue'
+import RangeInput from '@/components/RangeInput.vue'
+
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { defaultColorPoints } from '@/Noise/Buffers'
 import type { DomainTransform, NoiseAlgorithm, NoiseDimension, NoiseUniforms } from '@/Noise/Types'
 
-import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import TextSingleSelect from '@/components/TextSingleSelect.vue'
-import TabControl from '@/components/TabControl.vue'
-import RangeInput from '@/components/RangeInput.vue'
-import Canvas from '@/components/Canvas.vue'
-
 import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './NoiseScene'
-import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')
@@ -142,93 +140,84 @@ const available_transforms = computed(() =>
 </script>
 
 <template>
-    <div class="container">
-        <SidePanelCanvas
-            :tab-captions="['Configuration', 'Colors']"
-            v-model="active_tab"
-            @canvas-ready="initScene"
-        >
-            <template v-if="active_tab === 'Configuration'">
-                <TextSingleSelect
-                    text="Noise algorithm"
-                    name="algorithm"
-                    :options="[
-                        'Perlin',
-                        'Simplex',
-                        'Cubic',
-                        'Value',
-                        'Worley',
-                        'Worley (2nd closest)',
-                    ]"
-                    v-model="algorithm"
-                />
+    <SidePanelCanvas
+        :tab-captions="['Configuration', 'Colors']"
+        v-model="active_tab"
+        @canvas-ready="initScene"
+    >
+        <template v-if="active_tab === 'Configuration'">
+            <TextSingleSelect
+                text="Noise algorithm"
+                name="algorithm"
+                :options="['Perlin', 'Simplex', 'Cubic', 'Value', 'Worley', 'Worley (2nd closest)']"
+                v-model="algorithm"
+            />
 
-                <TextSingleSelect
-                    text="Noise dimension"
-                    name="dimension"
-                    :options="['2D', '3D', '4D']"
-                    v-model="dimension"
-                />
+            <TextSingleSelect
+                text="Noise dimension"
+                name="dimension"
+                :options="['2D', '3D', '4D']"
+                v-model="dimension"
+            />
 
-                <template v-if="dimension !== '2D'">
-                    <p>Z coordinate: {{ z_coord }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
+            <template v-if="dimension !== '2D'">
+                <p>Z coordinate: {{ z_coord }}</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
 
-                    <template v-if="dimension === '4D'">
-                        <p>W coordinate: {{ w_coord }}</p>
-                        <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
-                    </template>
-                </template>
-
-                <TextSingleSelect
-                    text="Domain transformation"
-                    name="domain_transform"
-                    :options="available_transforms"
-                    v-model="domain_transform"
-                />
-
-                <template v-if="domain_transform.startsWith('Warp')">
-                    <p>Warp strength: {{ warp_strength }}</p>
-                    <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
-                </template>
-
-                <NumberSingleSelect
-                    text="Grid size"
-                    name="grid_size"
-                    :options="[4, 8, 16, 32, 64]"
-                    v-model="grid_size"
-                />
-
-                <NumberSingleSelect
-                    v-if="domain_transform.startsWith('Warp')"
-                    text="Warp octaves"
-                    name="n_warp_octaves"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="n_warp_octaves"
-                />
-
-                <NumberSingleSelect
-                    :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
-                    name="n_main_octaves"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="n_main_octaves"
-                />
-
-                <template
-                    v-if="
-                        n_main_octaves > 1 ||
-                        (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
-                    "
-                >
-                    <p>Persistence: {{ persistence }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
+                <template v-if="dimension === '4D'">
+                    <p>W coordinate: {{ w_coord }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
                 </template>
             </template>
-            <template v-else>
-                <ColorPanel v-model="color_points" />
+
+            <TextSingleSelect
+                text="Domain transformation"
+                name="domain_transform"
+                :options="available_transforms"
+                v-model="domain_transform"
+            />
+
+            <template v-if="domain_transform.startsWith('Warp')">
+                <p>Warp strength: {{ warp_strength }}</p>
+                <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
             </template>
-        </SidePanelCanvas>
-    </div>
+
+            <NumberSingleSelect
+                text="Grid size"
+                name="grid_size"
+                :options="[4, 8, 16, 32, 64]"
+                v-model="grid_size"
+            />
+
+            <NumberSingleSelect
+                v-if="domain_transform.startsWith('Warp')"
+                text="Warp octaves"
+                name="n_warp_octaves"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="n_warp_octaves"
+            />
+
+            <NumberSingleSelect
+                :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
+                name="n_main_octaves"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="n_main_octaves"
+            />
+
+            <template
+                v-if="
+                    n_main_octaves > 1 ||
+                    (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
+                "
+            >
+                <p>Persistence: {{ persistence }}</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
+            </template>
+        </template>
+        <template v-else>
+            <ColorPanel v-model="color_points" />
+        </template>
+    </SidePanelCanvas>
 </template>
 
 <style scoped>

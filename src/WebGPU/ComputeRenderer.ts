@@ -129,7 +129,7 @@ export default class ComputeRenderer {
     }
 
     cleanup() {
-        this.context.unconfigure()
-        this.observer.disconnect()
+        this.context?.unconfigure()
+        this.observer?.disconnect()
     }
 }
