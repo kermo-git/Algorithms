@@ -8,16 +8,16 @@ import {
     updateStorageBuffer,
 } from '@/WebGPU/ShaderDataUtils'
 
-import type { NoiseSceneSetup, NoiseUniforms } from '@/Noise/Types'
+import type { NoiseSetup, NoiseUniforms } from '@/Noise/Types'
 import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements, noiseFunctionShader } from '@/Noise/ShaderUtils'
 
 import noiseSliceShader from './NoiseSliceShader'
 
 export default class NoiseScene implements Scene {
-    setup: NoiseSceneSetup
+    setup: NoiseSetup
 
-    constructor(setup: NoiseSceneSetup) {
+    constructor(setup: NoiseSetup) {
         this.setup = setup
     }
 

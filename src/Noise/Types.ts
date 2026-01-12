@@ -9,7 +9,7 @@ export type NoiseAlgorithm =
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 export type NoiseDimension = '2D' | '3D' | '4D'
 
-export interface NoiseSceneSetup {
+export interface NoiseSetup {
     algorithm: NoiseAlgorithm
     dimension: NoiseDimension
     transform: DomainTransform
