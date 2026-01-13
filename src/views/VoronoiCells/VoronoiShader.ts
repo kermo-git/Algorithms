@@ -47,7 +47,7 @@ export function voronoiShader(
             @group(1) @binding(7) var<uniform> noise_warp_strength: f32;
             @group(1) @binding(8) var<uniform> n_noise_octaves: u32;
             @group(1) @binding(9) var<uniform> persistence: f32;
-            ${only_3D} @group(1) @binding(10) var<uniform> z_coordinate: u32;
+            ${only_3D} @group(1) @binding(10) var<uniform> z_coordinate: f32;
 
             ${findGridPosShader(dimension, 'find_noise_pos')}
             ${octaveNoiseShader(dimension)}
@@ -80,7 +80,7 @@ export function voronoiShader(
     if (distance_measure === 'Euclidean') {
         dist_expr = 'dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y'
     } else {
-        dist_expr = 'dist_vec.x + dist_vec.y'
+        dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
     }
 
     return /* wgsl */ `

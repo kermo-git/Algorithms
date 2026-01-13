@@ -14,19 +14,22 @@ import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
 const noise = ref<NoiseSetup | null>(null)
-const voronoi = ref<VoronoiSetup>({
-    distance_measure: 'Euclidean',
-})
 const distance_measure = ref<DistanceMeasure>('Euclidean')
 const n_grid_columns = ref(16)
 const noise_scale = ref(1)
 const noise_z_coord = ref(0)
 const n_noise_octaves = ref(1)
 const noise_persistence = ref(0.5)
-const noise_warp_strength = ref(2)
+const noise_warp_strength = ref(1)
 const active_tab = ref('Configuration')
 
-const scene = shallowRef(markRaw(new VoronoiScene(voronoi.value)))
+const scene = shallowRef(
+    markRaw(
+        new VoronoiScene({
+            distance_measure: distance_measure.value,
+        }),
+    ),
+)
 const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -44,6 +47,34 @@ async function initScene(canvas: HTMLCanvasElement) {
     await scene.value.init(init_params, init_info)
     renderer.value.initObserver(canvas, scene.value)
 }
+
+watch(distance_measure, (new_distance_measure) => {
+    scene.value.cleanup()
+    renderer.value.cleanup()
+
+    scene.value = new VoronoiScene({
+        distance_measure: new_distance_measure,
+        warp_algorithm: noise.value?.algorithm,
+        warp_dimension: noise.value?.dimension,
+    })
+    if (canvasRef.value) {
+        initScene(canvasRef.value)
+    }
+})
+
+watch(noise, (new_noise) => {
+    scene.value.cleanup()
+    renderer.value.cleanup()
+
+    scene.value = new VoronoiScene({
+        distance_measure: distance_measure.value,
+        warp_algorithm: new_noise?.algorithm,
+        warp_dimension: new_noise?.dimension,
+    })
+    if (canvasRef.value) {
+        initScene(canvasRef.value)
+    }
+})
 
 watch(n_grid_columns, (new_grid_size) => {
     scene.value.updateNGridColumns(new_grid_size, renderer.value.device)
