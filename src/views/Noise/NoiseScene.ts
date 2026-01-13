@@ -8,11 +8,10 @@ import {
     updateStorageBuffer,
 } from '@/WebGPU/ShaderDataUtils'
 
-import type { NoiseSetup, NoiseUniforms } from '@/Noise/Types'
 import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
-import { getNoiseShaderRandomElements, noiseFunctionShader } from '@/Noise/ShaderUtils'
+import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 
-import noiseSliceShader from './NoiseSliceShader'
+import noiseShader, { type NoiseSetup, type NoiseUniforms } from './NoiseShader'
 
 export default class NoiseScene implements Scene {
     setup: NoiseSetup
@@ -21,13 +20,6 @@ export default class NoiseScene implements Scene {
         this.setup = setup
     }
 
-    createShader(color_format: GPUTextureFormat): string {
-        const { algorithm, dimension, transform } = this.setup
-        return `
-            ${noiseFunctionShader(algorithm, dimension)}
-            ${noiseSliceShader(dimension, transform, color_format)}
-        `
-    }
     pipeline!: GPUComputePipeline
 
     getPipeline(): GPUComputePipeline {
@@ -53,7 +45,7 @@ export default class NoiseScene implements Scene {
         const { device, color_format } = info
         const { algorithm, dimension, transform } = this.setup
 
-        const shader_code = this.createShader(color_format)
+        const shader_code = noiseShader(this.setup, color_format)
         const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
 
         this.pipeline = await createComputePipeline(shader_code, device)

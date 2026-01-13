@@ -8,7 +8,7 @@ import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
-import MatrixEditor from '@/views/NeuralAutomataView/MatrixEditor.vue'
+import MatrixEditor from '@/views/NeuralAutomata/MatrixEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
 import { createMatrix, Matrix } from '@/utils/Matrix'
@@ -19,7 +19,7 @@ import {
     sigmoid,
     invertedGaussian,
     neuralAutomatonStep,
-} from './NeuralCellularAutomaton'
+} from './NeuralAutomaton'
 
 const grid_size = ref(64)
 const kernelDesignMethod = ref('Toggle -/0/+')

@@ -8,10 +8,11 @@ import RangeInput from '@/components/RangeInput.vue'
 
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { defaultColorPoints } from '@/Noise/Buffers'
-import type { DomainTransform, NoiseAlgorithm, NoiseDimension, NoiseUniforms } from '@/Noise/Types'
+import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 
 import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './NoiseScene'
+import type { NoiseUniforms } from './NoiseShader'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')

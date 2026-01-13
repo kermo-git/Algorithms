@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Automata1DView from '@/views/Automata1DView/Automata1DView.vue'
-import NeuralAutomataView from '@/views/NeuralAutomataView/NeuralAutomataView.vue'
-import ProceduralNoiseView from '@/views/ProceduralNoiseView/ProceduralNoiseView.vue'
-import VoronoiCells from '@/views/VoronoiCells/Main.vue'
+import Automata1DView from '@/views/Automata1D/Automata1DView.vue'
+import NeuralAutomataView from '@/views/NeuralAutomata/NeuralAutomataView.vue'
+import NoiseView from '@/views/Noise/NoiseView.vue'
+import VoronoiView from '@/views/VoronoiCells/VoronoiView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,12 +24,12 @@ const router = createRouter({
         {
             path: '/noise',
             name: 'noise',
-            component: ProceduralNoiseView,
+            component: NoiseView,
         },
         {
             path: '/voronoi',
             name: 'voronoi',
-            component: VoronoiCells,
+            component: VoronoiView,
         },
     ],
 })

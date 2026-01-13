@@ -4,11 +4,11 @@ import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
-import { type NoiseAlgorithm, type NoiseSetup } from '@/Noise/Types'
+import { type NoiseAlgorithm } from '@/Noise/Types'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import VoronoiScene from './VoronoiScene'
-import { type DistanceMeasure, type VoronoiSetup, type VoronoiUniforms } from './VoronoiShader'
+import { type DistanceMeasure, type VoronoiUniforms } from './VoronoiShader'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 

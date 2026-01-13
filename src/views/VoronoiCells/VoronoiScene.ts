@@ -5,11 +5,9 @@ import {
     createStorageBuffer,
     updateFloatUniform,
     updateIntUniform,
-    updateStorageBuffer,
 } from '@/WebGPU/ShaderDataUtils'
 
-import type { NoiseUniforms } from '@/Noise/Types'
-import { defaultColorPoints, generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
+import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 import { type VoronoiSetup, voronoiShader, type VoronoiUniforms } from './VoronoiShader'
 

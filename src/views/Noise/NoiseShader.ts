@@ -9,11 +9,32 @@ import {
     rotate4D_shader,
     rotate3D_shader,
     octaveNoiseShader,
+    noiseFunctionShader,
 } from '@/Noise/ShaderUtils'
-import type { DomainTransform, NoiseDimension } from '@/Noise/Types'
+import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 
-function enchancedNoiseShader(dimension: NoiseDimension, transform: DomainTransform) {
-    let noise_functions = octaveNoiseShader(dimension)
+export interface NoiseSetup {
+    algorithm: NoiseAlgorithm
+    dimension: NoiseDimension
+    transform: DomainTransform
+}
+
+export interface NoiseUniforms {
+    n_grid_columns?: number
+    n_main_octaves?: number
+    persistence?: number
+    z_coord?: number
+    w_coord?: number
+    n_warp_octaves?: number
+    warp_strength?: number
+    color_points?: Float32Array<ArrayBuffer>
+}
+
+function enchancedNoiseShader({ algorithm, dimension, transform }: NoiseSetup) {
+    let noise_functions = `
+        ${noiseFunctionShader(algorithm, dimension)}
+        ${octaveNoiseShader(dimension)}
+    `
     let noise_expr = ''
     let pos_expr = 'noise_pos'
 
@@ -93,15 +114,15 @@ function noisePosCode(dimension: NoiseDimension) {
 }
 
 export default function noiseSliceShader(
-    dimension: NoiseDimension,
-    transform: DomainTransform,
+    setup: NoiseSetup,
     color_format: GPUTextureFormat,
 ): string {
+    const { dimension, transform } = setup
     const not_2D = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
 
-    const { noise_functions, noise_expr } = enchancedNoiseShader(dimension, transform)
+    const { noise_functions, noise_expr } = enchancedNoiseShader(setup)
 
     return /* wgsl */ `
         // Define the noise function here:
