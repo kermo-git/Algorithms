@@ -1,18 +1,103 @@
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 import {
-    enchancedNoiseShader,
-    shaderVecType,
     interpolate_colors_shader,
     findGridPosShader,
+    double_warp2D_shader,
+    double_warp3D_shader,
+    warp3D_shader,
+    warp2D_shader,
+    rotate4D_shader,
+    rotate3D_shader,
+    octaveNoiseShader,
 } from '@/Noise/ShaderUtils'
 import type { DomainTransform, NoiseDimension } from '@/Noise/Types'
+
+function enchancedNoiseShader(dimension: NoiseDimension, transform: DomainTransform) {
+    let noise_functions = octaveNoiseShader(dimension)
+    let noise_expr = ''
+    let pos_expr = 'noise_pos'
+
+    if (transform === 'Rotate') {
+        pos_expr = 'rotate(noise_pos)'
+
+        if (dimension === '3D') {
+            noise_functions = `
+                ${noise_functions}
+                ${rotate3D_shader}
+            `
+        } else if (dimension === '4D') {
+            noise_functions = `
+                ${noise_functions}
+                ${rotate4D_shader}
+            `
+        }
+    }
+    if (transform === 'Warp') {
+        if (dimension === '2D') {
+            noise_functions = `
+                ${noise_functions}
+                ${warp2D_shader}
+            `
+        } else if (dimension === '3D') {
+            noise_functions = `
+                ${noise_functions}
+                ${warp3D_shader}
+            `
+        }
+        noise_expr = `warp_noise(
+            ${pos_expr}, warp_strength, n_warp_octaves, 
+            n_main_octaves, persistence
+        )`
+    } else if (transform === 'Warp 2X') {
+        if (dimension === '2D') {
+            noise_functions = `
+                ${noise_functions}
+                ${double_warp2D_shader}
+            `
+        } else if (dimension === '3D') {
+            noise_functions = `
+                ${noise_functions}
+                ${double_warp3D_shader}
+            `
+        }
+        noise_expr = `warp_noise(
+            ${pos_expr}, warp_strength, n_warp_octaves, 
+            n_main_octaves, persistence
+        )`
+    } else {
+        noise_expr = `octave_noise(${pos_expr}, n_main_octaves, persistence)`
+    }
+    return {
+        noise_functions,
+        noise_expr,
+    }
+}
+
+function noisePosCode(dimension: NoiseDimension) {
+    switch (dimension) {
+        case '2D':
+            return /* wgsl */ `
+                let noise_pos = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+            `
+        case '3D':
+            return /* wgsl */ `
+                let noise_pos_2D = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+                let noise_pos = vec3f(noise_pos_2D, z_coordinate);
+            `
+        case '4D':
+            return /* wgsl */ `
+                let noise_pos_2D = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+                let noise_pos = vec4f(noise_pos_2D, z_coordinate, w_coordinate);
+            `
+    }
+}
 
 export default function noiseSliceShader(
     dimension: NoiseDimension,
     transform: DomainTransform,
     color_format: GPUTextureFormat,
 ): string {
-    const high_dim = dimension !== '2D' ? '' : '//'
+    const not_2D = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
 
@@ -28,13 +113,13 @@ export default function noiseSliceShader(
         @group(1) @binding(2) var<uniform> n_grid_columns: f32;
         @group(1) @binding(3) var<uniform> n_main_octaves: u32;
         @group(1) @binding(4) var<uniform> persistence: f32;
-        ${high_dim} @group(1) @binding(5) var<uniform> z_coordinate: f32;
+        ${not_2D} @group(1) @binding(5) var<uniform> z_coordinate: f32;
         ${only_4D} @group(1) @binding(6) var<uniform> w_coordinate: f32;
         ${only_warp} @group(1) @binding(7) var<uniform> n_warp_octaves: u32;
         ${only_warp} @group(1) @binding(8) var<uniform> warp_strength: f32;
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 
-        ${findGridPosShader(dimension, 'find_noise_pos')}
+        ${findGridPosShader}
 
         ${noise_functions}
 
@@ -50,7 +135,7 @@ export default function noiseSliceShader(
             if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
                 return;
             }
-            let noise_pos = find_noise_pos(texture_pos, texture_dims, n_grid_columns);
+            ${noisePosCode(dimension)}
             let noise_value = ${noise_expr};
             let color = interpolate_colors(noise_value);
 

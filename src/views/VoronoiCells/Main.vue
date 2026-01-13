@@ -13,15 +13,16 @@ import { type DistanceMeasure, type VoronoiSetup, type VoronoiUniforms } from '.
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
+const active_tab = ref('Configuration')
+
 const noise = ref<NoiseSetup | null>(null)
 const distance_measure = ref<DistanceMeasure>('Euclidean')
-const n_grid_columns = ref(16)
+const voronoi_n_columns = ref(16)
 const noise_scale = ref(1)
-const noise_z_coord = ref(0)
-const n_noise_octaves = ref(1)
+const noise_n_octaves = ref(1)
 const noise_persistence = ref(0.5)
 const noise_warp_strength = ref(1)
-const active_tab = ref('Configuration')
+const noise_z = ref(0)
 
 const scene = shallowRef(
     markRaw(
@@ -37,11 +38,11 @@ async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     const init_info = await renderer.value.init(canvas)
     const init_params: VoronoiUniforms = {
-        n_grid_columns: n_grid_columns.value,
+        voronoi_n_columns: voronoi_n_columns.value,
         noise_scale: noise_scale.value,
         noise_warp_strength: noise_warp_strength.value,
-        noise_z_coord: noise_z_coord.value,
-        n_noise_octaves: n_noise_octaves.value,
+        noise_z: noise_z.value,
+        noise_n_octaves: noise_n_octaves.value,
         noise_persistence: noise_persistence.value,
     }
     await scene.value.init(init_params, init_info)
@@ -76,8 +77,8 @@ watch(noise, (new_noise) => {
     }
 })
 
-watch(n_grid_columns, (new_grid_size) => {
-    scene.value.updateNGridColumns(new_grid_size, renderer.value.device)
+watch(voronoi_n_columns, (new_grid_size) => {
+    scene.value.updateVoronoiNColumns(new_grid_size, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
@@ -91,7 +92,7 @@ watch(noise_warp_strength, (new_warp_strength) => {
     renderer.value.render(scene.value)
 })
 
-watch(n_noise_octaves, (new_n_octaves) => {
+watch(noise_n_octaves, (new_n_octaves) => {
     scene.value.updateNoiseOctaves(new_n_octaves, renderer.value.device)
     renderer.value.render(scene.value)
 })
@@ -101,8 +102,8 @@ watch(noise_persistence, (new_persistence) => {
     renderer.value.render(scene.value)
 })
 
-watch(noise_z_coord, (new_z_coord) => {
-    scene.value.updateNoiseZCoord(new_z_coord, renderer.value.device)
+watch(noise_z, (new_z_coord) => {
+    scene.value.updateNoiseZ(new_z_coord, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
@@ -123,9 +124,8 @@ onBeforeUnmount(() => {
                 text="Grid size"
                 name="n_grid_columns"
                 :options="[4, 8, 16, 32, 64]"
-                v-model="n_grid_columns"
+                v-model="voronoi_n_columns"
             />
-            <RangeInput :min="0.1" :max="5" :step="0.1" v-model="noise_scale" />
             <TextSingleSelect
                 text="Distance measure"
                 name="distance"
@@ -137,8 +137,8 @@ onBeforeUnmount(() => {
                 :dimensions="['2D', '3D']"
                 :transforms="[]"
                 v-model:noise="noise"
-                v-model:z_coord="noise_z_coord"
-                v-model:n_main_octaves="n_noise_octaves"
+                v-model:z_coord="noise_z"
+                v-model:n_main_octaves="noise_n_octaves"
                 v-model:persistence="noise_persistence"
             />
             <template v-if="noise !== null">

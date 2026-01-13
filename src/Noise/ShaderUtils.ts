@@ -11,17 +11,16 @@ import {
     shaderUnitVectors3D,
     shaderUnitVectors4D,
 } from './Buffers'
-import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from './Types'
+import type { NoiseAlgorithm, NoiseDimension } from './Types'
 
 function randStrFloat(min: number, max: number) {
     return (min + (max - min) * Math.random()).toFixed(2)
 }
 
-export function randVec2f(min = 10, max = 30) {
-    return `vec2f(${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
-}
-
-export function randVec3f(min = 10, max = 30) {
+export function randVec(dimension: NoiseDimension, min = 10, max = 30) {
+    if (dimension === '2D') {
+        return `vec2f(${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
+    }
     return `vec3f(${randStrFloat(min, max)}, ${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
 }
 
@@ -31,7 +30,7 @@ export function octaveNoiseShader(dimension: NoiseDimension) {
     const pos_type = shaderVecType(dimension)
 
     return /* wgsl */ `
-        fn octave_noise(noise_pos: ${pos_type}, n_octaves: u32) -> f32 {
+        fn octave_noise(noise_pos: ${pos_type}, n_octaves: u32, persistence: f32) -> f32 {
             var noise_value: f32 = noise(noise_pos);
             var min_noise_value: f32 = 0;
             var max_noise_value: f32 = 1;
@@ -85,86 +84,93 @@ export const rotate4D_shader = /* wgsl */ `
 
 export const warp2D_shader = /* wgsl */ `
     fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
-                  n_warp_octaves: u32, n_main_octaves: u32) -> f32 {
-        let warp_x = noise_pos + ${randVec2f()};
-        let warp_y = noise_pos + ${randVec2f()};
+                  n_warp_octaves: u32, n_main_octaves: u32, 
+                  persistence: f32) -> f32 {
+        
+        let warp_x = noise_pos + ${randVec('2D')};
+        let warp_y = noise_pos + ${randVec('2D')};
 
         let pos_q = vec2f(
-            octave_noise(warp_x, n_warp_octaves),
-            octave_noise(warp_y, n_warp_octaves)
+            octave_noise(warp_x, n_warp_octaves, persistence),
+            octave_noise(warp_y, n_warp_octaves, persistence)
         );
         let final_pos = noise_pos + warp_strength * pos_q;
-        return octave_noise(final_pos, n_main_octaves);
+        return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const double_warp2D_shader = /* wgsl */ `
     fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
-                  n_warp_octaves: u32, n_main_octaves: u32) -> f32 {
+                  n_warp_octaves: u32, n_main_octaves: u32, 
+                  persistence: f32) -> f32 {
         
-        let warp_qx = noise_pos + ${randVec2f()};
-        let warp_qy = noise_pos + ${randVec2f()};
+        let warp_qx = noise_pos + ${randVec('2D')};
+        let warp_qy = noise_pos + ${randVec('2D')};
 
         let pos_q = vec2f(
-            octave_noise(warp_qx, n_warp_octaves),
-            octave_noise(warp_qy, n_warp_octaves)
+            octave_noise(warp_qx, n_warp_octaves, persistence),
+            octave_noise(warp_qy, n_warp_octaves, persistence)
         );
 
         let warp_r = noise_pos + warp_strength * pos_q;
-        let warp_rx = warp_r + ${randVec2f()};
-        let warp_ry = warp_r + ${randVec2f()};
+        let warp_rx = warp_r + ${randVec('2D')};
+        let warp_ry = warp_r + ${randVec('2D')};
 
         let pos_r = vec2f(
-            octave_noise(warp_rx, n_warp_octaves),
-            octave_noise(warp_ry, n_warp_octaves)
+            octave_noise(warp_rx, n_warp_octaves, persistence),
+            octave_noise(warp_ry, n_warp_octaves, persistence)
         );
         let final_pos = noise_pos + warp_strength * pos_r;
-        return octave_noise(final_pos, n_main_octaves);
+        return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const warp3D_shader = /* wgsl */ `
     fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
-                  n_warp_octaves: u32, n_main_octaves: u32) -> f32 {
-        let warp_x = noise_pos + ${randVec3f()};
-        let warp_y = noise_pos + ${randVec3f()};
-        let warp_z = noise_pos + ${randVec3f()};
+                  n_warp_octaves: u32, n_main_octaves: u32, 
+                  persistence: f32) -> f32 {
+        
+        let warp_x = noise_pos + ${randVec('3D')};
+        let warp_y = noise_pos + ${randVec('3D')};
+        let warp_z = noise_pos + ${randVec('3D')};
 
         let pos_q = vec3f(
-            octave_noise(warp_x, n_warp_octaves),
-            octave_noise(warp_y, n_warp_octaves),
-            octave_noise(warp_z, n_warp_octaves)
+            octave_noise(warp_x, n_warp_octaves, persistence),
+            octave_noise(warp_y, n_warp_octaves, persistence),
+            octave_noise(warp_z, n_warp_octaves, persistence)
         );
         let final_pos = noise_pos + warp_strength * pos_q;
-        return octave_noise(final_pos, n_main_octaves);
+        return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const double_warp3D_shader = /* wgsl */ `
     fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
-                  n_warp_octaves: u32, n_main_octaves: u32) -> f32 {
-        let warp_qx = noise_pos + ${randVec3f()};
-        let warp_qy = noise_pos + ${randVec3f()};
-        let warp_qz = noise_pos + ${randVec3f()};
+                  n_warp_octaves: u32, n_main_octaves: u32, 
+                  persistence: f32) -> f32 {
+        
+        let warp_qx = noise_pos + ${randVec('3D')};
+        let warp_qy = noise_pos + ${randVec('3D')};
+        let warp_qz = noise_pos + ${randVec('3D')};
 
         let pos_q = vec3f(
-            octave_noise(warp_qx, n_warp_octaves),
-            octave_noise(warp_qy, n_warp_octaves),
-            octave_noise(warp_qz, n_warp_octaves)
+            octave_noise(warp_qx, n_warp_octaves, persistence),
+            octave_noise(warp_qy, n_warp_octaves, persistence),
+            octave_noise(warp_qz, n_warp_octaves, persistence)
         );
 
         let warp_r = noise_pos + warp_strength * pos_q;
-        let warp_rx = warp_r + ${randVec3f()};
-        let warp_ry = warp_r + ${randVec3f()};
-        let warp_rz = warp_r + ${randVec3f()};
+        let warp_rx = warp_r + ${randVec('3D')};
+        let warp_ry = warp_r + ${randVec('3D')};
+        let warp_rz = warp_r + ${randVec('3D')};
 
         let pos_r = vec3f(
-            octave_noise(warp_rx, n_warp_octaves),
-            octave_noise(warp_ry, n_warp_octaves),
-            octave_noise(warp_rz, n_warp_octaves)
+            octave_noise(warp_rx, n_warp_octaves, persistence),
+            octave_noise(warp_ry, n_warp_octaves, persistence),
+            octave_noise(warp_rz, n_warp_octaves, persistence)
         );
         let final_pos = noise_pos + warp_strength * pos_r;
-        return octave_noise(final_pos, n_main_octaves);
+        return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
@@ -288,79 +294,11 @@ export function shaderVecType(dimension: NoiseDimension) {
     return dimension === '2D' ? 'vec2f' : dimension === '3D' ? 'vec3f' : 'vec4f'
 }
 
-export function findGridPosShader(dimension: NoiseDimension, func_name: string) {
-    const pos_type = shaderVecType(dimension)
-
-    let noise_pos_expr = 'noise_pos'
-
-    if (dimension === '3D') {
-        noise_pos_expr = 'vec3f(noise_pos, z_coordinate)'
-    } else if (dimension === '4D') {
-        noise_pos_expr = 'vec4f(noise_pos, z_coordinate, w_coordinate)'
+export const findGridPosShader = /* wgsl */ `
+    fn find_grid_pos(texture_pos: vec2u, texture_dims: vec2u, n_grid_columns: f32) -> vec2f {
+        let texture_dims_f = vec2f(texture_dims);
+        let n_grid_rows = n_grid_columns * texture_dims_f.y / texture_dims_f.x;
+        let grid_dims = vec2f(n_grid_columns, n_grid_rows);
+        return grid_dims * vec2f(texture_pos) / texture_dims_f;
     }
-    return /* wgsl */ `
-        fn ${func_name}(texture_pos: vec2u, texture_dims: vec2u, n_grid_columns: f32) -> ${pos_type} {
-            let texture_dims_f = vec2f(texture_dims);
-            let n_grid_rows = n_grid_columns * texture_dims_f.y / texture_dims_f.x;
-            let grid_dims = vec2f(n_grid_columns, n_grid_rows);
-            let noise_pos = grid_dims * vec2f(texture_pos) / texture_dims_f;
-
-            return ${noise_pos_expr};
-        }
-    `
-}
-
-export function enchancedNoiseShader(dimension: NoiseDimension, transform: DomainTransform) {
-    let noise_functions = octaveNoiseShader(dimension)
-    let noise_expr = ''
-    let pos_expr = 'noise_pos'
-
-    if (transform === 'Rotate') {
-        pos_expr = 'rotate(noise_pos)'
-
-        if (dimension === '3D') {
-            noise_functions = `
-                ${noise_functions}
-                ${rotate3D_shader}
-            `
-        } else if (dimension === '4D') {
-            noise_functions = `
-                ${noise_functions}
-                ${rotate4D_shader}
-            `
-        }
-    }
-    if (transform === 'Warp') {
-        if (dimension === '2D') {
-            noise_functions = `
-                ${noise_functions}
-                ${warp2D_shader}
-            `
-        } else if (dimension === '3D') {
-            noise_functions = `
-                ${noise_functions}
-                ${warp3D_shader}
-            `
-        }
-        noise_expr = `warp_noise(${pos_expr}, warp_strength, n_warp_octaves, n_main_octaves)`
-    } else if (transform === 'Warp 2X') {
-        if (dimension === '2D') {
-            noise_functions = `
-                ${noise_functions}
-                ${double_warp2D_shader}
-            `
-        } else if (dimension === '3D') {
-            noise_functions = `
-                ${noise_functions}
-                ${double_warp3D_shader}
-            `
-        }
-        noise_expr = `warp_noise(${pos_expr}, warp_strength, n_warp_octaves, n_main_octaves)`
-    } else {
-        noise_expr = `octave_noise(${pos_expr}, n_main_octaves)`
-    }
-    return {
-        noise_functions,
-        noise_expr,
-    }
-}
+`

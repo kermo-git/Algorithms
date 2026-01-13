@@ -27,36 +27,38 @@ export default class VoronoiScene implements Scene {
     }
 
     hash_table!: GPUBuffer
-    n_grid_columns!: GPUBuffer
+
+    voronoi_n_columns!: GPUBuffer
     voronoi_points!: GPUBuffer
-    color_index_data!: GPUBuffer
-    colors!: GPUBuffer
+    voronoi_color_index!: GPUBuffer
+    voronoi_colors!: GPUBuffer
 
     noise_scale!: GPUBuffer
-    noise_warp_strength!: GPUBuffer
     noise_random_elements!: GPUBuffer
-    n_noise_octaves!: GPUBuffer
+    noise_n_octaves!: GPUBuffer
     noise_persistence!: GPUBuffer
-    noise_z_coord!: GPUBuffer
+    noise_warp_strength!: GPUBuffer
+    noise_z!: GPUBuffer
 
     bind_group!: GPUBindGroup
 
     async init(data: VoronoiUniforms, info: InitInfo) {
         const { device, color_format } = info
         const { warp_algorithm, warp_dimension } = this.setup
-        const shader_code = `${voronoiShader(this.setup, color_format)}`
 
+        const shader_code = `${voronoiShader(this.setup, color_format)}`
         this.pipeline = await createComputePipeline(shader_code, device)
+
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
-        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
+        this.voronoi_n_columns = createFloatUniform(data.voronoi_n_columns || 16, device)
         this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
 
         const n_colors = 8
-        this.color_index_data = createStorageBuffer(
+        this.voronoi_color_index = createStorageBuffer(
             new Int32Array(256).map(() => Math.floor(Math.random() * (n_colors + 1))),
             device,
         )
-        this.colors = createStorageBuffer(
+        this.voronoi_colors = createStorageBuffer(
             new Float32Array([
                 0,
                 0,
@@ -101,7 +103,7 @@ export default class VoronoiScene implements Scene {
             },
             {
                 binding: 2,
-                resource: { buffer: this.n_grid_columns },
+                resource: { buffer: this.voronoi_n_columns },
             },
             {
                 binding: 3,
@@ -109,11 +111,11 @@ export default class VoronoiScene implements Scene {
             },
             {
                 binding: 4,
-                resource: { buffer: this.color_index_data },
+                resource: { buffer: this.voronoi_color_index },
             },
             {
                 binding: 5,
-                resource: { buffer: this.colors },
+                resource: { buffer: this.voronoi_colors },
             },
         ]
 
@@ -124,10 +126,10 @@ export default class VoronoiScene implements Scene {
                 256,
             )
             this.noise_scale = createFloatUniform(data.noise_scale || 1, device)
-            this.noise_warp_strength = createFloatUniform(data.noise_warp_strength || 1, device)
             this.noise_random_elements = createStorageBuffer(random_elements, device)
-            this.n_noise_octaves = createIntUniform(data.n_noise_octaves || 1, device)
+            this.noise_n_octaves = createIntUniform(data.noise_n_octaves || 1, device)
             this.noise_persistence = createFloatUniform(data.noise_persistence || 0.5, device)
+            this.noise_warp_strength = createFloatUniform(data.noise_warp_strength || 1, device)
 
             bind_group_entries = bind_group_entries.concat([
                 {
@@ -140,22 +142,22 @@ export default class VoronoiScene implements Scene {
                 },
                 {
                     binding: 7,
-                    resource: { buffer: this.noise_warp_strength },
+                    resource: { buffer: this.noise_n_octaves },
                 },
                 {
                     binding: 8,
-                    resource: { buffer: this.n_noise_octaves },
+                    resource: { buffer: this.noise_persistence },
                 },
                 {
                     binding: 9,
-                    resource: { buffer: this.noise_persistence },
+                    resource: { buffer: this.noise_warp_strength },
                 },
             ])
             if (warp_dimension === '3D') {
-                this.noise_z_coord = createFloatUniform(data.noise_z_coord || 0, device)
+                this.noise_z = createFloatUniform(data.noise_z || 0, device)
                 bind_group_entries.push({
                     binding: 10,
-                    resource: { buffer: this.noise_z_coord },
+                    resource: { buffer: this.noise_z },
                 })
             }
         }
@@ -170,42 +172,43 @@ export default class VoronoiScene implements Scene {
         encoder.setBindGroup(1, this.bind_group)
     }
 
-    updateNGridColumns(value: number, device: GPUDevice) {
-        updateFloatUniform(this.n_grid_columns, value, device)
+    updateVoronoiNColumns(value: number, device: GPUDevice) {
+        updateFloatUniform(this.voronoi_n_columns, value, device)
     }
 
     updateNoiseScale(value: number, device: GPUDevice) {
         updateFloatUniform(this.noise_scale, value, device)
     }
 
-    updateNoiseWarpStrength(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_warp_strength, value, device)
-    }
-
     updateNoiseOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.n_noise_octaves, value, device)
+        updateIntUniform(this.noise_n_octaves, value, device)
     }
 
     updateNoisePersistence(value: number, device: GPUDevice) {
         updateFloatUniform(this.noise_persistence, value, device)
     }
 
-    updateNoiseZCoord(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_z_coord, value, device)
+    updateNoiseWarpStrength(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_warp_strength, value, device)
+    }
+
+    updateNoiseZ(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_z, value, device)
     }
 
     cleanup() {
         this.hash_table?.destroy()
-        this.n_grid_columns?.destroy()
-        this.voronoi_points?.destroy()
-        this.color_index_data?.destroy()
-        this.colors?.destroy()
 
-        this.noise_scale?.destroy()
-        this.noise_warp_strength?.destroy()
+        this.voronoi_n_columns?.destroy()
+        this.voronoi_points?.destroy()
+        this.voronoi_color_index?.destroy()
+        this.voronoi_colors?.destroy()
+
         this.noise_random_elements?.destroy()
-        this.n_noise_octaves?.destroy()
+        this.noise_scale?.destroy()
+        this.noise_n_octaves?.destroy()
         this.noise_persistence?.destroy()
-        this.noise_z_coord?.destroy()
+        this.noise_warp_strength?.destroy()
+        this.noise_z?.destroy()
     }
 }

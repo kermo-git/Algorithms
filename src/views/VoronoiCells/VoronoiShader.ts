@@ -4,11 +4,11 @@ import {
     findGridPosShader,
     noiseFunctionShader,
     octaveNoiseShader,
-    randVec2f,
-    randVec3f,
+    randVec,
     shaderVecType,
 } from '@/Noise/ShaderUtils'
 
+// https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
 export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 
 export interface VoronoiSetup {
@@ -18,66 +18,68 @@ export interface VoronoiSetup {
 }
 
 export interface VoronoiUniforms {
-    n_grid_columns?: number
+    voronoi_n_columns?: number
     noise_scale?: number
     noise_warp_strength?: number
-    n_noise_octaves?: number
+    noise_n_octaves?: number
     noise_persistence?: number
-    noise_z_coord?: number
+    noise_z?: number
 }
 
 export function voronoiShader(
     { distance_measure, warp_algorithm, warp_dimension }: VoronoiSetup,
     color_format: GPUTextureFormat,
 ) {
-    const has_noise = warp_algorithm !== undefined
-    let conditional_declarations =
-        /* wgsl */ '@group(1) @binding(0) var<storage> hash_table: array<i32>;'
+    const has_noise = warp_algorithm !== undefined && warp_dimension !== undefined
+
+    let conditional_declarations = ''
+    let voronoi_pos_code = ''
 
     if (has_noise) {
-        const dimension = warp_dimension || '2D'
-        const only_3D = dimension === '3D' ? '' : '//'
-        const pos_type = shaderVecType(dimension)
-        const rand_vec_func = dimension === '2D' ? randVec2f : randVec3f
+        const only_3D = warp_dimension === '3D' ? '' : '//'
+        const pos_type = shaderVecType(warp_dimension)
 
         conditional_declarations = /* wgsl */ `
-            ${noiseFunctionShader(warp_algorithm, dimension)}
+            ${noiseFunctionShader(warp_algorithm, warp_dimension)}
             
             @group(1) @binding(6) var<uniform> noise_scale: f32;
-            @group(1) @binding(7) var<uniform> noise_warp_strength: f32;
-            @group(1) @binding(8) var<uniform> n_noise_octaves: u32;
-            @group(1) @binding(9) var<uniform> persistence: f32;
-            ${only_3D} @group(1) @binding(10) var<uniform> z_coordinate: f32;
+            @group(1) @binding(7) var<uniform> noise_n_octaves: u32;
+            @group(1) @binding(8) var<uniform> noise_persistence: f32;
+            @group(1) @binding(9) var<uniform> noise_warp_strength: f32;
+            ${only_3D} @group(1) @binding(10) var<uniform> noise_z: f32;
 
-            ${findGridPosShader(dimension, 'find_noise_pos')}
-            ${octaveNoiseShader(dimension)}
+            ${octaveNoiseShader(warp_dimension)}
 
             fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {
-                let warp_x = noise_pos + ${rand_vec_func()};
-                let warp_y = noise_pos + ${rand_vec_func()};
+                let warp_x = noise_pos + ${randVec(warp_dimension)};
+                let warp_y = noise_pos + ${randVec(warp_dimension)};
 
                 let warp_vec = vec2f(
-                    octave_noise(warp_x, n_noise_octaves),
-                    octave_noise(warp_y, n_noise_octaves)
+                    octave_noise(warp_x, noise_n_octaves, noise_persistence),
+                    octave_noise(warp_y, noise_n_octaves, noise_persistence)
                 );
                 return voronoi_pos + noise_warp_strength * warp_vec;
             }
         `
-    }
 
-    const voronoi_pos_code = has_noise
-        ? /* wgsl */ `
-            let unwarped_voronoi_pos = find_voronoi_pos(texture_pos, texture_dims, n_grid_columns);
-            let noise_pos = find_noise_pos(texture_pos, texture_dims, n_grid_columns * noise_scale);
+        voronoi_pos_code = /* wgsl */ `
+            let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
+            var noise_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
+            ${only_3D} noise_pos = vec3f(noise_pos, noise_z);
             let voronoi_pos = warp_pos(unwarped_voronoi_pos, noise_pos);
         `
-        : /* wgsl */ `
-            let voronoi_pos = find_voronoi_pos(texture_pos, texture_dims, n_grid_columns);
+    } else {
+        conditional_declarations = /* wgsl */ `@group(1) @binding(0) var<storage> hash_table: array<i32>;`
+        voronoi_pos_code = /* wgsl */ `
+            let voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
         `
+    }
 
     let dist_expr = ''
 
     if (distance_measure === 'Euclidean') {
+        // No need to calculate square root because
+        // we only need to compare which distance is the shortest
         dist_expr = 'dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y'
     } else {
         dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
@@ -86,19 +88,19 @@ export function voronoiShader(
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
-        @group(1) @binding(2) var<uniform> n_grid_columns: f32;
+        @group(1) @binding(2) var<uniform> voronoi_n_columns: f32;
         @group(1) @binding(3) var<storage> voronoi_points: array<vec2f>;
-        @group(1) @binding(4) var<storage> color_index_data: array<i32>;
-        @group(1) @binding(5) var<storage> colors: array<vec4f>;
+        @group(1) @binding(4) var<storage> voronoi_color_index: array<i32>;
+        @group(1) @binding(5) var<storage> voronoi_colors: array<vec4f>;
         
-        ${conditional_declarations}
+        ${findGridPosShader}
 
-        ${findGridPosShader('2D', 'find_voronoi_pos')}
+        ${conditional_declarations}
 
         fn get_color(grid_cell: vec2i) -> vec4f {
             let masked_cell = grid_cell & vec2i(255, 255);
             let hash = hash_table[hash_table[masked_cell.x] + masked_cell.y];
-            return colors[color_index_data[hash]];
+            return voronoi_colors[voronoi_color_index[hash]];
         }
 
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
