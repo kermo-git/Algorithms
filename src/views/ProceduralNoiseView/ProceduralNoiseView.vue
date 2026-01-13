@@ -1,41 +1,34 @@
 <script setup lang="ts">
-import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
+import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
+import TextSingleSelect from '@/components/TextSingleSelect.vue'
+import RangeInput from '@/components/RangeInput.vue'
 
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { defaultColorPoints } from '@/Noise/Buffers'
-import { type NoiseSetup } from '@/Noise/Types'
+import type { DomainTransform, NoiseAlgorithm, NoiseDimension, NoiseUniforms } from '@/Noise/Types'
 
 import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './NoiseScene'
-import NoisePanel from '@/Noise/NoisePanel.vue'
-import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 
 const color_points = ref(defaultColorPoints)
-const noise = ref<NoiseSetup>({
-    algorithm: 'Perlin',
-    dimension: '2D',
-    transform: 'None',
-})
-const n_grid_columns = ref(16)
+const algorithm = ref<NoiseAlgorithm>('Perlin')
+const dimension = ref<NoiseDimension>('2D')
+const domain_transform = ref<DomainTransform>('None')
+const grid_size = ref(16)
 const n_main_octaves = ref(1)
 const persistence = ref(0.5)
 const z_coord = ref(0)
 const w_coord = ref(0)
-const warp_strength = ref(2)
+const warp_strength = ref(4)
 const n_warp_octaves = ref(1)
 const active_tab = ref('Configuration')
 
-const scene = shallowRef(markRaw(new NoiseScene(noise.value)))
-const renderer = shallowRef(markRaw(new ComputeRenderer()))
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-async function initScene(canvas: HTMLCanvasElement) {
-    canvasRef.value = canvas
-    const init_info = await renderer.value.init(canvas)
-    const init_params = {
-        n_grid_columns: n_grid_columns.value,
+function getNoiseParams(): NoiseUniforms {
+    return {
+        n_grid_columns: grid_size.value,
         n_main_octaves: n_main_octaves.value,
         persistence: persistence.value,
         z_coord: z_coord.value,
@@ -44,11 +37,29 @@ async function initScene(canvas: HTMLCanvasElement) {
         warp_strength: warp_strength.value,
         color_points: color_points.value,
     }
-    await scene.value.init(init_params, init_info)
+}
+
+const scene = shallowRef(
+    markRaw(
+        new NoiseScene({
+            algorithm: algorithm.value,
+            dimension: dimension.value,
+            transform: domain_transform.value,
+        }),
+    ),
+)
+
+const renderer = shallowRef(markRaw(new ComputeRenderer()))
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+async function initScene(canvas: HTMLCanvasElement) {
+    canvasRef.value = canvas
+    const init_info = await renderer.value.init(canvas)
+    await scene.value.init(getNoiseParams(), init_info)
     renderer.value.initObserver(canvas, scene.value)
 }
 
-watch(n_grid_columns, (new_grid_size) => {
+watch(grid_size, (new_grid_size) => {
     scene.value.updateNGridColumns(new_grid_size, renderer.value.device)
     renderer.value.render(scene.value)
 })
@@ -88,20 +99,44 @@ watch(color_points, (new_color_points) => {
     renderer.value.render(scene.value)
 })
 
-watch(noise, (new_noise) => {
-    renderer.value.cleanup()
-    scene.value.cleanup()
-    scene.value = new NoiseScene(new_noise)
-
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
+watch(dimension, (new_dimension) => {
+    if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
+        domain_transform.value = 'None'
+    }
+    if (new_dimension === '4D' && domain_transform.value.startsWith('Warp')) {
+        domain_transform.value = 'None'
     }
 })
+
+watch(
+    [algorithm, dimension, domain_transform],
+    ([new_algorithm, new_dimension, new_domain_transform]) => {
+        renderer.value.cleanup()
+        scene.value.cleanup()
+        scene.value = new NoiseScene({
+            algorithm: new_algorithm,
+            dimension: new_dimension,
+            transform: new_domain_transform,
+        })
+
+        if (canvasRef.value) {
+            initScene(canvasRef.value)
+        }
+    },
+)
 
 onBeforeUnmount(() => {
     renderer.value.cleanup()
     scene.value.cleanup()
 })
+
+const available_transforms = computed(() =>
+    dimension.value === '2D'
+        ? ['None', 'Warp', 'Warp 2X']
+        : dimension.value === '3D'
+          ? ['None', 'Rotate', 'Warp', 'Warp 2X']
+          : ['None', 'Rotate'],
+)
 </script>
 
 <template>
@@ -111,24 +146,82 @@ onBeforeUnmount(() => {
         @canvas-ready="initScene"
     >
         <template v-if="active_tab === 'Configuration'">
+            <TextSingleSelect
+                text="Noise algorithm"
+                name="algorithm"
+                :options="['Perlin', 'Simplex', 'Cubic', 'Value', 'Worley', 'Worley (2nd closest)']"
+                v-model="algorithm"
+            />
+
+            <TextSingleSelect
+                text="Noise dimension"
+                name="dimension"
+                :options="['2D', '3D', '4D']"
+                v-model="dimension"
+            />
+
+            <template v-if="dimension !== '2D'">
+                <p>Z coordinate: {{ z_coord }}</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
+
+                <template v-if="dimension === '4D'">
+                    <p>W coordinate: {{ w_coord }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
+                </template>
+            </template>
+
+            <TextSingleSelect
+                text="Domain transformation"
+                name="domain_transform"
+                :options="available_transforms"
+                v-model="domain_transform"
+            />
+
+            <template v-if="domain_transform.startsWith('Warp')">
+                <p>Warp strength: {{ warp_strength }}</p>
+                <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
+            </template>
+
             <NumberSingleSelect
                 text="Grid size"
-                name="n_grid_columns"
+                name="grid_size"
                 :options="[4, 8, 16, 32, 64]"
-                v-model="n_grid_columns"
+                v-model="grid_size"
             />
-            <NoisePanel
-                v-model:noise="noise"
-                v-model:z_coord="z_coord"
-                v-model:w_coord="w_coord"
-                v-model:n_main_octaves="n_main_octaves"
-                v-model:persistence="persistence"
-                v-model:n_warp_octaves="n_warp_octaves"
-                v-model:warp_strength="warp_strength"
+
+            <NumberSingleSelect
+                v-if="domain_transform.startsWith('Warp')"
+                text="Warp octaves"
+                name="n_warp_octaves"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="n_warp_octaves"
             />
+
+            <NumberSingleSelect
+                :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
+                name="n_main_octaves"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="n_main_octaves"
+            />
+
+            <template
+                v-if="
+                    n_main_octaves > 1 ||
+                    (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
+                "
+            >
+                <p>Persistence: {{ persistence }}</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
+            </template>
         </template>
         <template v-else>
             <ColorPanel v-model="color_points" />
         </template>
     </SidePanelCanvas>
 </template>
+
+<style scoped>
+.field {
+    width: 100%;
+}
+</style>

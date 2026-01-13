@@ -62,12 +62,20 @@ export function voronoiShader(
             }
         `
 
-        voronoi_pos_code = /* wgsl */ `
-            let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
-            var noise_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
-            ${only_3D} noise_pos = vec3f(noise_pos, noise_z);
-            let voronoi_pos = warp_pos(unwarped_voronoi_pos, noise_pos);
-        `
+        if (warp_dimension === '2D') {
+            voronoi_pos_code = /* wgsl */ `
+                let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
+                let noise_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
+                let voronoi_pos = warp_pos(unwarped_voronoi_pos, noise_pos);
+            `
+        } else {
+            voronoi_pos_code = /* wgsl */ `
+                let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
+                let noise_pos_2D = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
+                let noise_pos = vec3f(noise_pos_2D, noise_z);
+                let voronoi_pos = warp_pos(unwarped_voronoi_pos, noise_pos);
+            `
+        }
     } else {
         conditional_declarations = /* wgsl */ `@group(1) @binding(0) var<storage> hash_table: array<i32>;`
         voronoi_pos_code = /* wgsl */ `

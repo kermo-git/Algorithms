@@ -4,9 +4,8 @@ import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
-import { type NoiseSetup } from '@/Noise/Types'
+import { type NoiseAlgorithm, type NoiseSetup } from '@/Noise/Types'
 
-import NoisePanel from '@/Noise/NoisePanel.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import VoronoiScene from './VoronoiScene'
 import { type DistanceMeasure, type VoronoiSetup, type VoronoiUniforms } from './VoronoiShader'
@@ -15,8 +14,10 @@ import RangeInput from '@/components/RangeInput.vue'
 
 const active_tab = ref('Configuration')
 
-const noise = ref<NoiseSetup | null>(null)
 const distance_measure = ref<DistanceMeasure>('Euclidean')
+const noise_algorithm = ref<NoiseAlgorithm | 'None'>('None')
+const noise_dimension = ref<'2D' | '3D'>('2D')
+
 const voronoi_n_columns = ref(16)
 const noise_scale = ref(1)
 const noise_n_octaves = ref(1)
@@ -49,33 +50,22 @@ async function initScene(canvas: HTMLCanvasElement) {
     renderer.value.initObserver(canvas, scene.value)
 }
 
-watch(distance_measure, (new_distance_measure) => {
-    scene.value.cleanup()
-    renderer.value.cleanup()
+watch(
+    [distance_measure, noise_algorithm, noise_dimension],
+    ([new_measure, new_algorithm, new_dimension]) => {
+        scene.value.cleanup()
+        renderer.value.cleanup()
 
-    scene.value = new VoronoiScene({
-        distance_measure: new_distance_measure,
-        warp_algorithm: noise.value?.algorithm,
-        warp_dimension: noise.value?.dimension,
-    })
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
-    }
-})
-
-watch(noise, (new_noise) => {
-    scene.value.cleanup()
-    renderer.value.cleanup()
-
-    scene.value = new VoronoiScene({
-        distance_measure: distance_measure.value,
-        warp_algorithm: new_noise?.algorithm,
-        warp_dimension: new_noise?.dimension,
-    })
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
-    }
-})
+        scene.value = new VoronoiScene({
+            distance_measure: new_measure,
+            warp_algorithm: new_algorithm === 'None' ? undefined : new_algorithm,
+            warp_dimension: new_dimension,
+        })
+        if (canvasRef.value) {
+            initScene(canvasRef.value)
+        }
+    },
+)
 
 watch(voronoi_n_columns, (new_grid_size) => {
     scene.value.updateVoronoiNColumns(new_grid_size, renderer.value.device)
@@ -132,20 +122,43 @@ onBeforeUnmount(() => {
                 :options="['Euclidean', 'Manhattan']"
                 v-model="distance_measure"
             />
-            <NoisePanel
-                allow-none
-                :dimensions="['2D', '3D']"
-                :transforms="[]"
-                v-model:noise="noise"
-                v-model:z_coord="noise_z"
-                v-model:n_main_octaves="noise_n_octaves"
-                v-model:persistence="noise_persistence"
+            <TextSingleSelect
+                text="Noise algorithm"
+                name="algorithm"
+                :options="['None', 'Perlin', 'Simplex', 'Value', 'Worley']"
+                v-model="noise_algorithm"
             />
-            <template v-if="noise !== null">
+
+            <template v-if="noise_algorithm !== 'None'">
+                <TextSingleSelect
+                    text="Noise dimension"
+                    name="dimension"
+                    :options="['2D', '3D']"
+                    v-model="noise_dimension"
+                />
+
+                <template v-if="noise_dimension !== '2D'">
+                    <p>Noise Z coordinate: {{ noise_z }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_z" />
+                </template>
+
+                <NumberSingleSelect
+                    text="Noise octaves"
+                    name="noise_n_octaves"
+                    :options="[1, 2, 3, 4, 5]"
+                    v-model="noise_n_octaves"
+                />
+
+                <template v-if="noise_n_octaves > 1">
+                    <p>Noise persistence: {{ noise_persistence }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_persistence" />
+                </template>
+
                 <p>Noise scale relative to Voronoi cells: {{ noise_scale }}</p>
-                <RangeInput :min="0.1" :max="5" :step="0.1" v-model="noise_scale" />
-                <p>Warp strength: {{ noise_warp_strength }}</p>
-                <RangeInput :min="1" :max="5" :step="0.1" v-model="noise_warp_strength" />
+                <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_scale" />
+
+                <p>Noise warp strength: {{ noise_warp_strength }}</p>
+                <RangeInput :min="1" :max="5" :step="0.01" v-model="noise_warp_strength" />
             </template>
         </template>
     </SidePanelCanvas>
