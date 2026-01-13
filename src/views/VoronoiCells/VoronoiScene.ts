@@ -9,9 +9,9 @@ import {
 } from '@/WebGPU/ShaderDataUtils'
 
 import type { NoiseUniforms } from '@/Noise/Types'
-import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
+import { defaultColorPoints, generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
-import { type VoronoiSetup, voronoiShader } from './VoronoiShader'
+import { type VoronoiSetup, voronoiShader, type VoronoiUniforms } from './VoronoiShader'
 
 export default class VoronoiScene implements Scene {
     setup: VoronoiSetup
@@ -20,9 +20,6 @@ export default class VoronoiScene implements Scene {
         this.setup = setup
     }
 
-    createShader(color_format: GPUTextureFormat): string {
-        return `${voronoiShader(this.setup, color_format)}`
-    }
     pipeline!: GPUComputePipeline
 
     getPipeline(): GPUComputePipeline {
@@ -30,42 +27,77 @@ export default class VoronoiScene implements Scene {
     }
 
     hash_table!: GPUBuffer
-    random_elements!: GPUBuffer
     n_grid_columns!: GPUBuffer
-    n_main_octaves!: GPUBuffer
-    persistence!: GPUBuffer
-    z_coord!: GPUBuffer
-    w_coord!: GPUBuffer
-    n_warp_octaves!: GPUBuffer
-    warp_strength!: GPUBuffer
-    static_bind_group!: GPUBindGroup
+    voronoi_points!: GPUBuffer
+    color_index_data!: GPUBuffer
+    colors!: GPUBuffer
 
-    n_colors = 0
-    color_points!: GPUBuffer
-    color_bind_group!: GPUBindGroup
+    noise_scale!: GPUBuffer
+    noise_warp_strength!: GPUBuffer
+    noise_random_elements!: GPUBuffer
+    n_noise_octaves!: GPUBuffer
+    noise_persistence!: GPUBuffer
+    noise_z_coord!: GPUBuffer
 
-    async init(data: NoiseUniforms, info: InitInfo) {
+    bind_group!: GPUBindGroup
+
+    async init(data: VoronoiUniforms, info: InitInfo) {
         const { device, color_format } = info
         const { warp_algorithm, warp_dimension } = this.setup
-
-        const shader_code = this.createShader(color_format)
-        const random_elements = getNoiseShaderRandomElements(warp_algorithm, warp_dimension, 256)
+        const shader_code = `${voronoiShader(this.setup, color_format)}`
 
         this.pipeline = await createComputePipeline(shader_code, device)
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
-        this.random_elements = createStorageBuffer(random_elements, device)
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
-        this.n_main_octaves = createIntUniform(data.n_main_octaves || 1, device)
-        this.persistence = createFloatUniform(data.persistence || 0.5, device)
+        this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
 
-        const bind_group_entries = [
+        const n_colors = 8
+        this.color_index_data = createStorageBuffer(
+            new Int32Array(256).map(() => Math.floor(Math.random() * (n_colors + 1))),
+            device,
+        )
+        this.colors = createStorageBuffer(
+            new Float32Array([
+                0,
+                0,
+                0,
+                1, // color 0
+                0,
+                0,
+                1,
+                1, // color 1
+                0,
+                1,
+                0,
+                1, // color 2
+                0,
+                1,
+                1,
+                1, // color 3
+                1,
+                0,
+                0,
+                1, // color 4
+                1,
+                0,
+                1,
+                1, // color 5
+                1,
+                1,
+                0,
+                1, // color 6
+                1,
+                1,
+                1,
+                1, // color 7
+            ]),
+            device,
+        )
+
+        let bind_group_entries: GPUBindGroupEntry[] = [
             {
                 binding: 0,
                 resource: { buffer: this.hash_table },
-            },
-            {
-                binding: 1,
-                resource: { buffer: this.random_elements },
             },
             {
                 binding: 2,
@@ -73,108 +105,107 @@ export default class VoronoiScene implements Scene {
             },
             {
                 binding: 3,
-                resource: { buffer: this.n_main_octaves },
+                resource: { buffer: this.voronoi_points },
             },
             {
                 binding: 4,
-                resource: { buffer: this.persistence },
+                resource: { buffer: this.color_index_data },
+            },
+            {
+                binding: 5,
+                resource: { buffer: this.colors },
             },
         ]
 
-        if (warp_dimension === '3D') {
-            this.z_coord = createFloatUniform(data.z_coord || 0, device)
-            bind_group_entries.push({
-                binding: 5,
-                resource: { buffer: this.z_coord },
-            })
+        if (warp_algorithm && warp_dimension) {
+            const random_elements = getNoiseShaderRandomElements(
+                warp_algorithm,
+                warp_dimension,
+                256,
+            )
+            this.noise_scale = createFloatUniform(data.noise_scale || 1, device)
+            this.noise_warp_strength = createFloatUniform(data.noise_warp_strength || 1, device)
+            this.noise_random_elements = createStorageBuffer(random_elements, device)
+            this.n_noise_octaves = createIntUniform(data.n_noise_octaves || 1, device)
+            this.noise_persistence = createFloatUniform(data.noise_persistence || 0.5, device)
+
+            bind_group_entries = bind_group_entries.concat([
+                {
+                    binding: 1,
+                    resource: { buffer: this.noise_random_elements },
+                },
+                {
+                    binding: 6,
+                    resource: { buffer: this.noise_scale },
+                },
+                {
+                    binding: 7,
+                    resource: { buffer: this.noise_warp_strength },
+                },
+                {
+                    binding: 8,
+                    resource: { buffer: this.n_noise_octaves },
+                },
+                {
+                    binding: 9,
+                    resource: { buffer: this.noise_persistence },
+                },
+            ])
+            if (warp_dimension === '3D') {
+                this.noise_z_coord = createFloatUniform(data.noise_z_coord || 0, device)
+                bind_group_entries.push({
+                    binding: 10,
+                    resource: { buffer: this.noise_z_coord },
+                })
+            }
         }
 
-        this.static_bind_group = device.createBindGroup({
+        this.bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
             entries: bind_group_entries,
-        })
-
-        const color_points_data = data.color_points || defaultColorPoints
-        this.n_colors = color_points_data.length / 4
-        this.color_points = createStorageBuffer(color_points_data, device, 256)
-
-        this.color_bind_group = device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(2),
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: this.color_points,
-                        size: color_points_data.byteLength,
-                    },
-                },
-            ],
         })
     }
 
     render(encoder: GPUComputePassEncoder): void {
-        encoder.setBindGroup(1, this.static_bind_group)
-        encoder.setBindGroup(2, this.color_bind_group)
+        encoder.setBindGroup(1, this.bind_group)
     }
 
     updateNGridColumns(value: number, device: GPUDevice) {
         updateFloatUniform(this.n_grid_columns, value, device)
     }
 
-    updateNMainOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.n_main_octaves, value, device)
+    updateNoiseScale(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_scale, value, device)
     }
 
-    updatePersistence(value: number, device: GPUDevice) {
-        updateFloatUniform(this.persistence, value, device)
+    updateNoiseWarpStrength(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_warp_strength, value, device)
     }
 
-    updateZCoord(value: number, device: GPUDevice) {
-        updateFloatUniform(this.z_coord, value, device)
+    updateNoiseOctaves(value: number, device: GPUDevice) {
+        updateIntUniform(this.n_noise_octaves, value, device)
     }
 
-    updateWCoord(value: number, device: GPUDevice) {
-        updateFloatUniform(this.w_coord, value, device)
+    updateNoisePersistence(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_persistence, value, device)
     }
 
-    updateNWarpOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.n_warp_octaves, value, device)
-    }
-
-    updateWarpStrength(value: number, device: GPUDevice) {
-        updateFloatUniform(this.warp_strength, value, device)
-    }
-
-    updateColorPoints(data: Float32Array<ArrayBuffer>, device: GPUDevice) {
-        updateStorageBuffer(this.color_points, data, device)
-        const new_n_colors = data.length / 4
-
-        if (new_n_colors != this.n_colors) {
-            this.n_colors = new_n_colors
-            this.color_bind_group = device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(2),
-                entries: [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: this.color_points,
-                            size: data.byteLength,
-                        },
-                    },
-                ],
-            })
-        }
+    updateNoiseZCoord(value: number, device: GPUDevice) {
+        updateFloatUniform(this.noise_z_coord, value, device)
     }
 
     cleanup() {
         this.hash_table?.destroy()
-        this.random_elements?.destroy()
         this.n_grid_columns?.destroy()
-        this.n_main_octaves?.destroy()
-        this.persistence?.destroy()
-        this.z_coord?.destroy()
-        this.w_coord?.destroy()
-        this.warp_strength?.destroy()
-        this.color_points?.destroy()
+        this.voronoi_points?.destroy()
+        this.color_index_data?.destroy()
+        this.colors?.destroy()
+
+        this.noise_scale?.destroy()
+        this.noise_warp_strength?.destroy()
+        this.noise_random_elements?.destroy()
+        this.n_noise_octaves?.destroy()
+        this.noise_persistence?.destroy()
+        this.noise_z_coord?.destroy()
     }
 }

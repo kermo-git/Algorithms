@@ -14,7 +14,7 @@ import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 
 const color_points = ref(defaultColorPoints)
 const noise = ref<NoiseSetup>({
-    algorithm: 'Simplex',
+    algorithm: 'Perlin',
     dimension: '2D',
     transform: 'None',
 })
