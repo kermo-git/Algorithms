@@ -70,7 +70,7 @@ export default class VoronoiScene implements Scene {
         ]
 
         if (use_color_grid) {
-            this.voronoi_color_grid = createStorageBuffer(data.voronoi_color_grid!, device)
+            this.voronoi_color_grid = createStorageBuffer(data.voronoi_color_grid!, device, 16384)
 
             bind_group_entries.push({
                 binding: 4,
@@ -127,7 +127,7 @@ export default class VoronoiScene implements Scene {
         })
 
         this.n_colors = data.voronoi_colors!.length / 4
-        this.voronoi_colors = createStorageBuffer(data.voronoi_colors!, device)
+        this.voronoi_colors = createStorageBuffer(data.voronoi_colors!, device, 256)
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
