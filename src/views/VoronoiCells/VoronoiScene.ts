@@ -126,7 +126,7 @@ export default class VoronoiScene implements Scene {
             entries: bind_group_entries,
         })
 
-        this.n_colors = data.voronoi_colors?.length || 0 / 4
+        this.n_colors = data.voronoi_colors!.length / 4
         this.voronoi_colors = createStorageBuffer(data.voronoi_colors!, device)
 
         this.color_bind_group = device.createBindGroup({
@@ -161,6 +161,8 @@ export default class VoronoiScene implements Scene {
         const new_n_colors = value.length / 4
 
         if (new_n_colors != this.n_colors) {
+            this.n_colors = new_n_colors
+
             this.color_bind_group = device.createBindGroup({
                 layout: this.pipeline.getBindGroupLayout(2),
                 entries: [
