@@ -13,12 +13,15 @@ export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 
 export interface VoronoiSetup {
     distance_measure: DistanceMeasure
+    use_color_grid?: boolean
     warp_algorithm?: NoiseAlgorithm
     warp_dimension?: NoiseDimension
 }
 
 export interface VoronoiUniforms {
     voronoi_n_columns?: number
+    voronoi_color_grid?: Float32Array<ArrayBuffer>
+    voronoi_colors?: Float32Array<ArrayBuffer>
     noise_scale?: number
     noise_warp_strength?: number
     noise_n_octaves?: number
@@ -27,7 +30,7 @@ export interface VoronoiUniforms {
 }
 
 export function voronoiShader(
-    { distance_measure, warp_algorithm, warp_dimension }: VoronoiSetup,
+    { distance_measure, use_color_grid, warp_algorithm, warp_dimension }: VoronoiSetup,
     color_format: GPUTextureFormat,
 ) {
     const has_noise = warp_algorithm !== undefined && warp_dimension !== undefined
@@ -42,11 +45,11 @@ export function voronoiShader(
         conditional_declarations = /* wgsl */ `
             ${noiseFunctionShader(warp_algorithm, warp_dimension)}
             
-            @group(1) @binding(6) var<uniform> noise_scale: f32;
-            @group(1) @binding(7) var<uniform> noise_n_octaves: u32;
-            @group(1) @binding(8) var<uniform> noise_persistence: f32;
-            @group(1) @binding(9) var<uniform> noise_warp_strength: f32;
-            ${only_3D} @group(1) @binding(10) var<uniform> noise_z: f32;
+            @group(1) @binding(5) var<uniform> noise_scale: f32;
+            @group(1) @binding(6) var<uniform> noise_n_octaves: u32;
+            @group(1) @binding(7) var<uniform> noise_persistence: f32;
+            @group(1) @binding(8) var<uniform> noise_warp_strength: f32;
+            ${only_3D} @group(1) @binding(9) var<uniform> noise_z: f32;
 
             ${octaveNoiseShader(warp_dimension)}
 
@@ -93,23 +96,42 @@ export function voronoiShader(
         dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
     }
 
+    const color_grid = use_color_grid ? '' : '//'
+    let get_color_shader = ''
+
+    if (use_color_grid) {
+        get_color_shader = /* wgsl */ `
+            fn get_color(grid_cell: vec2i) -> vec4f {
+                let masked_cell = grid_cell & vec2i(63, 63);
+                let grid_flat_index = masked_cell.y * 64 + masked_cell.x;
+                let color_index = voronoi_color_grid[grid_flat_index];
+                return voronoi_colors[color_index];
+            }
+        `
+    } else {
+        get_color_shader = /* wgsl */ `
+            fn get_color(grid_cell: vec2i) -> vec4f {
+                let masked_cell = grid_cell & vec2i(255, 255);
+                let hash = hash_table[hash_table[masked_cell.x] + masked_cell.y];
+                let index = u32(hash) % arrayLength(&voronoi_colors);
+                return voronoi_colors[index];
+            }
+        `
+    }
+
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
         @group(1) @binding(2) var<uniform> voronoi_n_columns: f32;
         @group(1) @binding(3) var<storage> voronoi_points: array<vec2f>;
-        @group(1) @binding(4) var<storage> voronoi_color_index: array<i32>;
-        @group(1) @binding(5) var<storage> voronoi_colors: array<vec4f>;
+        ${color_grid} @group(1) @binding(4) var<storage> voronoi_color_grid: array<i32>;
+        @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
         
         ${findGridPosShader}
 
         ${conditional_declarations}
 
-        fn get_color(grid_cell: vec2i) -> vec4f {
-            let masked_cell = grid_cell & vec2i(255, 255);
-            let hash = hash_table[hash_table[masked_cell.x] + masked_cell.y];
-            return voronoi_colors[voronoi_color_index[hash]];
-        }
+        ${get_color_shader}
 
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(@builtin(global_invocation_id) gid: vec3u) {

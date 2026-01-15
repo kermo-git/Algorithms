@@ -11,14 +11,43 @@ import VoronoiScene from './VoronoiScene'
 import { type DistanceMeasure, type VoronoiUniforms } from './VoronoiShader'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
+import ColorPanel from './ColorPanel.vue'
 
 const active_tab = ref('Configuration')
 
-const distance_measure = ref<DistanceMeasure>('Euclidean')
+const voronoi_distance = ref<DistanceMeasure>('Euclidean')
+const voronoi_colors = ref<Float32Array<ArrayBuffer>>(
+    new Float32Array([
+        0.54,
+        0.79,
+        0.04,
+        1, // Grassland
+        0.07,
+        0.57,
+        0.27,
+        1, // Forest
+        0.62,
+        0.84,
+        0.95,
+        1, // Snow
+        0.93,
+        0.61,
+        0.1,
+        1, // Desert
+        0.9,
+        0.85,
+        0.43,
+        1, // Beach
+        0.09,
+        0.19,
+        0.86,
+        1, // Sea
+    ]),
+)
+const voronoi_n_columns = ref(16)
+
 const noise_algorithm = ref<NoiseAlgorithm | 'None'>('None')
 const noise_dimension = ref<'2D' | '3D'>('2D')
-
-const voronoi_n_columns = ref(16)
 const noise_scale = ref(1)
 const noise_n_octaves = ref(1)
 const noise_persistence = ref(0.5)
@@ -28,7 +57,7 @@ const noise_z = ref(0)
 const scene = shallowRef(
     markRaw(
         new VoronoiScene({
-            distance_measure: distance_measure.value,
+            distance_measure: voronoi_distance.value,
         }),
     ),
 )
@@ -40,6 +69,7 @@ async function initScene(canvas: HTMLCanvasElement) {
     const init_info = await renderer.value.init(canvas)
     const init_params: VoronoiUniforms = {
         voronoi_n_columns: voronoi_n_columns.value,
+        voronoi_colors: voronoi_colors.value,
         noise_scale: noise_scale.value,
         noise_warp_strength: noise_warp_strength.value,
         noise_z: noise_z.value,
@@ -51,7 +81,7 @@ async function initScene(canvas: HTMLCanvasElement) {
 }
 
 watch(
-    [distance_measure, noise_algorithm, noise_dimension],
+    [voronoi_distance, noise_algorithm, noise_dimension],
     ([new_measure, new_algorithm, new_dimension]) => {
         scene.value.cleanup()
         renderer.value.cleanup()
@@ -69,6 +99,11 @@ watch(
 
 watch(voronoi_n_columns, (new_grid_size) => {
     scene.value.updateVoronoiNColumns(new_grid_size, renderer.value.device)
+    renderer.value.render(scene.value)
+})
+
+watch(voronoi_colors, (new_colors) => {
+    scene.value.updateVoronoiColors(new_colors, renderer.value.device)
     renderer.value.render(scene.value)
 })
 
@@ -120,7 +155,7 @@ onBeforeUnmount(() => {
                 text="Distance measure"
                 name="distance"
                 :options="['Euclidean', 'Manhattan']"
-                v-model="distance_measure"
+                v-model="voronoi_distance"
             />
             <TextSingleSelect
                 text="Noise algorithm"
@@ -158,8 +193,11 @@ onBeforeUnmount(() => {
                 <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_scale" />
 
                 <p>Noise warp strength: {{ noise_warp_strength }}</p>
-                <RangeInput :min="1" :max="5" :step="0.01" v-model="noise_warp_strength" />
+                <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_warp_strength" />
             </template>
+        </template>
+        <template v-else>
+            <ColorPanel v-model="voronoi_colors" />
         </template>
     </SidePanelCanvas>
 </template>

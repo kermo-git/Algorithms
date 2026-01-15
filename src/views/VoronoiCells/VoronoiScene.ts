@@ -5,6 +5,7 @@ import {
     createStorageBuffer,
     updateFloatUniform,
     updateIntUniform,
+    updateStorageBuffer,
 } from '@/WebGPU/ShaderDataUtils'
 
 import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
@@ -28,8 +29,9 @@ export default class VoronoiScene implements Scene {
 
     voronoi_n_columns!: GPUBuffer
     voronoi_points!: GPUBuffer
-    voronoi_color_index!: GPUBuffer
+    voronoi_color_grid!: GPUBuffer
     voronoi_colors!: GPUBuffer
+    n_colors: number = 0
 
     noise_scale!: GPUBuffer
     noise_random_elements!: GPUBuffer
@@ -38,11 +40,12 @@ export default class VoronoiScene implements Scene {
     noise_warp_strength!: GPUBuffer
     noise_z!: GPUBuffer
 
-    bind_group!: GPUBindGroup
+    static_bind_group!: GPUBindGroup
+    color_bind_group!: GPUBindGroup
 
     async init(data: VoronoiUniforms, info: InitInfo) {
         const { device, color_format } = info
-        const { warp_algorithm, warp_dimension } = this.setup
+        const { use_color_grid, warp_algorithm, warp_dimension } = this.setup
 
         const shader_code = `${voronoiShader(this.setup, color_format)}`
         this.pipeline = await createComputePipeline(shader_code, device)
@@ -50,49 +53,6 @@ export default class VoronoiScene implements Scene {
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.voronoi_n_columns = createFloatUniform(data.voronoi_n_columns || 16, device)
         this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
-
-        const n_colors = 8
-        this.voronoi_color_index = createStorageBuffer(
-            new Int32Array(256).map(() => Math.floor(Math.random() * (n_colors + 1))),
-            device,
-        )
-        this.voronoi_colors = createStorageBuffer(
-            new Float32Array([
-                0,
-                0,
-                0,
-                1, // color 0
-                0,
-                0,
-                1,
-                1, // color 1
-                0,
-                1,
-                0,
-                1, // color 2
-                0,
-                1,
-                1,
-                1, // color 3
-                1,
-                0,
-                0,
-                1, // color 4
-                1,
-                0,
-                1,
-                1, // color 5
-                1,
-                1,
-                0,
-                1, // color 6
-                1,
-                1,
-                1,
-                1, // color 7
-            ]),
-            device,
-        )
 
         let bind_group_entries: GPUBindGroupEntry[] = [
             {
@@ -107,15 +67,16 @@ export default class VoronoiScene implements Scene {
                 binding: 3,
                 resource: { buffer: this.voronoi_points },
             },
-            {
-                binding: 4,
-                resource: { buffer: this.voronoi_color_index },
-            },
-            {
-                binding: 5,
-                resource: { buffer: this.voronoi_colors },
-            },
         ]
+
+        if (use_color_grid) {
+            this.voronoi_color_grid = createStorageBuffer(data.voronoi_color_grid!, device)
+
+            bind_group_entries.push({
+                binding: 4,
+                resource: { buffer: this.voronoi_color_grid },
+            })
+        }
 
         if (warp_algorithm && warp_dimension) {
             const random_elements = getNoiseShaderRandomElements(
@@ -135,43 +96,84 @@ export default class VoronoiScene implements Scene {
                     resource: { buffer: this.noise_random_elements },
                 },
                 {
-                    binding: 6,
+                    binding: 5,
                     resource: { buffer: this.noise_scale },
                 },
                 {
-                    binding: 7,
+                    binding: 6,
                     resource: { buffer: this.noise_n_octaves },
                 },
                 {
-                    binding: 8,
+                    binding: 7,
                     resource: { buffer: this.noise_persistence },
                 },
                 {
-                    binding: 9,
+                    binding: 8,
                     resource: { buffer: this.noise_warp_strength },
                 },
             ])
             if (warp_dimension === '3D') {
                 this.noise_z = createFloatUniform(data.noise_z || 0, device)
                 bind_group_entries.push({
-                    binding: 10,
+                    binding: 9,
                     resource: { buffer: this.noise_z },
                 })
             }
         }
 
-        this.bind_group = device.createBindGroup({
+        this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
             entries: bind_group_entries,
+        })
+
+        this.n_colors = data.voronoi_colors?.length || 0 / 4
+        this.voronoi_colors = createStorageBuffer(data.voronoi_colors!, device)
+
+        this.color_bind_group = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(2),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.voronoi_colors,
+                        size: data.voronoi_colors!.byteLength,
+                    },
+                },
+            ],
         })
     }
 
     render(encoder: GPUComputePassEncoder): void {
-        encoder.setBindGroup(1, this.bind_group)
+        encoder.setBindGroup(1, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_bind_group)
     }
 
     updateVoronoiNColumns(value: number, device: GPUDevice) {
         updateFloatUniform(this.voronoi_n_columns, value, device)
+    }
+
+    updateVoronoiColorGrid(value: Float32Array<ArrayBuffer>, device: GPUDevice) {
+        updateStorageBuffer(this.voronoi_color_grid, value, device)
+    }
+
+    updateVoronoiColors(value: Float32Array<ArrayBuffer>, device: GPUDevice) {
+        updateStorageBuffer(this.voronoi_colors, value, device)
+        const new_n_colors = value.length / 4
+
+        if (new_n_colors != this.n_colors) {
+            this.color_bind_group = device.createBindGroup({
+                layout: this.pipeline.getBindGroupLayout(2),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.voronoi_colors,
+                            size: value.byteLength,
+                        },
+                    },
+                ],
+            })
+        }
     }
 
     updateNoiseScale(value: number, device: GPUDevice) {
@@ -199,7 +201,7 @@ export default class VoronoiScene implements Scene {
 
         this.voronoi_n_columns?.destroy()
         this.voronoi_points?.destroy()
-        this.voronoi_color_index?.destroy()
+        this.voronoi_color_grid?.destroy()
         this.voronoi_colors?.destroy()
 
         this.noise_random_elements?.destroy()

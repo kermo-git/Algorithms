@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
 
 import RangeInput from '@/components/RangeInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
+import ColorInput from '@/components/ColorInput.vue'
 
 import { parseHexColor, toHexColor } from '@/utils/Colors'
-import { computed } from 'vue'
-import ColorInput from '@/components/ColorInput.vue'
 
 interface Props {
     /**
