@@ -13,21 +13,27 @@ const props = defineProps<Props>()
         <span v-if="props.mdiPath">
             <svg-icon type="mdi" :path="props.mdiPath" />
         </span>
-        <span v-if="props.text">{{ props.text }}</span>
+        <span class="button-text" v-if="props.text">{{ props.text }}</span>
     </button>
 </template>
 
 <style scoped>
 button {
     border: var(--border);
-    border-radius: 0.7em;
     background-color: var(--secondary-color);
-    padding: 0.5em;
+    border-radius: var(--border-radius);
+    height: var(--button-height);
+    min-width: var(--button-height);
     font-size: inherit;
     color: inherit;
     display: flex;
     align-items: center;
-    gap: 0.5em;
+    justify-content: center;
+}
+
+.button-text {
+    margin-left: var(--button-gap);
+    margin-right: var(--button-gap);
 }
 
 button:hover {
@@ -42,9 +48,6 @@ button:active {
 }
 
 button svg {
-    height: 2em;
-    width: 2em;
-    padding: 0;
     font-size: 10pt;
 }
 </style>

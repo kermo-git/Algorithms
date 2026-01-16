@@ -25,9 +25,9 @@ input {
     background-color: inherit;
     color: inherit;
     border: var(--border);
-    border-radius: 0.7em;
+    border-radius: var(--border-radius);
+    height: var(--button-height);
     box-sizing: border-box;
-    height: 2.5em;
     text-overflow: ellipsis;
 }
 

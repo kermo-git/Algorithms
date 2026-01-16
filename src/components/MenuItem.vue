@@ -15,11 +15,11 @@ const props = defineProps<Props>()
 
 <style scoped>
 button {
-    width: 100%;
     border: var(--border);
-    border-radius: 0.7em;
+    border-radius: var(--border-radius);
+    height: var(--button-height);
+    width: 100%;
     background-color: inherit;
-    height: 3em;
     font-size: inherit;
     color: inherit;
     text-align: center;

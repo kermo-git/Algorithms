@@ -44,9 +44,13 @@ input[type='radio'] {
 
 label {
     border: var(--border);
-    border-radius: 0.7em;
     background-color: var(--secondary-color);
-    padding: 0.5em;
+    border-radius: var(--border-radius);
+    min-width: var(--label-height);
+    line-height: var(--label-height);
+    padding-left: var(--button-gap);
+    padding-right: var(--button-gap);
+    text-align: center;
     font-size: inherit;
     color: inherit;
 }

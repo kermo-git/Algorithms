@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PanelSection from './PanelSection.vue'
+
 interface Props {
     text: string
     name: string
@@ -9,7 +11,7 @@ const model = defineModel()
 </script>
 
 <template>
-    <div class="label-options">
+    <PanelSection>
         <p class="caption">{{ props.text }}</p>
         <div class="options">
             <template v-for="value in props.options" :key="value">
@@ -23,18 +25,10 @@ const model = defineModel()
                 <label class="option" :for="`${props.name}-${value}`">{{ value }}</label>
             </template>
         </div>
-    </div>
+    </PanelSection>
 </template>
 
 <style scoped>
-.label-options {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5em;
-    width: 100%;
-}
-
 .caption {
     flex-basis: 20%;
     flex-grow: 1;
@@ -52,13 +46,11 @@ input[type='radio'] {
 
 label {
     border: var(--border);
-    border-radius: 0.5em;
     background-color: var(--bg-color);
-    min-width: 2em;
-    height: 2em;
+    border-radius: var(--border-radius);
+    min-width: var(--label-height);
+    line-height: var(--label-height);
     text-align: center;
-    line-height: 2em;
-    font-size: inherit;
     color: inherit;
     font-size: 15pt;
 }

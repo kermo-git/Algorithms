@@ -4,10 +4,10 @@
 
 <style scoped>
 input[type='color'] {
-    height: 4em;
-    aspect-ratio: 1;
-    border-radius: 30%;
     border: var(--border);
+    border-radius: var(--border-radius);
+    height: var(--button-height);
+    width: var(--button-height);
     cursor: pointer;
 }
 
