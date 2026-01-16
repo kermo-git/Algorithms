@@ -26,7 +26,7 @@ import { RouterLink, RouterView } from 'vue-router'
     --button-height: 2.8rem;
     --label-height: 2.5rem; /* Just to get HTML label elements the same height as --button-height makes HTML button elements. */
     --border-radius: 0.7rem;
-    --button-gap: 0.7rem;
+    --small-gap: 0.5rem;
     --bg-color: rgb(50, 50, 50);
     --secondary-color: rgb(100, 100, 100);
     --accent-color: rgb(255, 57, 156);

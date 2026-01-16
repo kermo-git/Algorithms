@@ -31,11 +31,6 @@ button {
     justify-content: center;
 }
 
-.button-text {
-    margin-left: var(--button-gap);
-    margin-right: var(--button-gap);
-}
-
 button:hover {
     border: var(--accent-border);
     cursor: pointer;

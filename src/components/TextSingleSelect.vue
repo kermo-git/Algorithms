@@ -34,7 +34,7 @@ fieldset {
     display: flex;
     justify-content: space-around;
     flex-wrap: wrap;
-    gap: 1em;
+    gap: var(--small-gap);
     width: 100%;
 }
 
@@ -48,8 +48,8 @@ label {
     border-radius: var(--border-radius);
     min-width: var(--label-height);
     line-height: var(--label-height);
-    padding-left: var(--button-gap);
-    padding-right: var(--button-gap);
+    padding-left: var(--small-gap);
+    padding-right: var(--small-gap);
     text-align: center;
     font-size: inherit;
     color: inherit;

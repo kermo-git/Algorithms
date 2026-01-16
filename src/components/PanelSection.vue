@@ -8,7 +8,7 @@
 .panel-section {
     display: flex;
     width: 100%;
-    gap: 0.5em;
+    gap: var(--small-gap);
     justify-content: space-around;
     align-items: center;
     flex-wrap: wrap;

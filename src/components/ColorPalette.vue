@@ -30,6 +30,10 @@ const palettes = [
         colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B'],
     },
     {
+        name: 'Forest',
+        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B'],
+    },
+    {
         name: 'Amethyst',
         colors: ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA'],
     },
@@ -40,10 +44,6 @@ const palettes = [
     {
         name: 'Satellite photo',
         colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3'],
-    },
-    {
-        name: 'Forest',
-        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B'],
     },
 ]
 

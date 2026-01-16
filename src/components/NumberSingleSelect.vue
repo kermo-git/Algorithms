@@ -37,7 +37,7 @@ const model = defineModel()
 .options {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5em;
+    gap: var(--small-gap);
 }
 
 input[type='radio'] {
