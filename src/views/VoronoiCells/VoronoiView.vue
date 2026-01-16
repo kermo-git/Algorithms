@@ -12,37 +12,13 @@ import { type DistanceMeasure, type VoronoiUniforms } from './VoronoiShader'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from './ColorPanel.vue'
+import { toShaderBuffer } from '@/utils/Colors'
 
 const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const voronoi_colors = ref<Float32Array<ArrayBuffer>>(
-    new Float32Array([
-        0.54,
-        0.79,
-        0.04,
-        1, // Grassland
-        0.07,
-        0.57,
-        0.27,
-        1, // Forest
-        0.62,
-        0.84,
-        0.95,
-        1, // Snow
-        0.93,
-        0.61,
-        0.1,
-        1, // Desert
-        0.9,
-        0.85,
-        0.43,
-        1, // Beach
-        0.09,
-        0.19,
-        0.86,
-        1, // Sea
-    ]),
+    toShaderBuffer(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']),
 )
 const voronoi_n_columns = ref(16)
 

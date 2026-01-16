@@ -45,3 +45,18 @@ export function lerpColors(t: number, a: Color, b: Color): Color {
         blue: Math.round(a.blue + (b.blue - a.blue) * t),
     }
 }
+
+export function toShaderBuffer(hex_colors: string[]): Float32Array<ArrayBuffer> {
+    const result = new Float32Array(4 * hex_colors.length)
+
+    for (let i = 0; i < hex_colors.length; i++) {
+        const color = parseHexColor(hex_colors[i])
+        const offset = 4 * i
+
+        result[offset] = color.red / 255
+        result[offset + 1] = color.green / 255
+        result[offset + 2] = color.blue / 255
+        result[offset + 3] = 1
+    }
+    return result
+}

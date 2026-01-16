@@ -5,7 +5,7 @@ import { mdiDelete, mdiPlus } from '@mdi/js'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
 
-import { parseHexColor, toHexColor } from '@/utils/Colors'
+import { parseHexColor, toHexColor, toShaderBuffer } from '@/utils/Colors'
 
 const colors = defineModel<Float32Array>()
 
@@ -60,25 +60,101 @@ function onDeleteClick(ev: Event) {
 </script>
 
 <template>
-    <PanelButton :mdi-path="mdiPlus" @click="onAddColorClick" />
-    <template v-for="(hex_color, i) in color_info" :key="i">
-        <div class="color-unit">
-            <ColorInput :value="hex_color" :data-index="i" @input="onColorInput" />
+    <div class="container">
+        <div class="column">
+            <PanelButton :mdi-path="mdiPlus" @click="onAddColorClick" />
+            <div v-for="(hex_color, i) in color_info" :key="i" class="color-unit">
+                <PanelButton
+                    v-if="color_info.length > 2"
+                    :mdi-path="mdiDelete"
+                    :data-index="i"
+                    @click="onDeleteClick"
+                />
+                <ColorInput :value="hex_color" :data-index="i" @input="onColorInput" />
+            </div>
+        </div>
+        <div class="column">
             <PanelButton
-                v-if="color_info.length > 2"
-                :mdi-path="mdiDelete"
-                :data-index="i"
-                @click="onDeleteClick"
+                text="Biomes"
+                @click="
+                    () => {
+                        colors = toShaderBuffer([
+                            '#8AC90A',
+                            '#129145',
+                            '#9ED6F2',
+                            '#ED9C1A',
+                            '#E5D96E',
+                            '#1730DB',
+                        ])
+                    }
+                "
+            />
+            <PanelButton
+                text="Rainbow"
+                @click="
+                    () => {
+                        colors = toShaderBuffer([
+                            '#BE38F3',
+                            '#0061FF',
+                            '#00C7FC',
+                            '#00F900',
+                            '#F5EC00',
+                            '#FFAA00',
+                            '#FF4013',
+                        ])
+                    }
+                "
+            />
+            <PanelButton
+                text="Fire & Ice"
+                @click="
+                    () => {
+                        colors = toShaderBuffer([
+                            '#0B90B7',
+                            '#00C7FC',
+                            '#94E3FE',
+                            '#FAB700',
+                            '#FF6A00',
+                            '#EA4F00',
+                        ])
+                    }
+                "
+            />
+            <PanelButton
+                text="Lava"
+                @click="
+                    () => {
+                        colors = toShaderBuffer([
+                            '#FEC700',
+                            '#FF6A00',
+                            '#E32400',
+                            '#606060',
+                            '#444444',
+                        ])
+                    }
+                "
             />
         </div>
-    </template>
+    </div>
 </template>
 
 <style scoped>
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--small-gap);
+}
+
 .color-unit {
     width: 100%;
     display: flex;
-    gap: 0.5em;
+    gap: var(--small-gap);
     align-items: center;
     justify-content: center;
 }
