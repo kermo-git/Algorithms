@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
             <TextSingleSelect
                 text="Distance measure"
                 name="distance"
-                :options="['Euclidean', 'Manhattan']"
+                :options="['Euclidean', 'Manhattan', 'Pixels']"
                 v-model="voronoi_distance"
             />
             <TextSingleSelect

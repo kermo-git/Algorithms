@@ -46,29 +46,35 @@ export default class VoronoiScene implements Scene {
 
     async init(data: VoronoiUniforms, info: InitInfo) {
         const { device, color_format } = info
-        const { use_color_grid, warp_algorithm, warp_dimension } = this.setup
+        const { distance_measure, use_color_grid, warp_algorithm, warp_dimension } = this.setup
 
         const shader_code = `${voronoiShader(this.setup, color_format)}`
         this.pipeline = await createComputePipeline(shader_code, device)
 
-        this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.voronoi_n_columns = createFloatUniform(data.voronoi_n_columns || 16, device)
-        this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
 
         let bind_group_entries: GPUBindGroupEntry[] = [
-            {
-                binding: 0,
-                resource: { buffer: this.hash_table },
-            },
             {
                 binding: 2,
                 resource: { buffer: this.voronoi_n_columns },
             },
-            {
+        ]
+
+        if (!use_color_grid || (warp_algorithm && warp_dimension)) {
+            this.hash_table = createStorageBuffer(generateHashTable(256), device)
+            bind_group_entries.push({
+                binding: 0,
+                resource: { buffer: this.hash_table },
+            })
+        }
+
+        if (distance_measure !== 'Pixels') {
+            this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
+            bind_group_entries.push({
                 binding: 3,
                 resource: { buffer: this.voronoi_points },
-            },
-        ]
+            })
+        }
 
         if (use_color_grid) {
             this.voronoi_color_grid = createStorageBuffer(data.voronoi_color_grid!, device, 16384)

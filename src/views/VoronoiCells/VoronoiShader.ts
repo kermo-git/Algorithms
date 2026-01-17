@@ -10,7 +10,7 @@ import {
 } from '@/Noise/ShaderUtils'
 
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
-export type DistanceMeasure = 'Euclidean' | 'Manhattan'
+export type DistanceMeasure = 'Euclidean' | 'Manhattan' | 'Pixels'
 
 export interface VoronoiSetup {
     distance_measure: DistanceMeasure
@@ -81,28 +81,19 @@ export function voronoiShader(
             `
         }
     } else {
-        conditional_declarations = /* wgsl */ `@group(1) @binding(0) var<storage> hash_table: array<i32>;`
+        if (!use_color_grid) {
+            conditional_declarations = /* wgsl */ `@group(1) @binding(0) var<storage> hash_table: array<i32>;`
+        }
         voronoi_pos_code = /* wgsl */ `
             let voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
         `
     }
 
-    let dist_expr = ''
-
-    if (distance_measure === 'Euclidean') {
-        // No need to calculate square root because
-        // we only need to compare which distance is the shortest
-        dist_expr = 'dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y'
-    } else {
-        dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
-    }
-
-    const color_grid = use_color_grid ? '' : '//'
-    let get_color_shader = ''
+    let get_cell_color = ''
 
     if (use_color_grid) {
-        get_color_shader = /* wgsl */ `
-            fn get_color(grid_cell: vec2i) -> vec4f {
+        get_cell_color = /* wgsl */ `
+            fn get_cell_color(grid_cell: vec2i) -> vec4f {
                 let masked_cell = grid_cell & vec2i(63, 63);
                 let grid_flat_index = masked_cell.y * 64 + masked_cell.x;
                 let color_index = voronoi_color_grid[grid_flat_index];
@@ -110,8 +101,8 @@ export function voronoiShader(
             }
         `
     } else {
-        get_color_shader = /* wgsl */ `
-            fn get_color(grid_cell: vec2i) -> vec4f {
+        get_cell_color = /* wgsl */ `
+            fn get_cell_color(grid_cell: vec2i) -> vec4f {
                 let masked_cell = grid_cell & vec2i(255, 255);
                 let hash = hash_table[hash_table[masked_cell.x] + masked_cell.y];
                 let index = u32(hash) % arrayLength(&voronoi_colors);
@@ -120,19 +111,69 @@ export function voronoiShader(
         `
     }
 
+    let get_color = ''
+    if (distance_measure === 'Pixels') {
+        get_color = /* wgsl */ `
+            fn get_color(voronoi_pos: vec2f) -> vec4f {
+                let grid_pos = vec2i(floor(voronoi_pos));
+                return get_cell_color(grid_pos);
+            }
+        `
+    } else {
+        let dist_expr = ''
+
+        if (distance_measure === 'Euclidean') {
+            // No need to calculate square root because
+            // we only need to compare which distance is the shortest
+            dist_expr = 'dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y'
+        } else {
+            dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
+        }
+        get_color = /* wgsl */ `
+            fn get_color(voronoi_pos: vec2f) -> vec4f {
+                let grid_pos = vec2i(floor(voronoi_pos));
+                
+                var min_dist = 10.0;
+                var min_dist_cell: vec2i = grid_pos;
+
+                for (var offset_x = -1; offset_x < 2; offset_x++) {
+                    for (var offset_y = -1; offset_y < 2; offset_y++) {
+                        let neighbor = grid_pos + vec2i(offset_x, offset_y);
+
+                        let hash = hash_table[
+                            hash_table[neighbor.x & 255] + (neighbor.y & 255)
+                        ];
+                        let dist_vec = vec2f(neighbor) + voronoi_points[hash] - voronoi_pos;
+                        let dist = ${dist_expr};
+
+                        if dist < min_dist {
+                            min_dist = dist;
+                            min_dist_cell = neighbor;
+                        }
+                    }
+                }
+                return get_cell_color(min_dist_cell);
+            }
+        `
+    }
+    const only_voronoi = distance_measure !== 'Pixels' ? '' : '//'
+    const only_color_grid = use_color_grid ? '' : '//'
+
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
         @group(1) @binding(2) var<uniform> voronoi_n_columns: f32;
-        @group(1) @binding(3) var<storage> voronoi_points: array<vec2f>;
-        ${color_grid} @group(1) @binding(4) var<storage> voronoi_color_grid: array<i32>;
+        ${only_voronoi} @group(1) @binding(3) var<storage> voronoi_points: array<vec2f>;
+        ${only_color_grid} @group(1) @binding(4) var<storage> voronoi_color_grid: array<i32>;
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
         
         ${findGridPosShader}
 
         ${conditional_declarations}
 
-        ${get_color_shader}
+        ${get_cell_color}
+
+        ${get_color}
 
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(@builtin(global_invocation_id) gid: vec3u) {
@@ -143,28 +184,9 @@ export function voronoiShader(
                 return;
             }
             ${voronoi_pos_code}
-            let grid_pos = vec2i(floor(voronoi_pos));
 
-            var min_dist = 10.0;
-            var min_dist_cell: vec2i = grid_pos;
+            let color = get_color(voronoi_pos);
 
-            for (var offset_x = -1; offset_x < 2; offset_x++) {
-                for (var offset_y = -1; offset_y < 2; offset_y++) {
-                    let neighbor = grid_pos + vec2i(offset_x, offset_y);
-
-                    let hash = hash_table[
-                        hash_table[neighbor.x & 255] + (neighbor.y & 255)
-                    ];
-                    let dist_vec = vec2f(neighbor) + voronoi_points[hash] - voronoi_pos;
-                    let dist = ${dist_expr};
-
-                    if dist < min_dist {
-                        min_dist = dist;
-                        min_dist_cell = neighbor;
-                    }
-                }
-            }
-            let color = get_color(min_dist_cell);
             textureStore(texture, texture_pos, color);
         }
     `
