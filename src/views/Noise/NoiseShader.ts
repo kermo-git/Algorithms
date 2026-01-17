@@ -1,3 +1,4 @@
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 import {
     interpolate_colors_shader,
@@ -27,7 +28,7 @@ export interface NoiseUniforms {
     w_coord?: number
     n_warp_octaves?: number
     warp_strength?: number
-    color_points?: Float32Array<ArrayBuffer>
+    color_points?: FloatArray
 }
 
 function enchancedNoiseShader({ algorithm, dimension, transform }: NoiseSetup) {

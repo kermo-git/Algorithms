@@ -7,6 +7,7 @@ import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
 
 import { parseHexColor, toHexColor } from '@/utils/Colors'
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 
 interface Props {
     /**
@@ -17,12 +18,12 @@ interface Props {
      * - RN, GN and BN are red, green and blue color components
      * - PN is a cutoff point that determines which noise values interpolate which colors.
      */
-    modelValue: Float32Array<ArrayBuffer>
+    modelValue: FloatArray
 }
 const props = defineProps<Props>()
 
 interface Emits {
-    (e: 'update:modelValue', value: Float32Array<ArrayBuffer>): void
+    (e: 'update:modelValue', value: FloatArray): void
 }
 const emit = defineEmits<Emits>()
 

@@ -1,5 +1,6 @@
 import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
 import {
+    type FloatArray,
     createFloatUniform,
     createIntUniform,
     createStorageBuffer,
@@ -152,11 +153,11 @@ export default class VoronoiScene implements Scene {
         updateFloatUniform(this.voronoi_n_columns, value, device)
     }
 
-    updateVoronoiColorGrid(value: Float32Array<ArrayBuffer>, device: GPUDevice) {
+    updateVoronoiColorGrid(value: FloatArray, device: GPUDevice) {
         updateStorageBuffer(this.voronoi_color_grid, value, device)
     }
 
-    updateVoronoiColors(value: Float32Array<ArrayBuffer>, device: GPUDevice) {
+    updateVoronoiColors(value: FloatArray, device: GPUDevice) {
         updateStorageBuffer(this.voronoi_colors, value, device)
         const new_n_colors = value.length / 4
 

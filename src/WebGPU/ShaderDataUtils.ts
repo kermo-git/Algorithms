@@ -1,4 +1,6 @@
-type BufferData = Float32Array<ArrayBuffer> | Int32Array<ArrayBuffer>
+export type FloatArray = Float32Array<ArrayBuffer>
+export type IntArray = Int32Array<ArrayBuffer>
+type BufferData = IntArray | FloatArray
 
 export function createFloatUniform(value: number, device: GPUDevice): GPUBuffer {
     const buffer = device.createBuffer({

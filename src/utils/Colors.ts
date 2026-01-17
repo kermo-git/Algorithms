@@ -1,3 +1,5 @@
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
+
 export interface Color {
     red: number
     green: number
@@ -46,7 +48,7 @@ export function lerpColors(t: number, a: Color, b: Color): Color {
     }
 }
 
-export function toShaderBuffer(hex_colors: string[]): Float32Array<ArrayBuffer> {
+export function toShaderBuffer(hex_colors: string[]): FloatArray {
     const result = new Float32Array(4 * hex_colors.length)
 
     for (let i = 0; i < hex_colors.length; i++) {

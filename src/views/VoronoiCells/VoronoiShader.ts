@@ -1,3 +1,4 @@
+import type { IntArray, FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 import type { NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 import {
@@ -20,8 +21,8 @@ export interface VoronoiSetup {
 
 export interface VoronoiUniforms {
     voronoi_n_columns?: number
-    voronoi_color_grid?: Float32Array<ArrayBuffer>
-    voronoi_colors?: Float32Array<ArrayBuffer>
+    voronoi_color_grid?: IntArray
+    voronoi_colors?: FloatArray
     noise_scale?: number
     noise_warp_strength?: number
     noise_n_octaves?: number
