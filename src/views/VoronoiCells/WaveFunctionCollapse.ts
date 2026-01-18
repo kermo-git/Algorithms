@@ -47,6 +47,36 @@ export class WFCRules {
         this.weights[tile] += increment
     }
 
+    collapse(superposition: number[]): number {
+        let total_weight = 0
+
+        superposition.forEach((tile) => {
+            total_weight += this.weights[tile]
+        })
+        const choice = Math.random() * total_weight
+        let decision_boundary = 0
+
+        for (let i = 0; i < superposition.length; i++) {
+            decision_boundary += this.weights[i]
+            if (choice < decision_boundary) {
+                return superposition[i]
+            }
+        }
+        return superposition[0]
+    }
+
+    entropy(superposition: number[]): number {
+        let sum_w = 0
+        let sum_w_log_w = 0
+
+        superposition.forEach((tile) => {
+            const w = this.weights[tile]
+            sum_w += w
+            sum_w_log_w += w * Math.log(w)
+        })
+        return Math.log(sum_w) - sum_w_log_w / sum_w
+    }
+
     set(tile: number, direction: Direction, neighbor_tile: number, value = true) {
         const n_tiles = this.weights.length
         const index = (tile * n_tiles + neighbor_tile) * 4 + direction
@@ -59,9 +89,13 @@ export class WFCRules {
         return this.rules[index]
     }
 
-    filterMatchingTiles(cell_A: number[], direction: Direction, cell_B: number[]): number[] {
-        return cell_B.filter((tile_B) =>
-            cell_A.every((tile_A) => this.get(tile_A, direction, tile_B)),
+    filterMatchingTiles(
+        superposition_A: number[],
+        direction: Direction,
+        superposition_B: number[],
+    ): number[] {
+        return superposition_B.filter((tile_B) =>
+            superposition_A.every((tile_A) => this.get(tile_A, direction, tile_B)),
         )
     }
 }
@@ -99,36 +133,6 @@ export function createWFCRules(sample_picture: Matrix<number>): WFCRules {
     })
 
     return rules
-}
-
-function shannon_entropy(weigths: number[], superposition: number[]): number {
-    let sum_w = 0
-    let sum_w_log_w = 0
-
-    superposition.forEach((tile) => {
-        const w = weigths[tile]
-        sum_w += w
-        sum_w_log_w += w * Math.log(w)
-    })
-    return Math.log(sum_w) - sum_w_log_w / sum_w
-}
-
-function collapse(weigths: number[], superposition: number[]): number {
-    let total_weight = 0
-
-    superposition.forEach((tile) => {
-        total_weight += weigths[tile]
-    })
-    const choice = Math.random() * total_weight
-    let decision_boundary = 0
-
-    for (let i = 0; i < superposition.length; i++) {
-        decision_boundary += weigths[i]
-        if (choice < decision_boundary) {
-            return superposition[i]
-        }
-    }
-    return superposition[0]
 }
 
 interface PropagationResult {
@@ -177,25 +181,25 @@ function propagateToGrid(start_pos: Vec2, size: Vec2, callback: PropagateToCellF
         }
         return nPossibilities > 0
     }
-    let failed = false
+    let success = true
 
-    while (queue.length > 1 && !failed) {
+    while (queue.length > 1 && success) {
         const current_pos = queue.splice(0, 1)[0]
 
         if (current_pos.y < max_row && current_pos.y >= start_pos.y) {
-            failed &&= process(current_pos, Direction.North, true)
+            success &&= process(current_pos, Direction.North, true)
         }
         if (current_pos.x < max_col && current_pos.x >= start_pos.x) {
-            failed &&= process(current_pos, Direction.East, current_pos.y == start_pos.y)
+            success &&= process(current_pos, Direction.East, current_pos.y == start_pos.y)
         }
         if (current_pos.y > 0 && current_pos.y <= start_pos.y) {
-            failed &&= process(current_pos, Direction.South, true)
+            success &&= process(current_pos, Direction.South, true)
         }
         if (current_pos.x > 0 && current_pos.x <= start_pos.x) {
-            failed &&= process(current_pos, Direction.West, current_pos.y == start_pos.y)
+            success &&= process(current_pos, Direction.West, current_pos.y == start_pos.y)
         }
     }
-    return { failed, min_entropy_pos }
+    return { success, min_entropy_pos }
 }
 
 export function generateWFCShaderImage(rules: WFCRules, n_rows: number, n_cols: number): IntArray {
