@@ -6,9 +6,13 @@ import type { IntArray } from '@/WebGPU/ShaderDataUtils'
 
 enum Direction {
     North = 0,
-    East = 1,
-    South = 2,
-    West = 3,
+    NorthEast = 1,
+    East = 2,
+    SouthEast = 3,
+    South = 4,
+    SouthWest = 5,
+    West = 6,
+    NorthWest = 7,
 }
 
 interface Vec2 {
@@ -16,17 +20,32 @@ interface Vec2 {
     y: number
 }
 
+function vec2(x: number, y: number): Vec2 {
+    return { x, y }
+}
+
 const DirectionVectors = [
     { x: 0, y: 1 }, // North
+    { x: 1, y: 1 }, // NorthEast
     { x: 1, y: 0 }, // East
+    { x: 1, y: -1 }, // SouthEast
     { x: 0, y: -1 }, // South
+    { x: -1, y: -1 }, // SouthWest
     { x: -1, y: 0 }, // West
+    { x: -1, y: 1 }, // NorthWest
 ]
 
 function add(vec_a: Vec2, vec_b: Vec2): Vec2 {
     return {
         x: vec_a.x + vec_b.x,
         y: vec_a.y + vec_b.y,
+    }
+}
+
+function subtract(vec_a: Vec2, vec_b: Vec2): Vec2 {
+    return {
+        x: vec_a.x - vec_b.x,
+        y: vec_a.y - vec_b.y,
     }
 }
 
@@ -40,7 +59,7 @@ export class WFCRules {
 
     constructor(n_tiles: number) {
         this.weights = new Array(n_tiles).fill(0)
-        this.rules = new Array(n_tiles * n_tiles * 4).fill(false)
+        this.rules = new Array(n_tiles * n_tiles * 8).fill(false)
     }
 
     addWeight(tile: number, increment: number) {
@@ -79,7 +98,7 @@ export class WFCRules {
 
     set(tile: number, direction: Direction, neighbor_tile: number, value = true) {
         const n_tiles = this.weights.length
-        const index = (tile * n_tiles + neighbor_tile) * 4 + direction
+        const index = (tile * n_tiles + neighbor_tile) * 8 + direction
         this.rules[index] = value
     }
 
@@ -122,83 +141,110 @@ export function createWFCRules(sample_picture: Matrix<number>): WFCRules {
         const west_col = col > 0 ? col - 1 : max_col
 
         const north_tile = sample_picture.get(north_row, col)
+        const north_east_tile = sample_picture.get(north_row, east_col)
         const east_tile = sample_picture.get(row, east_col)
+        const south_east_tile = sample_picture.get(south_row, east_col)
         const south_tile = sample_picture.get(south_row, col)
+        const south_west_tile = sample_picture.get(south_row, west_col)
         const west_tile = sample_picture.get(row, west_col)
+        const north_west_tile = sample_picture.get(north_row, west_col)
 
         rules.set(tile, Direction.North, north_tile)
+        rules.set(tile, Direction.NorthEast, north_east_tile)
         rules.set(tile, Direction.East, east_tile)
+        rules.set(tile, Direction.SouthEast, south_east_tile)
         rules.set(tile, Direction.South, south_tile)
+        rules.set(tile, Direction.SouthWest, south_west_tile)
         rules.set(tile, Direction.West, west_tile)
+        rules.set(tile, Direction.NorthWest, north_west_tile)
     })
 
     return rules
 }
 
-interface PropagationResult {
-    entropy: number
-    nPossibilities: number
-}
+function propagateToGrid(wave_function: Matrix<number[]>, start_pos: Vec2, rules: WFCRules) {
+    const tiles = wave_function.get(start_pos.x, start_pos.y)
+    wave_function.set(start_pos.x, start_pos.y, [rules.collapse(tiles)])
 
-/**
- * This function signature is part of wave function collapse algorithm and it propagates consequences from grid cell A to grid cell B. In other words, it might remove some tiles from B's possibilities if they conflict with A's possibilities according to adjacency rules.
- *
- * @param cell_A The position of cell A.
- * @param direction The direction of cell B relative to A.
- * @param cell_B The position of cell A.
- *
- * @returns An object of type {@link PropagationResult} that contains B's `entropy` and number of remaining possibilities (`nPossibilities`).
- */
-type PropagateToCellFn = (cell_A: Vec2, direction: Direction, cell_B: Vec2) => PropagationResult
+    const n_rows = wave_function.n_rows
+    const n_cols = wave_function.n_cols
 
-/**
- * This function is part of the wave function collapse algorithm. It propagates the consequences of "collapsing" one cell all over the grid.
- *
- * @param start_pos The position of the grid cell from which propagation starts
- * @param size A pair of integers for number of rows and columns in the grid.
- * @param callback A callback function that propagates consequences from one grid cell to another. See {@link PropagateToCellFn} for details.
- */
-function propagateToGrid(start_pos: Vec2, size: Vec2, callback: PropagateToCellFn) {
-    const max_row = size.x - 1
-    const max_col = size.y - 1
+    function mask(x: number, y: number): Vec2 {
+        return {
+            x: x % n_cols,
+            y: y % n_rows,
+        }
+    }
 
-    const queue = [start_pos]
     let min_entropy = Number.MAX_VALUE
     let min_entropy_pos = start_pos
-
-    function process(current_pos: Vec2, direction: Direction, add_to_stack: boolean): boolean {
-        const neighbor_pos = step(current_pos, direction)
-        const { entropy, nPossibilities } = callback(current_pos, direction, neighbor_pos)
-
-        if (nPossibilities > 1) {
-            if (entropy < min_entropy) {
-                min_entropy = entropy
-                min_entropy_pos = neighbor_pos
-            }
-            if (add_to_stack) {
-                queue.push(neighbor_pos)
-            }
-        }
-        return nPossibilities > 0
-    }
     let success = true
 
-    while (queue.length > 1 && success) {
-        const current_pos = queue.splice(0, 1)[0]
+    function process(x: number, y: number, directions: Direction[]) {
+        const pos = { x, y }
+        const m_pos = mask(x, y)
 
-        if (current_pos.y < max_row && current_pos.y >= start_pos.y) {
-            success &&= process(current_pos, Direction.North, true)
+        for (const direction of directions) {
+            const neighbor = step(pos, direction)
+            const masked_neighbor = mask(neighbor.x, neighbor.y)
+
+            const neighbor_tiles = wave_function.get(masked_neighbor.x, masked_neighbor.y)
+            const tiles = wave_function.get(m_pos.x, m_pos.y)
+
+            const filtered_tiles = rules.filterMatchingTiles(neighbor_tiles, direction, tiles)
+            wave_function.set(m_pos.x, m_pos.y, filtered_tiles)
         }
-        if (current_pos.x < max_col && current_pos.x >= start_pos.x) {
-            success &&= process(current_pos, Direction.East, current_pos.y == start_pos.y)
+        const tiles = wave_function.get(m_pos.x, m_pos.y)
+        const entropy = rules.entropy(tiles)
+
+        if (entropy < min_entropy) {
+            min_entropy = entropy
+            min_entropy_pos = m_pos
         }
-        if (current_pos.y > 0 && current_pos.y <= start_pos.y) {
-            success &&= process(current_pos, Direction.South, true)
-        }
-        if (current_pos.x > 0 && current_pos.x <= start_pos.x) {
-            success &&= process(current_pos, Direction.West, current_pos.y == start_pos.y)
-        }
+        success = success && tiles.length > 0
     }
+
+    const NORTH_SOUTH = [Direction.North, Direction.South]
+
+    const EAST_SIDE = [Direction.NorthEast, Direction.East, Direction.SouthEast]
+    const WEST_SIDE = [Direction.SouthWest, Direction.West, Direction.NorthWest]
+    const BOTH_SIDES = EAST_SIDE.concat(WEST_SIDE)
+    const ALL_SIDES = BOTH_SIDES.concat(NORTH_SOUTH)
+
+    const L_SHAPE = EAST_SIDE.concat([Direction.South])
+    const C_SHAPE = EAST_SIDE.concat(NORTH_SOUTH)
+    const U_SHAPE = BOTH_SIDES.concat([Direction.South])
+
+    // | # # # S # # # # # | # # # S # # # # # |
+
+    const y_start = start_pos.y + 1
+    const y_end = start_pos.y + n_rows - 2
+    const y_connect = y_end + 1
+
+    const x_start = start_pos.x + 1
+    const x_end = start_pos.x + n_cols - 2
+    const x_connect = x_end + 1
+
+    for (let y = y_start; y <= y_end; y++) {
+        process(start_pos.x, y, [Direction.South])
+    }
+    process(start_pos.x, y_connect, NORTH_SOUTH)
+
+    for (let x = x_start; x <= x_end; x++) {
+        process(x, start_pos.y, EAST_SIDE)
+
+        for (let y = y_start; y <= y_end; y++) {
+            process(x, y, L_SHAPE)
+        }
+        process(x, y_connect, C_SHAPE)
+    }
+    process(x_connect, start_pos.y, BOTH_SIDES)
+
+    for (let y = y_start; y <= y_end; y++) {
+        process(x_connect, y, U_SHAPE)
+    }
+    process(x_connect, y_connect, ALL_SIDES)
+
     return { success, min_entropy_pos }
 }
 
