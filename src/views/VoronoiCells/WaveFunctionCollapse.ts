@@ -24,7 +24,7 @@ function vec2(x: number, y: number): Vec2 {
     return { x, y }
 }
 
-const DirectionVectors = [
+const direction_vectors = [
     { x: 0, y: 1 }, // North
     { x: 1, y: 1 }, // NorthEast
     { x: 1, y: 0 }, // East
@@ -50,12 +50,12 @@ function subtract(vec_a: Vec2, vec_b: Vec2): Vec2 {
 }
 
 function step(pos: Vec2, direction: Direction): Vec2 {
-    return add(pos, DirectionVectors[direction])
+    return add(pos, direction_vectors[direction])
 }
 
 export class WFCRules {
-    weights: number[] = []
-    rules: boolean[] = []
+    weights: number[]
+    rules: boolean[]
 
     constructor(n_tiles: number) {
         this.weights = new Array(n_tiles).fill(0)
@@ -98,13 +98,13 @@ export class WFCRules {
 
     set(tile: number, direction: Direction, neighbor_tile: number, value = true) {
         const n_tiles = this.weights.length
-        const index = (tile * n_tiles + neighbor_tile) * 8 + direction
+        const index = (tile * 8 + direction) * n_tiles + neighbor_tile
         this.rules[index] = value
     }
 
     get(tile: number, direction: Direction, neighbor_tile: number): boolean {
         const n_tiles = this.weights.length
-        const index = (tile * n_tiles + neighbor_tile) * 4 + direction
+        const index = (tile * 8 + direction) * n_tiles + neighbor_tile
         return this.rules[index]
     }
 
@@ -113,9 +113,56 @@ export class WFCRules {
         direction: Direction,
         superposition_B: number[],
     ): number[] {
-        return superposition_B.filter((tile_B) =>
-            superposition_A.every((tile_A) => this.get(tile_A, direction, tile_B)),
+        return superposition_A.filter((tile_A) =>
+            superposition_B.every((tile_B) => this.get(tile_B, direction, tile_A)),
         )
+    }
+}
+
+export class WFCState {
+    rules: WFCRules
+    n_rows: number
+    n_cols: number
+    n_tiles: number
+    wave_function: Matrix<number[]>
+
+    constructor(rules: WFCRules, n_rows: number, n_cols: number) {
+        this.rules = rules
+        this.n_rows = n_rows
+        this.n_cols = n_cols
+        this.n_tiles = rules.weights.length
+
+        const superposition: number[] = []
+        for (let i = 0; i < this.n_tiles; i++) {
+            superposition.push(i)
+        }
+        this.wave_function = new Matrix<number[]>(n_rows, n_cols, superposition)
+    }
+
+    collapse(x: number, y: number) {
+        const tiles = this.wave_function.get(x, y)
+        this.wave_function.set(x, y, [this.rules.collapse(tiles)])
+    }
+
+    propagate(to_x: number, to_y: number, from: Direction[]) {
+        const mask_x = to_x % this.n_cols
+        const mask_y = to_y % this.n_rows
+        let tiles = this.wave_function.get(mask_x, mask_y)
+
+        for (const direction of from) {
+            const step = direction_vectors[direction]
+            const neighbor_x = (to_x + step.x) % this.n_cols
+            const neighbor_y = (to_y + step.y) % this.n_rows
+
+            const neighbor_tiles = this.wave_function.get(neighbor_x, neighbor_y)
+            tiles = this.rules.filterMatchingTiles(tiles, direction, neighbor_tiles)
+        }
+        this.wave_function.set(mask_x, mask_y, tiles)
+
+        return {
+            entropy: this.rules.entropy(tiles),
+            success: tiles.length > 0,
+        }
     }
 }
 
@@ -162,46 +209,26 @@ export function createWFCRules(sample_picture: Matrix<number>): WFCRules {
     return rules
 }
 
-function propagateToGrid(wave_function: Matrix<number[]>, start_pos: Vec2, rules: WFCRules) {
-    const tiles = wave_function.get(start_pos.x, start_pos.y)
-    wave_function.set(start_pos.x, start_pos.y, [rules.collapse(tiles)])
-
-    const n_rows = wave_function.n_rows
-    const n_cols = wave_function.n_cols
-
-    function mask(x: number, y: number): Vec2 {
-        return {
-            x: x % n_cols,
-            y: y % n_rows,
-        }
-    }
+function propagateToGrid(state: WFCState, start_pos: Vec2) {
+    state.collapse(start_pos.x, start_pos.y)
+    const n_rows = state.n_rows
+    const n_cols = state.n_cols
 
     let min_entropy = Number.MAX_VALUE
     let min_entropy_pos = start_pos
-    let success = true
+    let all_success = true
 
     function process(x: number, y: number, directions: Direction[]) {
-        const pos = { x, y }
-        const m_pos = mask(x, y)
-
-        for (const direction of directions) {
-            const neighbor = step(pos, direction)
-            const masked_neighbor = mask(neighbor.x, neighbor.y)
-
-            const neighbor_tiles = wave_function.get(masked_neighbor.x, masked_neighbor.y)
-            const tiles = wave_function.get(m_pos.x, m_pos.y)
-
-            const filtered_tiles = rules.filterMatchingTiles(neighbor_tiles, direction, tiles)
-            wave_function.set(m_pos.x, m_pos.y, filtered_tiles)
-        }
-        const tiles = wave_function.get(m_pos.x, m_pos.y)
-        const entropy = rules.entropy(tiles)
+        const { entropy, success } = state.propagate(x, y, directions)
 
         if (entropy < min_entropy) {
             min_entropy = entropy
-            min_entropy_pos = m_pos
+            min_entropy_pos = {
+                x: x % n_cols,
+                y: y % n_rows,
+            }
         }
-        success = success && tiles.length > 0
+        all_success &&= success
     }
 
     const NORTH_SOUTH = [Direction.North, Direction.South]
@@ -245,7 +272,7 @@ function propagateToGrid(wave_function: Matrix<number[]>, start_pos: Vec2, rules
     }
     process(x_connect, y_connect, ALL_SIDES)
 
-    return { success, min_entropy_pos }
+    return { success: all_success, min_entropy_pos }
 }
 
 export function generateWFCShaderImage(rules: WFCRules, n_rows: number, n_cols: number): IntArray {
