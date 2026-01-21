@@ -114,10 +114,7 @@ function noisePosCode(dimension: NoiseDimension) {
     }
 }
 
-export default function noiseSliceShader(
-    setup: NoiseSetup,
-    color_format: GPUTextureFormat,
-): string {
+export default function noiseShader(setup: NoiseSetup, color_format: GPUTextureFormat): string {
     const { dimension, transform } = setup
     const not_2D = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'

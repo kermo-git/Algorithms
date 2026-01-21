@@ -36,10 +36,11 @@ export function createStorageBuffer(
     data: BufferData,
     device: GPUDevice,
     size: number = 0,
+    usage: GPUFlagsConstant = GPUBufferUsage.STORAGE,
 ): GPUBuffer {
     const buffer = device.createBuffer({
         size: size || data.byteLength,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        usage: usage | GPUBufferUsage.COPY_DST,
     })
     device.queue.writeBuffer(buffer, 0, data, 0, data.length)
     return buffer
