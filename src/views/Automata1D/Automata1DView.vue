@@ -51,7 +51,7 @@ const ruleNumberLabel = computed(() => {
 })
 
 const matrix = computed(() => {
-    const matrix = new Matrix(grid_size.value, grid_size.value, 0)
+    const matrix = new Matrix(grid_size.value, grid_size.value, () => 0)
 
     if (numStates.value > 2) {
         generatePattern(matrix, 'Random', rule.value)

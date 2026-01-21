@@ -3,10 +3,23 @@ export class Matrix<T = number> {
     n_rows: number
     n_cols: number
 
-    constructor(n_rows: number, n_cols: number, initial_value: T) {
+    constructor(n_rows: number, n_cols: number, fill: (row: number, col: number) => T) {
         this.n_rows = n_rows
         this.n_cols = n_cols
-        this.data = new Array(n_rows * n_cols).fill(initial_value)
+        this.data = new Array(n_rows * n_cols)
+
+        let row = 0
+        let col = 0
+        const size = this.data.length
+
+        for (let i = 0; i < size; i++) {
+            this.data[i] = fill(row, col)
+            col++
+            if (col == this.n_cols) {
+                row++
+                col = 0
+            }
+        }
     }
 
     get(row: number, col: number): T {
@@ -68,12 +81,5 @@ export class Matrix<T = number> {
 export function createMatrix<T>(data: T[][]): Matrix<T> {
     const n_rows = data.length
     const n_cols = data[0].length
-    const matrix = new Matrix<T>(n_rows, n_cols, data[0][0])
-
-    data.forEach((row, i) => {
-        row.forEach((value, j) => {
-            matrix.set(i, j, value)
-        })
-    })
-    return matrix
+    return new Matrix<T>(n_rows, n_cols, (r, c) => data[r][c])
 }

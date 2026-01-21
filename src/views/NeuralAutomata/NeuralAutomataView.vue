@@ -42,7 +42,7 @@ const weightSign = ref(
 const kernel_size = ref(7)
 
 function createWeightMatrix(signs: Matrix<sign>) {
-    const weights = new Matrix(signs.n_rows, signs.n_rows, 0)
+    const weights = new Matrix(signs.n_rows, signs.n_rows, () => 0)
     let numNegatives = 0
     let numPositives = 0
 
@@ -127,12 +127,12 @@ function onSignCellClick(event: Event) {
 const generation = ref(0)
 const current_gen = ref(
     (() => {
-        const result = new Matrix(grid_size.value, grid_size.value, 0)
+        const result = new Matrix(grid_size.value, grid_size.value, () => 0)
         randomize(result)
         return result
     })(),
 )
-const next_gen = ref(new Matrix(grid_size.value, grid_size.value, 0))
+const next_gen = ref(new Matrix(grid_size.value, grid_size.value, () => 0))
 
 const activationChoice = ref('Discrete')
 
@@ -156,8 +156,8 @@ function onStepClick() {
 }
 
 function reset() {
-    current_gen.value = new Matrix(grid_size.value, grid_size.value, 0)
-    next_gen.value = new Matrix(grid_size.value, grid_size.value, 0)
+    current_gen.value = new Matrix(grid_size.value, grid_size.value, () => 0)
+    next_gen.value = new Matrix(grid_size.value, grid_size.value, () => 0)
     randomize(current_gen.value)
     generation.value = 0
 }
@@ -204,8 +204,8 @@ watch([current_gen, colors], ([new_current_gen, new_colors]) => {
                 @update:model-value="
                     (new_value: number) => {
                         kernel_size = new_value
-                        weightSign = new Matrix<sign>(kernel_size, kernel_size, '-')
-                        weights = new Matrix(kernel_size, kernel_size, 0)
+                        weightSign = new Matrix<sign>(kernel_size, kernel_size, () => '-')
+                        weights = new Matrix(kernel_size, kernel_size, () => 0)
                         reset()
                     }
                 "
