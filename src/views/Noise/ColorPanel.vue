@@ -49,12 +49,9 @@ const color_info = computed(() => {
         })
 })
 
-function onColorInput(ev: Event) {
-    const element = ev.currentTarget as HTMLInputElement
-    const data = element.dataset
-    const offset = 4 * Number(data.index)
-
-    const color = parseHexColor(element.value)
+function updateColor(index: number, new_color: string) {
+    const offset = 4 * index
+    const color = parseHexColor(new_color)
 
     const color_points = props.modelValue
     color_points[offset] = color.red / 255
@@ -137,7 +134,14 @@ function onDeleteClick(ev: Event) {
 <template>
     <template v-for="(info, i) in color_info" :key="i">
         <div class="color-buttons">
-            <ColorInput :value="info.hexColor" :data-index="i" @input="onColorInput" />
+            <ColorInput
+                :model-value="info.hexColor"
+                @update:model-value="
+                    (new_color?: string) => {
+                        updateColor(i, new_color || '#000000')
+                    }
+                "
+            />
             <p class="color-point-value">{{ info.point.toFixed(2) }}</p>
             <PanelButton
                 v-if="i > 0"

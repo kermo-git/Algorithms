@@ -65,13 +65,13 @@ function onSwapClick(ev: Event) {
     <PanelSection>
         <template v-for="(color, i) in props.modelValue" :key="i">
             <ColorInput
-                :value="color"
-                @input="
-                    (ev: Event) => {
+                :model-value="color"
+                @update:model-value="
+                    (new_color?: string) => {
+                        const color_value = new_color || '#000000'
                         const before = props.modelValue.slice(0, i)
-                        const new_color = (ev.target as HTMLInputElement).value
                         const after = props.modelValue.slice(i + 1)
-                        const new_palette = before.concat([new_color]).concat(after)
+                        const new_palette = before.concat([color_value]).concat(after)
                         emit('update:modelValue', new_palette)
                     }
                 "

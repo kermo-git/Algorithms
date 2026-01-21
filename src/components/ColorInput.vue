@@ -1,5 +1,8 @@
+<script setup lang="ts">
+const value = defineModel<string>()
+</script>
 <template>
-    <input type="color" :style="`background-color: ${$attrs['value']}`" />
+    <input type="color" :style="`background-color: ${value}`" v-model="value" />
 </template>
 
 <style scoped>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { mdiPlay, mdiDice5, mdiPlus, mdiMinus, mdiNumeric0 } from '@mdi/js'
+import { mdiPlay, mdiDice5, mdiPlus, mdiMinus, mdiNumeric0, mdiReload } from '@mdi/js'
 import SvgIcon from '@jamescoyle/vue-icon'
 
 import ColorPalette from '@/components/ColorPalette.vue'
@@ -20,109 +20,50 @@ import {
     invertedGaussian,
     neuralAutomatonStep,
 } from './NeuralAutomaton'
+import MenuItem from '@/components/MenuItem.vue'
+import ColorInput from '@/components/ColorInput.vue'
 
 const grid_size = ref(64)
-const kernelDesignMethod = ref('Toggle -/0/+')
-const colors = ref(['#323232', '#00CE00', '#DB04AA', '#0144DB'])
-
-type sign = '-' | '0' | '+'
-
-const weightSign = ref(
-    createMatrix<sign>([
-        ['-', '-', '-', '-', '-', '-', '-'],
-        ['-', '-', '-', '-', '-', '-', '-'],
-        ['-', '-', '+', '+', '+', '-', '-'],
-        ['-', '-', '+', '+', '+', '-', '-'],
-        ['-', '-', '+', '+', '+', '-', '-'],
-        ['-', '-', '-', '-', '-', '-', '-'],
-        ['-', '-', '-', '-', '-', '-', '-'],
-    ]),
-)
+const color_1 = ref('#323232')
+const color_2 = ref('#00CE00')
 
 const kernel_size = ref(7)
 
-function createWeightMatrix(signs: Matrix<sign>) {
-    const weights = new Matrix(signs.n_rows, signs.n_rows, () => 0)
+function normalizeKernel(weights: Matrix<number>) {
     let numNegatives = 0
     let numPositives = 0
 
-    signs.foreach((row, col, value) => {
-        switch (value) {
-            case '-':
-                numNegatives++
-                break
-            case '+':
-                numPositives++
-                weights.set(row, col, 1)
-                break
+    weights.foreach((row, col, value) => {
+        if (value < 0) {
+            numNegatives++
+        } else if (value > 0) {
+            numPositives++
+            weights.set(row, col, 1)
         }
     })
-    const negativeWeight = -numPositives / numNegatives
+    const negativeWeight = parseFloat((-numPositives / numNegatives).toFixed(2))
 
-    signs.foreach((row, col, value) => {
-        if (value === '-') {
+    weights.foreach((row, col, value) => {
+        if (value < 0) {
             weights.set(row, col, negativeWeight)
         }
     })
     return weights
 }
 
-const weights = ref(createWeightMatrix(weightSign.value))
-
-function getWeightStyle(row: number, col: number) {
-    const value = weightSign.value.get(row, col)
-
-    switch (value) {
-        case '-':
-            return {
-                backgroundColor: colors.value[0],
-                color: colors.value[1],
-            }
-        case '+':
-            return {
-                backgroundColor: colors.value[1],
-                color: colors.value[0],
-            }
-        default:
-            return {
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)',
-            }
-    }
-}
-
-function getWeightMdiPath(row: number, col: number) {
-    const value = weightSign.value.get(row, col)
-
-    switch (value) {
-        case '-':
-            return mdiMinus
-        case '+':
-            return mdiPlus
-        default:
-            return mdiNumeric0
-    }
-}
-
-function onSignCellClick(event: Event) {
-    const data = (event.currentTarget as HTMLElement).dataset
-    const row = Number(data.row)
-    const col = Number(data.col)
-    const value = weightSign.value.get(row, col)
-
-    switch (value) {
-        case '+':
-            weightSign.value.set(row, col, '-')
-            break
-        case '0':
-            weightSign.value.set(row, col, '+')
-            break
-        default:
-            weightSign.value.set(row, col, '0')
-            break
-    }
-    weights.value = createWeightMatrix(weightSign.value)
-}
+const kernel = ref(
+    normalizeKernel(
+        createMatrix([
+            [-1, -1, -1, -1, -1, -1, -1],
+            [-1, -1, -1, -1, -1, -1, -1],
+            [-1, -1, 1, 1, 1, -1, -1],
+            [-1, -1, 1, 1, 1, -1, -1],
+            [-1, -1, 1, 1, 1, -1, -1],
+            [-1, -1, -1, -1, -1, -1, -1],
+            [-1, -1, -1, -1, -1, -1, -1],
+        ]),
+    ),
+)
 
 const generation = ref(0)
 const current_gen = ref(
@@ -140,15 +81,13 @@ const activationFunction = computed(() => {
     switch (activationChoice.value) {
         case 'Discrete':
             return discrete
-        case 'Sigmoid':
-            return sigmoid
         default:
-            return invertedGaussian
+            return sigmoid
     }
 })
 
 function onStepClick() {
-    neuralAutomatonStep(current_gen.value, next_gen.value, weights.value, activationFunction.value)
+    neuralAutomatonStep(current_gen.value, next_gen.value, kernel.value, activationFunction.value)
     const temp = current_gen.value
     current_gen.value = next_gen.value
     next_gen.value = temp
@@ -168,15 +107,15 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function onCanvasReady(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    drawDiscreteColors(canvas, current_gen.value, colors.value)
+    drawDiscreteColors(canvas, current_gen.value, [color_1.value, color_2.value])
 }
 
-watch([current_gen, colors], ([new_current_gen, new_colors]) => {
+watch([current_gen, color_1, color_2], ([new_current_gen, new_color_1, new_color_2]) => {
     if (canvasRef.value) {
         if (activationChoice.value === 'Discrete') {
-            drawDiscreteColors(canvasRef.value, new_current_gen, new_colors)
+            drawDiscreteColors(canvasRef.value, new_current_gen, [new_color_1, new_color_2])
         } else {
-            drawContinuousColors(canvasRef.value, new_current_gen, new_colors)
+            drawContinuousColors(canvasRef.value, new_current_gen, [new_color_1, new_color_2])
         }
     }
 })
@@ -184,7 +123,7 @@ watch([current_gen, colors], ([new_current_gen, new_colors]) => {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Style', 'Run']"
+        :tab-captions="['Configuration', 'Run']"
         v-model="activeTab"
         @canvas-ready="onCanvasReady"
     >
@@ -192,7 +131,7 @@ watch([current_gen, colors], ([new_current_gen, new_colors]) => {
             <TextSingleSelect
                 text="Activation"
                 name="activation"
-                :options="['Discrete', 'Sigmoid', 'Inverted Gaussian']"
+                :options="['Discrete', 'Sigmoid']"
                 v-model="activationChoice"
             />
 
@@ -204,55 +143,31 @@ watch([current_gen, colors], ([new_current_gen, new_colors]) => {
                 @update:model-value="
                     (new_value: number) => {
                         kernel_size = new_value
-                        weightSign = new Matrix<sign>(kernel_size, kernel_size, () => '-')
-                        weights = new Matrix(kernel_size, kernel_size, () => 0)
+                        kernel = new Matrix(kernel_size, kernel_size, () => 0)
                         reset()
                     }
                 "
             />
 
-            <TextSingleSelect
-                text="Kernel design method"
-                name="kernel-design-method"
-                :options="['Toggle -/0/+', 'Direct input']"
-                v-model="kernelDesignMethod"
-                @update:model-value="
-                    (new_value: string) => {
-                        if (new_value == 'Toggle -/0/+') {
-                            weights = createWeightMatrix(weightSign)
+            <PanelSection>
+                <PanelButton
+                    text="Normalize kernel"
+                    @click="
+                        () => {
+                            kernel = normalizeKernel(kernel)
                         }
-                    }
-                "
-            />
-
-            <div
-                v-if="kernelDesignMethod === 'Toggle -/0/+'"
-                class="matrix"
-                :style="{
-                    gridTemplateColumns: `repeat(${kernel_size}, 1fr)`,
-                }"
-            >
-                <template v-for="row in kernel_size" :key="row">
-                    <div
-                        v-for="col in kernel_size"
-                        :key="col"
-                        :style="getWeightStyle(row - 1, col - 1)"
-                        class="cell"
-                        :data-row="row - 1"
-                        :data-col="col - 1"
-                        @click="onSignCellClick"
-                    >
-                        <svg-icon type="mdi" :path="getWeightMdiPath(row - 1, col - 1)" />
-                    </div>
-                </template>
-            </div>
-            <MatrixEditor v-else v-model="weights" />
+                    "
+                />
+            </PanelSection>
+            <MatrixEditor v-model="kernel" />
         </template>
-        <template v-else-if="activeTab === 'Style'">
-            <p>Colors</p>
-
-            <ColorPalette v-model="colors" />
-
+        <template v-else>
+            <PanelSection>
+                <PanelButton :mdi-path="mdiReload" text="Reset" @click="reset" />
+                <ColorInput v-model="color_1" />
+                <ColorInput v-model="color_2" />
+                <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
+            </PanelSection>
             <NumberSingleSelect
                 text="Grid size"
                 name="grid-size"
@@ -265,12 +180,88 @@ watch([current_gen, colors], ([new_current_gen, new_colors]) => {
                     }
                 "
             />
-        </template>
-        <template v-else>
-            <PanelSection>
-                <PanelButton :mdi-path="mdiDice5" text="Randomize" @click="reset" />
-                <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
-            </PanelSection>
+            <MenuItem
+                text="Random curved lines"
+                @click="
+                    () => {
+                        color_1 = '#323232'
+                        color_2 = '#FECB3E'
+
+                        let N = -1
+                        let P = 1
+
+                        kernel_size = 5
+                        kernel = normalizeKernel(
+                            createMatrix([
+                                [0, 0, N, 0, 0],
+                                [0, N, P, N, 0],
+                                [N, P, P, P, N],
+                                [0, N, P, N, 0],
+                                [0, 0, N, 0, 0],
+                            ]),
+                        )
+                        reset()
+                    }
+                "
+            />
+            <MenuItem
+                text="Maze"
+                @click="
+                    () => {
+                        color_1 = '#59F9CE'
+                        color_2 = '#4842FF'
+
+                        let N = -1
+                        let P = 1
+
+                        kernel_size = 11
+                        kernel = normalizeKernel(
+                            createMatrix([
+                                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+                                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                                [0, N, N, N, N, N, N, N, N, N, 0],
+                                [0, N, N, N, P, P, P, N, N, N, 0],
+                                [N, N, N, P, P, P, P, P, N, N, N],
+                                [N, N, N, P, P, P, P, P, N, N, N],
+                                [N, N, N, P, P, P, P, P, N, N, N],
+                                [0, N, N, N, P, P, P, N, N, N, 0],
+                                [0, N, N, N, N, N, N, N, N, N, 0],
+                                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+                            ]),
+                        )
+                        reset()
+                    }
+                "
+            />
+            <MenuItem
+                text="Zebra"
+                @click="
+                    () => {
+                        color_1 = '#000000'
+                        color_2 = '#EBEBEB'
+
+                        let N = -1
+                        let P = 1
+
+                        kernel_size = 9
+                        kernel = normalizeKernel(
+                            createMatrix([
+                                [0, 0, N, N, P, N, N, 0, 0],
+                                [0, N, N, P, P, P, N, N, 0],
+                                [N, N, N, P, P, P, N, N, N],
+                                [N, N, P, P, P, P, P, N, N],
+                                [N, N, P, P, P, P, P, N, N],
+                                [N, N, P, P, P, P, P, N, N],
+                                [N, N, N, P, P, P, N, N, N],
+                                [0, N, N, P, P, P, N, N, 0],
+                                [0, 0, N, N, P, N, N, 0, 0],
+                            ]),
+                        )
+                        reset()
+                    }
+                "
+            />
         </template>
     </SidePanelCanvas>
 </template>
