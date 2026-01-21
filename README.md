@@ -31,12 +31,17 @@ Watch this video:
 
 https://www.youtube.com/watch?v=3H79ZcBuw4M
 
-### Noise
+### Procedural noise
 
-Read this:
+This section uses various algorithms to generate random patterns:
 
-https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
+* [Value noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/introduction.html)
+* [Perlin noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/perlin-noise-part-2/perlin-noise.html)
+* [Simplex noise](https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf)
+* [Cubic noise](https://jobtalle.com/cubic_noise.html)
+* [Worley noise](https://en.wikipedia.org/wiki/Worley_noise)
 
-And also this:
-
-https://en.wikipedia.org/wiki/Worley_noise
+The result of these basic noises can be tweaked in a few different ways:
+* [Multiple octaves](https://iquilezles.org/articles/fbm/)
+* [Domain warping](https://iquilezles.org/articles/warp/)
+* [Domain rotation](https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html)
