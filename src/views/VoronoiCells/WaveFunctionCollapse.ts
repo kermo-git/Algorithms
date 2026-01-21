@@ -2,7 +2,6 @@
 // https://github.com/robert/wavefunction-collapse/tree/master
 
 import { Matrix } from '@/utils/Matrix'
-import type { IntArray } from '@/WebGPU/ShaderDataUtils'
 
 enum Direction {
     North = 0,
@@ -31,7 +30,7 @@ const direction_vectors = [
     { x: -1, y: 1 }, // NorthWest
 ]
 
-export class WFCRules {
+class Rules {
     weights: number[]
     rules: boolean[]
 
@@ -97,8 +96,8 @@ export class WFCRules {
     }
 }
 
-export class WFCState {
-    rules: WFCRules
+class State {
+    rules: Rules
     n_rows: number
     n_cols: number
     wave_function: Matrix<number[]>
@@ -106,7 +105,7 @@ export class WFCState {
     n_collapsed = 0
     is_success = true
 
-    constructor(rules: WFCRules, n_rows: number, n_cols: number) {
+    constructor(rules: Rules, n_rows: number, n_cols: number) {
         this.rules = rules
         this.n_rows = n_rows
         this.n_cols = n_cols
@@ -159,18 +158,9 @@ export class WFCState {
     isFinished() {
         return !this.is_success || this.n_collapsed === this.n_rows * this.n_cols
     }
-
-    toArray(): IntArray {
-        const result = new Int32Array()
-
-        this.wave_function.foreach((row, col, superposition) => {
-            result[row * this.n_cols + col] = superposition.length > 0 ? superposition[0] : 0
-        })
-        return result
-    }
 }
 
-export function learnWFCRules(sample_picture: Matrix<number>): WFCRules {
+function learn(sample_picture: Matrix<number>): Rules {
     let n_tiles = 0
 
     sample_picture.foreach((row, col, tile) => {
@@ -178,7 +168,7 @@ export function learnWFCRules(sample_picture: Matrix<number>): WFCRules {
             n_tiles = tile
         }
     })
-    const rules = new WFCRules(n_tiles)
+    const rules = new Rules(n_tiles)
 
     const max_row = sample_picture.n_rows - 1
     const max_col = sample_picture.n_cols - 1
@@ -213,7 +203,7 @@ export function learnWFCRules(sample_picture: Matrix<number>): WFCRules {
     return rules
 }
 
-function collapseAndPropagate(state: WFCState, start_pos: Vec2) {
+function collapseAndPropagate(state: State, start_pos: Vec2) {
     const n_rows = state.n_rows
     const n_cols = state.n_cols
 
@@ -274,13 +264,13 @@ function collapseAndPropagate(state: WFCState, start_pos: Vec2) {
     return min_entropy_pos
 }
 
-export function generateWFCShaderImage(
+export function generate(
     sample_picture: Matrix<number>,
     n_rows: number,
     n_cols: number,
-): IntArray {
-    const rules = learnWFCRules(sample_picture)
-    const state = new WFCState(rules, n_rows, n_cols)
+): Matrix<number[]> {
+    const rules = learn(sample_picture)
+    const state = new State(rules, n_rows, n_cols)
 
     let collapse_pos = {
         x: Math.floor(Math.random() * n_rows),
@@ -289,5 +279,16 @@ export function generateWFCShaderImage(
     while (!state.isFinished()) {
         collapse_pos = collapseAndPropagate(state, collapse_pos)
     }
-    return state.toArray()
+    return state.wave_function
+}
+
+export function flatten(wave_function: Matrix<number[]>): Int32Array {
+    const n_rows = wave_function.n_rows
+    const n_cols = wave_function.n_cols
+    const result = new Int32Array(n_rows * n_cols)
+
+    wave_function.foreach((row, col, superposition) => {
+        result[row * n_cols + col] = superposition.length > 0 ? superposition[0] : 0
+    })
+    return result
 }
