@@ -70,7 +70,21 @@ function onDeleteClick(ev: Event) {
                     :data-index="i"
                     @click="onDeleteClick"
                 />
-                <ColorInput :value="hex_color" :data-index="i" @input="onColorInput" />
+                <ColorInput
+                    :model-value="hex_color"
+                    :data-index="i"
+                    @update:model-value="
+                        (new_color?: string) => {
+                            const color = parseHexColor(new_color || '#000000')
+                            const offset = 4 * i
+
+                            colors![offset] = color.red / 255
+                            colors![offset + 1] = color.green / 255
+                            colors![offset + 2] = color.blue / 255
+                            colors = colors!.subarray()
+                        }
+                    "
+                />
             </div>
         </div>
         <div class="column">

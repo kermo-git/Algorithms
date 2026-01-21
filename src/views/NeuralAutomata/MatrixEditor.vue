@@ -11,6 +11,12 @@ interface Emits {
 }
 const emit = defineEmits<Emits>()
 
+function onCellClick(ev: Event) {
+    const element = ev.target as HTMLInputElement
+    element?.select()
+    ev.stopPropagation()
+}
+
 function onInput(ev: Event) {
     const element = ev.currentTarget as HTMLInputElement
     const data = element.dataset
@@ -40,6 +46,7 @@ function onInput(ev: Event) {
                 :data-col="col - 1"
                 type="number"
                 :value="props.modelValue.data[props.modelValue.n_cols * (row - 1) + (col - 1)]"
+                @click="onCellClick"
                 @change="onInput"
             />
         </template>
