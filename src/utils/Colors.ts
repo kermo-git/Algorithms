@@ -48,7 +48,7 @@ export function lerpColors(t: number, a: Color, b: Color): Color {
     }
 }
 
-export function toShaderBuffer(hex_colors: string[]): FloatArray {
+export function shaderColorArray(hex_colors: string[]): FloatArray {
     const result = new Float32Array(4 * hex_colors.length)
 
     for (let i = 0; i < hex_colors.length; i++) {
@@ -61,4 +61,8 @@ export function toShaderBuffer(hex_colors: string[]): FloatArray {
         result[offset + 3] = 1
     }
     return result
+}
+
+export function shaderColor(hex_color: string): FloatArray {
+    return shaderColorArray([hex_color])
 }

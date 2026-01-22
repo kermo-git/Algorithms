@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { mdiPlay, mdiDice5, mdiPlus, mdiMinus, mdiNumeric0, mdiReload } from '@mdi/js'
-import SvgIcon from '@jamescoyle/vue-icon'
+import { markRaw, ref, shallowRef, watch } from 'vue'
+import { mdiPlay, mdiReload } from '@mdi/js'
 
-import ColorPalette from '@/components/ColorPalette.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
@@ -11,128 +9,220 @@ import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import MatrixEditor from '@/views/NeuralAutomata/MatrixEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 
-import { createMatrix, Matrix } from '@/utils/Matrix'
-import { drawContinuousColors, drawDiscreteColors } from '@/utils/DrawPixels'
-import {
-    randomize,
-    discrete,
-    sigmoid,
-    invertedGaussian,
-    neuralAutomatonStep,
-} from './NeuralAutomaton'
 import MenuItem from '@/components/MenuItem.vue'
 import ColorInput from '@/components/ColorInput.vue'
-
-const grid_size = ref(64)
-const color_1 = ref('#323232')
-const color_2 = ref('#00CE00')
-
-const kernel_size = ref(7)
-
-function normalizeKernel(weights: Matrix<number>) {
-    let numNegatives = 0
-    let numPositives = 0
-
-    weights.foreach((row, col, value) => {
-        if (value < 0) {
-            numNegatives++
-        } else if (value > 0) {
-            numPositives++
-            weights.set(row, col, 1)
-        }
-    })
-    const negativeWeight = parseFloat((-numPositives / numNegatives).toFixed(2))
-
-    weights.foreach((row, col, value) => {
-        if (value < 0) {
-            weights.set(row, col, negativeWeight)
-        }
-    })
-    return weights
-}
-
-const kernel = ref(
-    normalizeKernel(
-        createMatrix([
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, 1, 1, 1, -1, -1],
-            [-1, -1, 1, 1, 1, -1, -1],
-            [-1, -1, 1, 1, 1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-        ]),
-    ),
-)
-
-const generation = ref(0)
-const current_gen = ref(
-    (() => {
-        const result = new Matrix(grid_size.value, grid_size.value, () => 0)
-        randomize(result)
-        return result
-    })(),
-)
-const next_gen = ref(new Matrix(grid_size.value, grid_size.value, () => 0))
-
-const activationChoice = ref('Discrete')
-
-const activationFunction = computed(() => {
-    switch (activationChoice.value) {
-        case 'Discrete':
-            return discrete
-        default:
-            return sigmoid
-    }
-})
-
-function onStepClick() {
-    neuralAutomatonStep(current_gen.value, next_gen.value, kernel.value, activationFunction.value)
-    const temp = current_gen.value
-    current_gen.value = next_gen.value
-    next_gen.value = temp
-    generation.value += 1
-}
-
-function reset() {
-    current_gen.value = new Matrix(grid_size.value, grid_size.value, () => 0)
-    next_gen.value = new Matrix(grid_size.value, grid_size.value, () => 0)
-    randomize(current_gen.value)
-    generation.value = 0
-}
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
+import { NeuralScene } from './NeuralScene'
+import type { Activation } from './NeuralShader'
+import ComputeRenderer from '@/WebGPU/ComputeRenderer'
+import { shaderColor } from '@/utils/Colors'
 
 const activeTab = ref('Configuration')
 
+const activation = ref<Activation>('Discrete')
+const grid_size = ref(64)
+const color_1 = ref('#323232')
+const color_2 = ref('#00CE00')
+const kernel_size = ref(7)
+
+const kernel = ref<FloatArray>(
+    normalizeKernel(
+        new Float32Array(
+            [
+                [-1, -1, -1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1, -1, -1],
+                [-1, -1, 1, 1, 1, -1, -1],
+                [-1, -1, 1, 1, 1, -1, -1],
+                [-1, -1, 1, 1, 1, -1, -1],
+                [-1, -1, -1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1, -1, -1],
+            ].flat(),
+        ),
+    ),
+)
+
+const scene = shallowRef(markRaw(new NeuralScene(activation.value)))
+const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function onCanvasReady(canvas: HTMLCanvasElement) {
+async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    drawDiscreteColors(canvas, current_gen.value, [color_1.value, color_2.value])
+    canvas.width = grid_size.value
+    canvas.height = grid_size.value
+
+    const init_info = await renderer.value.init(canvas)
+    await scene.value.init(
+        {
+            grid_size: grid_size.value,
+            kernel_size: kernel_size.value,
+            kernel: kernel.value,
+            color_1: shaderColor(color_1.value),
+            color_2: shaderColor(color_2.value),
+        },
+        init_info,
+    )
+    renderer.value.render(scene.value)
 }
 
-watch([current_gen, color_1, color_2], ([new_current_gen, new_color_1, new_color_2]) => {
-    if (canvasRef.value) {
-        if (activationChoice.value === 'Discrete') {
-            drawDiscreteColors(canvasRef.value, new_current_gen, [new_color_1, new_color_2])
-        } else {
-            drawContinuousColors(canvasRef.value, new_current_gen, [new_color_1, new_color_2])
+function normalizeKernel(kernel: FloatArray) {
+    let n_nagative = 0
+    let n_positive = 0
+
+    kernel.forEach((value) => {
+        if (value < 0) {
+            n_nagative++
+        } else if (value > 0) {
+            n_positive++
         }
+    })
+    const neg_weight = parseFloat((-n_positive / n_nagative).toFixed(2))
+
+    return kernel.map((value) => {
+        if (value < 0) {
+            return neg_weight
+        } else if (value > 0) {
+            return 1
+        }
+        return 0
+    })
+}
+
+function onKernelSizeChange(new_value: number) {
+    const data_length = new_value * new_value
+    kernel.value = new Float32Array(data_length)
+}
+
+function reset() {
+    const device = renderer.value.device
+    scene.value.initGrid(grid_size.value, device)
+    renderer.value.render(scene.value)
+}
+
+function onStepClick() {
+    const device = renderer.value.device
+    scene.value.switchGenerations(device)
+    renderer.value.render(scene.value)
+}
+
+watch(grid_size, (new_grid_size) => {
+    const canvas = canvasRef.value
+    if (canvas) {
+        canvas.width = new_grid_size
+        canvas.height = new_grid_size
+        reset()
     }
 })
+
+watch(kernel, (new_kernel) => {
+    const device = renderer.value.device
+    scene.value.updateKernel(kernel_size.value, new_kernel, device)
+})
+
+watch([color_1, color_2], ([new_color_1, new_color_2]) => {
+    const device = renderer.value.device
+    scene.value.updateColors(shaderColor(new_color_1), shaderColor(new_color_2), device)
+    renderer.value.render(scene.value)
+})
+
+watch(activation, (new_activation) => {
+    renderer.value.cleanup()
+    scene.value.cleanup()
+    scene.value = new NeuralScene(new_activation)
+
+    if (canvasRef.value) {
+        initScene(canvasRef.value)
+    }
+})
+
+function randomLinesExample() {
+    color_1.value = '#323232'
+    color_2.value = '#FECB3E'
+
+    const N = -1
+    const P = 1
+
+    kernel_size.value = 5
+    kernel.value = normalizeKernel(
+        new Float32Array(
+            [
+                [0, 0, N, 0, 0],
+                [0, N, P, N, 0],
+                [N, P, P, P, N],
+                [0, N, P, N, 0],
+                [0, 0, N, 0, 0],
+            ].flat(),
+        ),
+    )
+    reset()
+}
+
+function organicMazeExample() {
+    color_1.value = '#59F9CE'
+    color_2.value = '#4842FF'
+
+    const N = -1
+    const P = 1
+
+    kernel_size.value = 11
+    kernel.value = normalizeKernel(
+        new Float32Array(
+            [
+                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                [0, N, N, N, N, N, N, N, N, N, 0],
+                [0, N, N, N, P, P, P, N, N, N, 0],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [0, N, N, N, P, P, P, N, N, N, 0],
+                [0, N, N, N, N, N, N, N, N, N, 0],
+                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+            ].flat(),
+        ),
+    )
+    reset()
+}
+
+function zebraExample() {
+    color_1.value = '#000000'
+    color_2.value = '#EBEBEB'
+
+    const N = -1
+    const P = 1
+
+    kernel_size.value = 9
+    kernel.value = normalizeKernel(
+        new Float32Array(
+            [
+                [0, 0, N, N, P, N, N, 0, 0],
+                [0, N, N, P, P, P, N, N, 0],
+                [N, N, N, P, P, P, N, N, N],
+                [N, N, P, P, P, P, P, N, N],
+                [N, N, P, P, P, P, P, N, N],
+                [N, N, P, P, P, P, P, N, N],
+                [N, N, N, P, P, P, N, N, N],
+                [0, N, N, P, P, P, N, N, 0],
+                [0, 0, N, N, P, N, N, 0, 0],
+            ].flat(),
+        ),
+    )
+    reset()
+}
 </script>
 
 <template>
     <SidePanelCanvas
         :tab-captions="['Configuration', 'Run']"
         v-model="activeTab"
-        @canvas-ready="onCanvasReady"
+        @canvas-ready="initScene"
     >
         <template v-if="activeTab === 'Configuration'">
             <TextSingleSelect
                 text="Activation"
                 name="activation"
                 :options="['Discrete', 'Sigmoid']"
-                v-model="activationChoice"
+                v-model="activation"
             />
 
             <NumberSingleSelect
@@ -140,13 +230,7 @@ watch([current_gen, color_1, color_2], ([new_current_gen, new_color_1, new_color
                 name="radius"
                 :options="[5, 7, 9, 11]"
                 v-model="kernel_size"
-                @update:model-value="
-                    (new_value: number) => {
-                        kernel_size = new_value
-                        kernel = new Matrix(kernel_size, kernel_size, () => 0)
-                        reset()
-                    }
-                "
+                @update:model-value="onKernelSizeChange"
             />
 
             <PanelSection>
@@ -159,7 +243,7 @@ watch([current_gen, color_1, color_2], ([new_current_gen, new_color_1, new_color
                     "
                 />
             </PanelSection>
-            <MatrixEditor v-model="kernel" />
+            <MatrixEditor :matrix-size="kernel_size" v-model:matrix="kernel" />
         </template>
         <template v-else>
             <PanelSection>
@@ -173,95 +257,10 @@ watch([current_gen, color_1, color_2], ([new_current_gen, new_color_1, new_color
                 name="grid-size"
                 :options="[64, 128]"
                 v-model="grid_size"
-                @update:model-value="
-                    (new_value: number) => {
-                        grid_size = new_value
-                        reset()
-                    }
-                "
             />
-            <MenuItem
-                text="Random curved lines"
-                @click="
-                    () => {
-                        color_1 = '#323232'
-                        color_2 = '#FECB3E'
-
-                        let N = -1
-                        let P = 1
-
-                        kernel_size = 5
-                        kernel = normalizeKernel(
-                            createMatrix([
-                                [0, 0, N, 0, 0],
-                                [0, N, P, N, 0],
-                                [N, P, P, P, N],
-                                [0, N, P, N, 0],
-                                [0, 0, N, 0, 0],
-                            ]),
-                        )
-                        reset()
-                    }
-                "
-            />
-            <MenuItem
-                text="Maze"
-                @click="
-                    () => {
-                        color_1 = '#59F9CE'
-                        color_2 = '#4842FF'
-
-                        let N = -1
-                        let P = 1
-
-                        kernel_size = 11
-                        kernel = normalizeKernel(
-                            createMatrix([
-                                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                                [0, N, N, N, N, N, N, N, N, N, 0],
-                                [0, N, N, N, P, P, P, N, N, N, 0],
-                                [N, N, N, P, P, P, P, P, N, N, N],
-                                [N, N, N, P, P, P, P, P, N, N, N],
-                                [N, N, N, P, P, P, P, P, N, N, N],
-                                [0, N, N, N, P, P, P, N, N, N, 0],
-                                [0, N, N, N, N, N, N, N, N, N, 0],
-                                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                            ]),
-                        )
-                        reset()
-                    }
-                "
-            />
-            <MenuItem
-                text="Zebra"
-                @click="
-                    () => {
-                        color_1 = '#000000'
-                        color_2 = '#EBEBEB'
-
-                        let N = -1
-                        let P = 1
-
-                        kernel_size = 9
-                        kernel = normalizeKernel(
-                            createMatrix([
-                                [0, 0, N, N, P, N, N, 0, 0],
-                                [0, N, N, P, P, P, N, N, 0],
-                                [N, N, N, P, P, P, N, N, N],
-                                [N, N, P, P, P, P, P, N, N],
-                                [N, N, P, P, P, P, P, N, N],
-                                [N, N, P, P, P, P, P, N, N],
-                                [N, N, N, P, P, P, N, N, N],
-                                [0, N, N, P, P, P, N, N, 0],
-                                [0, 0, N, N, P, N, N, 0, 0],
-                            ]),
-                        )
-                        reset()
-                    }
-                "
-            />
+            <MenuItem text="Random curved lines" @click="randomLinesExample" />
+            <MenuItem text="Maze" @click="organicMazeExample" />
+            <MenuItem text="Zebra" @click="zebraExample" />
         </template>
     </SidePanelCanvas>
 </template>

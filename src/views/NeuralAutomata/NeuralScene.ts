@@ -15,7 +15,6 @@ export class NeuralScene implements Scene {
     generation_2!: GPUBuffer
     generation_bind_group!: GPUBindGroup
 
-    grid_size!: GPUBuffer
     kernel_size!: GPUBuffer
     kernel!: GPUBuffer
     color_1!: GPUBuffer
@@ -40,14 +39,8 @@ export class NeuralScene implements Scene {
         const shader_code = neuralShader(this.activation, color_format)
         this.pipeline = await createComputePipeline(shader_code, device)
 
-        const n_cells = data.grid_size * data.grid_size
-        const random_data = generateRandomFloatBits(n_cells)
-        this.generation_1 = createStorageBuffer(random_data, device)
-        this.generation_2 = createStorageBuffer(null, device, random_data.byteLength)
-        this.generation_1_is_prev = true
-        this.setGenerations(this.generation_1, this.generation_2, device)
+        this.initGrid(data.grid_size, device)
 
-        this.grid_size = createIntUniform(data.grid_size, device)
         this.kernel_size = createIntUniform(data.kernel_size, device)
         this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
         this.color_1 = createStorageBuffer(data.color_1, device)
@@ -59,29 +52,23 @@ export class NeuralScene implements Scene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.grid_size,
+                        buffer: this.kernel,
                     },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.kernel,
+                        buffer: this.kernel_size,
                     },
                 },
                 {
                     binding: 2,
                     resource: {
-                        buffer: this.kernel_size,
-                    },
-                },
-                {
-                    binding: 3,
-                    resource: {
                         buffer: this.color_1,
                     },
                 },
                 {
-                    binding: 4,
+                    binding: 3,
                     resource: {
                         buffer: this.color_2,
                     },
@@ -90,14 +77,21 @@ export class NeuralScene implements Scene {
         })
     }
 
-    reset(grid_size: number, kernel_size: number, kernel_data: FloatArray, device: GPUDevice) {
+    initGrid(grid_size: number, device: GPUDevice) {
+        this.generation_1?.destroy()
+        this.generation_2?.destroy()
+
         const n_cells = grid_size * grid_size
         const random_data = generateRandomFloatBits(n_cells)
 
-        updateBuffer(this.generation_1, random_data, device)
+        this.generation_1 = createStorageBuffer(random_data, device)
+        this.generation_2 = createStorageBuffer(null, device, random_data.byteLength)
+
         this.generation_1_is_prev = true
         this.setGenerations(this.generation_1, this.generation_2, device)
+    }
 
+    updateKernel(kernel_size: number, kernel_data: FloatArray, device: GPUDevice) {
         updateIntUniform(this.kernel_size, kernel_size, device)
         updateBuffer(this.kernel, kernel_data, device)
     }
@@ -145,7 +139,6 @@ export class NeuralScene implements Scene {
     cleanup(): void {
         this.generation_1.destroy()
         this.generation_2.destroy()
-        this.grid_size.destroy()
         this.kernel.destroy()
         this.kernel_size.destroy()
         this.color_1.destroy()

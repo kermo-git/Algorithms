@@ -5,7 +5,7 @@ import { mdiDelete, mdiPlus } from '@mdi/js'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
 
-import { parseHexColor, toHexColor, toShaderBuffer } from '@/utils/Colors'
+import { parseHexColor, toHexColor, shaderColorArray } from '@/utils/Colors'
 
 const colors = defineModel<Float32Array>()
 
@@ -92,7 +92,7 @@ function onDeleteClick(ev: Event) {
                 text="Biomes"
                 @click="
                     () => {
-                        colors = toShaderBuffer([
+                        colors = shaderColorArray([
                             '#8AC90A',
                             '#129145',
                             '#9ED6F2',
@@ -107,7 +107,7 @@ function onDeleteClick(ev: Event) {
                 text="Rainbow"
                 @click="
                     () => {
-                        colors = toShaderBuffer([
+                        colors = shaderColorArray([
                             '#BE38F3',
                             '#0061FF',
                             '#00C7FC',
@@ -123,7 +123,7 @@ function onDeleteClick(ev: Event) {
                 text="Fire & Ice"
                 @click="
                     () => {
-                        colors = toShaderBuffer([
+                        colors = shaderColorArray([
                             '#0B90B7',
                             '#00C7FC',
                             '#94E3FE',
@@ -138,7 +138,7 @@ function onDeleteClick(ev: Event) {
                 text="Lava"
                 @click="
                     () => {
-                        colors = toShaderBuffer([
+                        colors = shaderColorArray([
                             '#FEC700',
                             '#FF6A00',
                             '#E32400',

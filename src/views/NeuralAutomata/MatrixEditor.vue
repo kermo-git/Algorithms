@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import type { Matrix } from '@/utils/Matrix'
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 
 interface Props {
-    modelValue: Matrix<number>
+    matrixSize: number
 }
 const props = defineProps<Props>()
-
-interface Emits {
-    (e: 'update:modelValue', value: Matrix<number>): void
-}
-const emit = defineEmits<Emits>()
+const matrix = defineModel<FloatArray>('matrix')
 
 function onCellClick(ev: Event) {
     const element = ev.target as HTMLInputElement
@@ -25,8 +21,9 @@ function onInput(ev: Event) {
     const col = Number(data.col)
     const value = Number(element.value)
 
-    props.modelValue.set(row, col, value)
-    emit('update:modelValue', props.modelValue)
+    const copy = matrix.value!.subarray()
+    copy[row * props.matrixSize + col] = value
+    matrix.value! = copy
 }
 </script>
 
@@ -34,18 +31,18 @@ function onInput(ev: Event) {
     <div
         class="matrix"
         :style="{
-            gridTemplateColumns: `repeat(${props.modelValue.n_cols}, 1fr)`,
+            gridTemplateColumns: `repeat(${matrixSize}, 1fr)`,
         }"
     >
-        <template v-for="row in props.modelValue.n_rows" :key="row">
+        <template v-for="row in matrixSize" :key="row">
             <input
                 class="cell"
-                v-for="col in props.modelValue.n_cols"
+                v-for="col in matrixSize"
                 :key="col"
                 :data-row="row - 1"
                 :data-col="col - 1"
                 type="number"
-                :value="props.modelValue.data[props.modelValue.n_cols * (row - 1) + (col - 1)]"
+                :value="matrix![matrixSize * (row - 1) + (col - 1)]"
                 @click="onCellClick"
                 @change="onInput"
             />

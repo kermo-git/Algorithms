@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
-import { toShaderBuffer } from '@/utils/Colors'
+import { shaderColorArray } from '@/utils/Colors'
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { type NoiseAlgorithm } from '@/Noise/Types'
@@ -19,7 +19,7 @@ const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const voronoi_colors = ref<FloatArray>(
-    toShaderBuffer(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']),
+    shaderColorArray(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']),
 )
 const voronoi_n_columns = ref(16)
 

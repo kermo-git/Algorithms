@@ -36,13 +36,12 @@ export default function neuralShader(
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
         @group(1) @binding(0) var<storage, read> prev_generation: array<f32>;
-        @group(1) @binding(1) var<storage, write> next_generation: array<f32>;
+        @group(1) @binding(1) var<storage, read_write> next_generation: array<f32>;
 
-        @group(2) @binding(0) var<uniform> grid_size: u32;
-        @group(2) @binding(1) var<storage> kernel: array<f32>;
-        @group(2) @binding(2) var<uniform> kernel_size: u32;
-        @group(2) @binding(3) var<uniform> color_1: vec4f;
-        @group(2) @binding(4) var<uniform> color_2: vec4f;
+        @group(2) @binding(0) var<storage> kernel: array<f32>;
+        @group(2) @binding(1) var<uniform> kernel_size: u32;
+        @group(2) @binding(2) var<uniform> color_1: vec4f;
+        @group(2) @binding(3) var<uniform> color_2: vec4f;
 
         ${activationShader(activation)}
         
@@ -50,32 +49,32 @@ export default function neuralShader(
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
-            let texture_pos = gid.xy;
-            let texture_dims = textureDimensions(texture);
+            let grid_pos = gid.xy;
+            let grid_size = textureDimensions(texture);
 
-            if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
+            if (grid_pos.x >= grid_size.x || grid_pos.y >= grid_size.y) {
                 return;
             }
             let radius = u32(floor(f32(kernel_size) / 2));
-            let start_pos = vec2u(grid_size) + texture_pos - vec2u(radius);
+            let start_pos = vec2u(grid_size) + grid_pos - vec2u(radius);
             var result = 0.0;
 
-            for (let ky = 0u; ky < kernel_size; ky++) {
-                for (let kx = 0u; kx < kernel_size; kx++) {
+            for (var ky = 0u; ky < kernel_size; ky++) {
+                for (var kx = 0u; kx < kernel_size; kx++) {
                     let kernel_i = ky * kernel_size + kx;
-                    let grid_x = (start_pos.x + kx) % grid_size;
-                    let grid_y = (start_pos.y + ky) % grid_size;
-                    let grid_i = grid_y * grid_size + grid_x;
+                    let grid_x = (start_pos.x + kx) % grid_size.x;
+                    let grid_y = (start_pos.y + ky) % grid_size.y;
+                    let grid_i = grid_y * grid_size.x + grid_x;
                     result += prev_generation[grid_i];
                 }
             }
             result = activate(result);
 
-            let grid_i = texture_pos.y * grid_size + texture_pos.x;
+            let grid_i = grid_pos.y * grid_size.x + grid_pos.x;
             next_generation[grid_i] = result;
 
             let color = mix(color_1, color_2, result);
-            textureStore(texture, texture_pos, color);
+            textureStore(texture, grid_pos, color);
         }
     `
 }
