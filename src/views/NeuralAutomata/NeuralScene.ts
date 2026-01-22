@@ -4,6 +4,7 @@ import neuralShader from './NeuralShader'
 import {
     createIntUniform,
     createStorageBuffer,
+    createUniformBuffer,
     updateBuffer,
     updateIntUniform,
     type FloatArray,
@@ -43,8 +44,8 @@ export class NeuralScene implements Scene {
 
         this.kernel_size = createIntUniform(data.kernel_size, device)
         this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
-        this.color_1 = createStorageBuffer(data.color_1, device)
-        this.color_2 = createStorageBuffer(data.color_2, device)
+        this.color_1 = createUniformBuffer(data.color_1, device)
+        this.color_2 = createUniformBuffer(data.color_2, device)
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),

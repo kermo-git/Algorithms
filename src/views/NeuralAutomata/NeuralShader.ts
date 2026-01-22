@@ -65,7 +65,7 @@ export default function neuralShader(
                     let grid_x = (start_pos.x + kx) % grid_size.x;
                     let grid_y = (start_pos.y + ky) % grid_size.y;
                     let grid_i = grid_y * grid_size.x + grid_x;
-                    result += prev_generation[grid_i];
+                    result += prev_generation[grid_i] * kernel[kernel_i];
                 }
             }
             result = activate(result);
