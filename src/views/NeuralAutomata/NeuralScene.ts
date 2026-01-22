@@ -1,17 +1,26 @@
 import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
 import type { Activation, NeuralUniforms } from './NeuralShader'
 import neuralShader from './NeuralShader'
-import { createIntUniform, createStorageBuffer, type FloatArray } from '@/WebGPU/ShaderDataUtils'
+import {
+    createIntUniform,
+    createStorageBuffer,
+    updateBuffer,
+    updateIntUniform,
+    type FloatArray,
+} from '@/WebGPU/ShaderDataUtils'
 
 export class NeuralScene implements Scene {
+    generation_1_is_prev = true
     generation_1!: GPUBuffer
     generation_2!: GPUBuffer
     generation_bind_group!: GPUBindGroup
 
+    grid_size!: GPUBuffer
     kernel_size!: GPUBuffer
     kernel!: GPUBuffer
     color_1!: GPUBuffer
     color_2!: GPUBuffer
+    static_bind_group!: GPUBindGroup
 
     pipeline!: GPUComputePipeline
 
@@ -31,22 +40,116 @@ export class NeuralScene implements Scene {
         const shader_code = neuralShader(this.activation, color_format)
         this.pipeline = await createComputePipeline(shader_code, device)
 
-        const random_data = generateRandomFloatBits(512 * 512 * 4)
+        const n_cells = data.grid_size * data.grid_size
+        const random_data = generateRandomFloatBits(n_cells)
         this.generation_1 = createStorageBuffer(random_data, device)
-        this.generation_2 = createStorageBuffer(random_data, device)
+        this.generation_2 = createStorageBuffer(null, device, random_data.byteLength)
+        this.generation_1_is_prev = true
+        this.setGenerations(this.generation_1, this.generation_2, device)
 
+        this.grid_size = createIntUniform(data.grid_size, device)
         this.kernel_size = createIntUniform(data.kernel_size, device)
         this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
-        this.color_1 = createStorageBuffer(data.color_1, device, 0, GPUBufferUsage.UNIFORM)
-        this.color_2 = createStorageBuffer(data.color_2, device, 0, GPUBufferUsage.UNIFORM)
+        this.color_1 = createStorageBuffer(data.color_1, device)
+        this.color_2 = createStorageBuffer(data.color_2, device)
+
+        this.static_bind_group = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(2),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.grid_size,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: this.kernel,
+                    },
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: this.kernel_size,
+                    },
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: this.color_1,
+                    },
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: this.color_2,
+                    },
+                },
+            ],
+        })
+    }
+
+    reset(grid_size: number, kernel_size: number, kernel_data: FloatArray, device: GPUDevice) {
+        const n_cells = grid_size * grid_size
+        const random_data = generateRandomFloatBits(n_cells)
+
+        updateBuffer(this.generation_1, random_data, device)
+        this.generation_1_is_prev = true
+        this.setGenerations(this.generation_1, this.generation_2, device)
+
+        updateIntUniform(this.kernel_size, kernel_size, device)
+        updateBuffer(this.kernel, kernel_data, device)
+    }
+
+    updateColors(color_1: FloatArray, color_2: FloatArray, device: GPUDevice) {
+        updateBuffer(this.color_1, color_1, device)
+        updateBuffer(this.color_2, color_2, device)
+    }
+
+    setGenerations(prev: GPUBuffer, next: GPUBuffer, device: GPUDevice) {
+        this.generation_bind_group = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(1),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: prev,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: next,
+                    },
+                },
+            ],
+        })
+    }
+
+    switchGenerations(device: GPUDevice) {
+        this.generation_1_is_prev = !this.generation_1_is_prev
+
+        if (this.generation_1_is_prev) {
+            this.setGenerations(this.generation_1, this.generation_2, device)
+        } else {
+            this.setGenerations(this.generation_2, this.generation_1, device)
+        }
     }
 
     render(encoder: GPUComputePassEncoder): void {
-        throw new Error('Method not implemented.')
+        encoder.setBindGroup(1, this.generation_bind_group)
+        encoder.setBindGroup(2, this.static_bind_group)
     }
 
     cleanup(): void {
-        throw new Error('Method not implemented.')
+        this.generation_1.destroy()
+        this.generation_2.destroy()
+        this.grid_size.destroy()
+        this.kernel.destroy()
+        this.kernel_size.destroy()
+        this.color_1.destroy()
+        this.color_2.destroy()
     }
 }
 

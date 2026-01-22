@@ -28,7 +28,7 @@ export function createUniformBuffer(
 }
 
 export function createStorageBuffer(
-    data: BufferData,
+    data: BufferData | null,
     device: GPUDevice,
     size: number = 0,
 ): GPUBuffer {
@@ -36,16 +36,18 @@ export function createStorageBuffer(
 }
 
 export function createBuffer(
-    data: BufferData,
+    data: BufferData | null,
     device: GPUDevice,
     size: number = 0,
     usage: GPUFlagsConstant,
 ): GPUBuffer {
     const buffer = device.createBuffer({
-        size: size || data.byteLength,
+        size: size || data?.byteLength || 0,
         usage: usage | GPUBufferUsage.COPY_DST,
     })
-    device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+    if (data) {
+        device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+    }
     return buffer
 }
 
