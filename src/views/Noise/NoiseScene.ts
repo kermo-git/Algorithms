@@ -5,7 +5,7 @@ import {
     createStorageBuffer,
     updateFloatUniform,
     updateIntUniform,
-    updateStorageBuffer,
+    updateBuffer,
     type FloatArray,
 } from '@/WebGPU/ShaderDataUtils'
 
@@ -164,7 +164,7 @@ export default class NoiseScene implements Scene {
     }
 
     updateColorPoints(data: FloatArray, device: GPUDevice) {
-        updateStorageBuffer(this.color_points, data, device)
+        updateBuffer(this.color_points, data, device)
         const new_n_colors = data.length / 4
 
         if (new_n_colors != this.n_colors) {

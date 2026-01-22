@@ -6,7 +6,7 @@ import {
     createStorageBuffer,
     updateFloatUniform,
     updateIntUniform,
-    updateStorageBuffer,
+    updateBuffer,
 } from '@/WebGPU/ShaderDataUtils'
 
 import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
@@ -160,11 +160,11 @@ export default class VoronoiScene implements Scene {
     }
 
     updateVoronoiColorGrid(value: FloatArray, device: GPUDevice) {
-        updateStorageBuffer(this.voronoi_color_grid, value, device)
+        updateBuffer(this.voronoi_color_grid, value, device)
     }
 
     updateVoronoiColors(value: FloatArray, device: GPUDevice) {
-        updateStorageBuffer(this.voronoi_colors, value, device)
+        updateBuffer(this.voronoi_colors, value, device)
         const new_n_colors = value.length / 4
 
         if (new_n_colors != this.n_colors) {
