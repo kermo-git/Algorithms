@@ -42,7 +42,7 @@ function onInput(ev: Event) {
                 :data-row="row - 1"
                 :data-col="col - 1"
                 type="number"
-                :value="matrix![matrixSize * (row - 1) + (col - 1)]"
+                :value="matrix![matrixSize * (row - 1) + (col - 1)].toFixed(2)"
                 @click="onCellClick"
                 @change="onInput"
             />

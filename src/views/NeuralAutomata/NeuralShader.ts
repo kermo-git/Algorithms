@@ -1,7 +1,7 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 
-export type Activation = 'Discrete' | 'Sigmoid'
+export type Activation = 'Discrete' | 'Sigmoid' | 'Inverted Gaussian'
 
 export interface NeuralUniforms {
     grid_size: number
@@ -17,11 +17,17 @@ function activationShader(activation: Activation): string {
                 return select(0, 1, x > 0);
             }
         `
-    } else {
+    } else if (activation === 'Sigmoid') {
         return /* wgsl */ `
             fn activate(x: f32) -> f32 {
                 let exp_x = exp(x);
                 return exp_x / (exp_x + 1);
+            }
+        `
+    } else {
+        return /* wgsl */ `
+            fn activate(x: f32) -> f32 {
+                return -1/(0.9 * pow(x, 2) + 1) + 1;
             }
         `
     }
@@ -76,7 +82,7 @@ export default function neuralShader(
             let grid_i = grid_pos.y * grid_size.x + grid_pos.x;
             next_generation[grid_i] = result;
 
-            let color = mix(colors.color_0, colors.color_1, result);
+            let color = mix(colors.color_0, colors.color_1, prev_generation[grid_i]);
             textureStore(texture, grid_pos, color);
         }
     `

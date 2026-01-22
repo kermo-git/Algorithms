@@ -20,7 +20,7 @@ import { shaderColorArray } from '@/utils/Colors'
 const activeTab = ref('Configuration')
 
 const activation = ref<Activation>('Discrete')
-const grid_size = ref(64)
+const grid_size = ref(256)
 const color_0 = ref('#323232')
 const color_1 = ref('#00CE00')
 const kernel_size = ref(7)
@@ -133,28 +133,6 @@ watch(activation, (new_activation) => {
     }
 })
 
-function randomLinesExample() {
-    color_0.value = '#323232'
-    color_1.value = '#FECB3E'
-
-    const N = -1
-    const P = 1
-
-    kernel_size.value = 5
-    kernel.value = normalizeKernel(
-        new Float32Array(
-            [
-                [0, 0, N, 0, 0],
-                [0, N, P, N, 0],
-                [N, P, P, P, N],
-                [0, N, P, N, 0],
-                [0, 0, N, 0, 0],
-            ].flat(),
-        ),
-    )
-    reset()
-}
-
 function organicMazeExample() {
     color_0.value = '#59F9CE'
     color_1.value = '#4842FF'
@@ -180,6 +158,7 @@ function organicMazeExample() {
             ].flat(),
         ),
     )
+    activation.value = 'Sigmoid'
     reset()
 }
 
@@ -206,7 +185,48 @@ function zebraExample() {
             ].flat(),
         ),
     )
+    activation.value = 'Sigmoid'
     reset()
+}
+
+// https://neuralpatterns.io
+function slimeMoldExample() {
+    color_0.value = '#000000'
+    color_1.value = '#FFFC41'
+
+    const X = -0.85
+    const Y = -0.2
+    const Z = 0.8
+
+    kernel_size.value = 3
+    kernel.value = new Float32Array(
+        [
+            [Z, X, Z],
+            [X, Y, X],
+            [Z, X, Z],
+        ].flat(),
+    )
+    activation.value = 'Inverted Gaussian'
+}
+
+// https://neuralpatterns.io
+function mitosisExample() {
+    color_0.value = '#001E57'
+    color_1.value = '#00CE00'
+
+    const X = 0.88
+    const Y = 0.4
+    const Z = -0.939
+
+    kernel_size.value = 3
+    kernel.value = new Float32Array(
+        [
+            [Z, X, Z],
+            [X, Y, X],
+            [Z, X, Z],
+        ].flat(),
+    )
+    activation.value = 'Inverted Gaussian'
 }
 </script>
 
@@ -220,14 +240,14 @@ function zebraExample() {
             <TextSingleSelect
                 text="Activation"
                 name="activation"
-                :options="['Discrete', 'Sigmoid']"
+                :options="['Discrete', 'Sigmoid', 'Inverted Gaussian']"
                 v-model="activation"
             />
 
             <NumberSingleSelect
                 text="Kernel size"
                 name="radius"
-                :options="[5, 7, 9, 11]"
+                :options="[3, 5, 7, 9, 11]"
                 v-model="kernel_size"
                 @update:model-value="onKernelSizeChange"
             />
@@ -254,12 +274,13 @@ function zebraExample() {
             <NumberSingleSelect
                 text="Grid size"
                 name="grid-size"
-                :options="[64, 128, 256, 512, 1024]"
+                :options="[256, 512, 1024]"
                 v-model="grid_size"
             />
-            <MenuItem text="Random curved lines" @click="randomLinesExample" />
-            <MenuItem text="Maze" @click="organicMazeExample" />
+            <MenuItem text="Organic maze" @click="organicMazeExample" />
             <MenuItem text="Zebra" @click="zebraExample" />
+            <MenuItem text="Slime mold" @click="slimeMoldExample" />
+            <MenuItem text="Mitosis" @click="mitosisExample" />
         </template>
     </SidePanelCanvas>
 </template>
