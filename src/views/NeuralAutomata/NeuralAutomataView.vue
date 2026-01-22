@@ -207,6 +207,7 @@ function slimeMoldExample() {
         ].flat(),
     )
     activation.value = 'Inverted Gaussian'
+    reset()
 }
 
 // https://neuralpatterns.io
@@ -227,6 +228,7 @@ function mitosisExample() {
         ].flat(),
     )
     activation.value = 'Inverted Gaussian'
+    reset()
 }
 </script>
 
