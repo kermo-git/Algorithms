@@ -7,8 +7,7 @@ export interface NeuralUniforms {
     grid_size: number
     kernel_size: number
     kernel: FloatArray
-    color_1: FloatArray
-    color_2: FloatArray
+    colors: FloatArray
 }
 
 function activationShader(activation: Activation): string {
@@ -33,6 +32,11 @@ export default function neuralShader(
     color_format: GPUTextureFormat,
 ): string {
     return /* wgsl */ `
+        struct Colors {
+            color_0: vec4f,
+            color_1: vec4f
+        };
+
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
         @group(1) @binding(0) var<storage, read> prev_generation: array<f32>;
@@ -40,8 +44,7 @@ export default function neuralShader(
 
         @group(2) @binding(0) var<storage> kernel: array<f32>;
         @group(2) @binding(1) var<uniform> kernel_size: u32;
-        @group(2) @binding(2) var<uniform> color_1: vec4f;
-        @group(2) @binding(3) var<uniform> color_2: vec4f;
+        @group(2) @binding(2) var<uniform> colors: Colors;
 
         ${activationShader(activation)}
         
@@ -73,7 +76,7 @@ export default function neuralShader(
             let grid_i = grid_pos.y * grid_size.x + grid_pos.x;
             next_generation[grid_i] = result;
 
-            let color = mix(color_1, color_2, result);
+            let color = mix(colors.color_0, colors.color_1, result);
             textureStore(texture, grid_pos, color);
         }
     `

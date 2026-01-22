@@ -15,14 +15,14 @@ import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { NeuralScene } from './NeuralScene'
 import type { Activation } from './NeuralShader'
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
-import { shaderColor } from '@/utils/Colors'
+import { shaderColorArray } from '@/utils/Colors'
 
 const activeTab = ref('Configuration')
 
 const activation = ref<Activation>('Discrete')
 const grid_size = ref(64)
-const color_1 = ref('#323232')
-const color_2 = ref('#00CE00')
+const color_0 = ref('#323232')
+const color_1 = ref('#00CE00')
 const kernel_size = ref(7)
 
 const kernel = ref<FloatArray>(
@@ -56,8 +56,7 @@ async function initScene(canvas: HTMLCanvasElement) {
             grid_size: grid_size.value,
             kernel_size: kernel_size.value,
             kernel: kernel.value,
-            color_1: shaderColor(color_1.value),
-            color_2: shaderColor(color_2.value),
+            colors: shaderColorArray([color_0.value, color_1.value]),
         },
         init_info,
     )
@@ -118,9 +117,9 @@ watch(kernel, (new_kernel) => {
     scene.value.updateKernel(kernel_size.value, new_kernel, device)
 })
 
-watch([color_1, color_2], ([new_color_1, new_color_2]) => {
+watch([color_0, color_1], ([new_color_0, new_color_1]) => {
     const device = renderer.value.device
-    scene.value.updateColors(shaderColor(new_color_1), shaderColor(new_color_2), device)
+    scene.value.updateColors(shaderColorArray([new_color_0, new_color_1]), device)
     renderer.value.render(scene.value)
 })
 
@@ -135,8 +134,8 @@ watch(activation, (new_activation) => {
 })
 
 function randomLinesExample() {
-    color_1.value = '#323232'
-    color_2.value = '#FECB3E'
+    color_0.value = '#323232'
+    color_1.value = '#FECB3E'
 
     const N = -1
     const P = 1
@@ -157,8 +156,8 @@ function randomLinesExample() {
 }
 
 function organicMazeExample() {
-    color_1.value = '#59F9CE'
-    color_2.value = '#4842FF'
+    color_0.value = '#59F9CE'
+    color_1.value = '#4842FF'
 
     const N = -1
     const P = 1
@@ -185,8 +184,8 @@ function organicMazeExample() {
 }
 
 function zebraExample() {
-    color_1.value = '#000000'
-    color_2.value = '#EBEBEB'
+    color_0.value = '#000000'
+    color_1.value = '#EBEBEB'
 
     const N = -1
     const P = 1
@@ -248,14 +247,14 @@ function zebraExample() {
         <template v-else>
             <PanelSection>
                 <PanelButton :mdi-path="mdiReload" text="Reset" @click="reset" />
+                <ColorInput v-model="color_0" />
                 <ColorInput v-model="color_1" />
-                <ColorInput v-model="color_2" />
                 <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
             </PanelSection>
             <NumberSingleSelect
                 text="Grid size"
                 name="grid-size"
-                :options="[64, 128]"
+                :options="[64, 128, 256, 512, 1024]"
                 v-model="grid_size"
             />
             <MenuItem text="Random curved lines" @click="randomLinesExample" />

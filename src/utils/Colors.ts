@@ -62,7 +62,3 @@ export function shaderColorArray(hex_colors: string[]): FloatArray {
     }
     return result
 }
-
-export function shaderColor(hex_color: string): FloatArray {
-    return shaderColorArray([hex_color])
-}

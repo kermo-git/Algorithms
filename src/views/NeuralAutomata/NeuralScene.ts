@@ -18,8 +18,7 @@ export class NeuralScene implements Scene {
 
     kernel_size!: GPUBuffer
     kernel!: GPUBuffer
-    color_1!: GPUBuffer
-    color_2!: GPUBuffer
+    colors!: GPUBuffer
     static_bind_group!: GPUBindGroup
 
     pipeline!: GPUComputePipeline
@@ -44,8 +43,7 @@ export class NeuralScene implements Scene {
 
         this.kernel_size = createIntUniform(data.kernel_size, device)
         this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
-        this.color_1 = createUniformBuffer(data.color_1, device)
-        this.color_2 = createUniformBuffer(data.color_2, device)
+        this.colors = createUniformBuffer(data.colors, device)
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -65,13 +63,7 @@ export class NeuralScene implements Scene {
                 {
                     binding: 2,
                     resource: {
-                        buffer: this.color_1,
-                    },
-                },
-                {
-                    binding: 3,
-                    resource: {
-                        buffer: this.color_2,
+                        buffer: this.colors,
                     },
                 },
             ],
@@ -86,7 +78,7 @@ export class NeuralScene implements Scene {
         const random_data = generateRandomFloatBits(n_cells)
 
         this.generation_1 = createStorageBuffer(random_data, device)
-        this.generation_2 = createStorageBuffer(null, device, random_data.byteLength)
+        this.generation_2 = createStorageBuffer(random_data, device)
 
         this.generation_1_is_prev = true
         this.setGenerations(this.generation_1, this.generation_2, device)
@@ -97,9 +89,8 @@ export class NeuralScene implements Scene {
         updateBuffer(this.kernel, kernel_data, device)
     }
 
-    updateColors(color_1: FloatArray, color_2: FloatArray, device: GPUDevice) {
-        updateBuffer(this.color_1, color_1, device)
-        updateBuffer(this.color_2, color_2, device)
+    updateColors(colors: FloatArray, device: GPUDevice) {
+        updateBuffer(this.colors, colors, device)
     }
 
     setGenerations(prev: GPUBuffer, next: GPUBuffer, device: GPUDevice) {
@@ -142,8 +133,7 @@ export class NeuralScene implements Scene {
         this.generation_2.destroy()
         this.kernel.destroy()
         this.kernel_size.destroy()
-        this.color_1.destroy()
-        this.color_2.destroy()
+        this.colors.destroy()
     }
 }
 
