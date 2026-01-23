@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { markRaw, ref, shallowRef, watch } from 'vue'
-import { mdiPlay, mdiReload } from '@mdi/js'
+import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
@@ -17,29 +17,18 @@ import type { Activation } from './NeuralShader'
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { shaderColorArray } from '@/utils/Colors'
 
+import { examples, normalizeKernel, type Example } from './Examples'
+
+const default_example = examples[0]
+
 const activeTab = ref('Configuration')
-
-const activation = ref<Activation>('Discrete')
 const grid_size = ref(256)
-const color_0 = ref('#323232')
-const color_1 = ref('#00CE00')
-const kernel_size = ref(7)
-
-const kernel = ref<FloatArray>(
-    normalizeKernel(
-        new Float32Array(
-            [
-                [-1, -1, -1, -1, -1, -1, -1],
-                [-1, -1, -1, -1, -1, -1, -1],
-                [-1, -1, 1, 1, 1, -1, -1],
-                [-1, -1, 1, 1, 1, -1, -1],
-                [-1, -1, 1, 1, 1, -1, -1],
-                [-1, -1, -1, -1, -1, -1, -1],
-                [-1, -1, -1, -1, -1, -1, -1],
-            ].flat(),
-        ),
-    ),
-)
+const color_0 = ref(default_example.color_0)
+const color_1 = ref(default_example.color_1)
+const kernel_size = ref(default_example.kernel_size)
+const kernel = ref<FloatArray>(default_example.get_kernel())
+const activation = ref<Activation>(default_example.activation)
+const FPS = ref<number>(60)
 
 const scene = shallowRef(markRaw(new NeuralScene(activation.value)))
 const renderer = shallowRef(markRaw(new ComputeRenderer()))
@@ -63,27 +52,12 @@ async function initScene(canvas: HTMLCanvasElement) {
     renderer.value.render(scene.value)
 }
 
-function normalizeKernel(kernel: FloatArray) {
-    let n_nagative = 0
-    let n_positive = 0
-
-    kernel.forEach((value) => {
-        if (value < 0) {
-            n_nagative++
-        } else if (value > 0) {
-            n_positive++
-        }
-    })
-    const neg_weight = parseFloat((-n_positive / n_nagative).toFixed(2))
-
-    return kernel.map((value) => {
-        if (value < 0) {
-            return neg_weight
-        } else if (value > 0) {
-            return 1
-        }
-        return 0
-    })
+function setExample(example: Example) {
+    color_0.value = example.color_0
+    color_1.value = example.color_1
+    kernel_size.value = example.kernel_size
+    kernel.value = example.get_kernel()
+    activation.value = example.activation
 }
 
 function onKernelSizeChange(new_value: number) {
@@ -97,11 +71,35 @@ function reset() {
     renderer.value.render(scene.value)
 }
 
-function onStepClick() {
+function automatonStep() {
     const device = renderer.value.device
     scene.value.switchGenerations(device)
     renderer.value.render(scene.value)
 }
+
+const intervalRef = ref<number | null>(null)
+
+function startAnimation(fps: number) {
+    intervalRef.value = setInterval(automatonStep, 1000 / fps)
+}
+
+function pauseAnimation() {
+    if (intervalRef.value) {
+        clearInterval(intervalRef.value)
+    }
+    intervalRef.value = null
+}
+
+watch(FPS, (new_FPS) => {
+    pauseAnimation()
+    startAnimation(new_FPS)
+})
+
+onBeforeUnmount(() => {
+    pauseAnimation()
+    renderer.value.cleanup()
+    scene.value.cleanup()
+})
 
 watch(grid_size, (new_grid_size) => {
     const canvas = canvasRef.value
@@ -132,104 +130,6 @@ watch(activation, (new_activation) => {
         initScene(canvasRef.value)
     }
 })
-
-function organicMazeExample() {
-    color_0.value = '#59F9CE'
-    color_1.value = '#4842FF'
-
-    const N = -1
-    const P = 1
-
-    kernel_size.value = 11
-    kernel.value = normalizeKernel(
-        new Float32Array(
-            [
-                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                [0, N, N, N, N, N, N, N, N, N, 0],
-                [0, N, N, N, P, P, P, N, N, N, 0],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [0, N, N, N, P, P, P, N, N, N, 0],
-                [0, N, N, N, N, N, N, N, N, N, 0],
-                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-            ].flat(),
-        ),
-    )
-    activation.value = 'Sigmoid'
-    reset()
-}
-
-function zebraExample() {
-    color_0.value = '#000000'
-    color_1.value = '#EBEBEB'
-
-    const N = -1
-    const P = 1
-
-    kernel_size.value = 9
-    kernel.value = normalizeKernel(
-        new Float32Array(
-            [
-                [0, 0, N, N, P, N, N, 0, 0],
-                [0, N, N, P, P, P, N, N, 0],
-                [N, N, N, P, P, P, N, N, N],
-                [N, N, P, P, P, P, P, N, N],
-                [N, N, P, P, P, P, P, N, N],
-                [N, N, P, P, P, P, P, N, N],
-                [N, N, N, P, P, P, N, N, N],
-                [0, N, N, P, P, P, N, N, 0],
-                [0, 0, N, N, P, N, N, 0, 0],
-            ].flat(),
-        ),
-    )
-    activation.value = 'Sigmoid'
-    reset()
-}
-
-// https://neuralpatterns.io
-function slimeMoldExample() {
-    color_0.value = '#000000'
-    color_1.value = '#FFFC41'
-
-    const X = -0.85
-    const Y = -0.2
-    const Z = 0.8
-
-    kernel_size.value = 3
-    kernel.value = new Float32Array(
-        [
-            [Z, X, Z],
-            [X, Y, X],
-            [Z, X, Z],
-        ].flat(),
-    )
-    activation.value = 'Inverted Gaussian'
-    reset()
-}
-
-// https://neuralpatterns.io
-function mitosisExample() {
-    color_0.value = '#001E57'
-    color_1.value = '#00CE00'
-
-    const X = 0.88
-    const Y = 0.4
-    const Z = -0.939
-
-    kernel_size.value = 3
-    kernel.value = new Float32Array(
-        [
-            [Z, X, Z],
-            [X, Y, X],
-            [Z, X, Z],
-        ].flat(),
-    )
-    activation.value = 'Inverted Gaussian'
-    reset()
-}
 </script>
 
 <template>
@@ -269,20 +169,37 @@ function mitosisExample() {
         <template v-else>
             <PanelSection>
                 <PanelButton :mdi-path="mdiReload" text="Reset" @click="reset" />
-                <ColorInput v-model="color_0" />
-                <ColorInput v-model="color_1" />
-                <PanelButton :mdi-path="mdiPlay" text="Step" @click="onStepClick" />
+                <PanelButton :mdi-path="mdiStepForward" text="Step" @click="automatonStep()" />
+                <PanelButton
+                    v-if="!intervalRef"
+                    :mdi-path="mdiPlay"
+                    text="Run"
+                    @click="() => startAnimation(FPS)"
+                />
+                <PanelButton v-else :mdi-path="mdiPause" text="Pause" @click="pauseAnimation" />
             </PanelSection>
+            <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
             <NumberSingleSelect
                 text="Grid size"
                 name="grid-size"
                 :options="[256, 512, 1024]"
                 v-model="grid_size"
             />
-            <MenuItem text="Organic maze" @click="organicMazeExample" />
-            <MenuItem text="Zebra" @click="zebraExample" />
-            <MenuItem text="Slime mold" @click="slimeMoldExample" />
-            <MenuItem text="Mitosis" @click="mitosisExample" />
+            <PanelSection>
+                <ColorInput v-model="color_0" />
+                <p>Select colors</p>
+                <ColorInput v-model="color_1" />
+            </PanelSection>
+            <MenuItem
+                v-for="example in examples"
+                :key="example.name"
+                :text="example.name"
+                @click="
+                    () => {
+                        setExample(example)
+                    }
+                "
+            />
         </template>
     </SidePanelCanvas>
 </template>
