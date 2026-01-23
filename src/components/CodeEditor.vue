@@ -29,7 +29,10 @@ const KEYWORDS = [
 const SEPARATOR_REGEX = '([\\s=\\(\\)\\{\\},;\\<\\>&]|^|$)'
 
 // 1$ - comment, 2$ - after
-const COMMENT_REGEX = /(\/\/.*?)(<br>|$)/g
+const SINGLE_LINE_COMMENT_REGEX = /(\/\/.*?)(<br>|$)/g
+
+// 1$ - comment
+const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
 
 // 1$ - before, 2$ - keyword, 3$ - after
 const KEYWORD_REGEX = new RegExp(`${SEPARATOR_REGEX}(${KEYWORDS.join('|')})${SEPARATOR_REGEX}`, 'g')
@@ -51,7 +54,8 @@ function syntaxHighlight(text: string) {
         .replace(/</g, '&lt;')
         .replace(/>/, '&gt;')
         .replace(/\n/g, '<br>')
-        .replace(COMMENT_REGEX, '<span style="color: gray">$1</span>$2')
+        .replace(SINGLE_LINE_COMMENT_REGEX, '<span style="color: gray">$1</span>$2')
+        .replace(MULTILINE_COMMENT_REGEX, '<span style="color: gray">$1</span>')
         .replace(KEYWORD_REGEX, '$1<span style="color: magenta; font-weight: bold">$2</span>$3')
         .replace(NUMBER_LITERAL_REGEX, '$1<span style="color: green">$2</span>$3')
         .replace(
