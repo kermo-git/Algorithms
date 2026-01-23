@@ -1,116 +1,121 @@
 <script setup lang="ts">
-import SvgIcon from '@jamescoyle/vue-icon'
-import { mdiSwapHorizontal } from '@mdi/js'
+import { mdiDelete, mdiPlus } from '@mdi/js'
 
-import PanelButton from './PanelButton.vue'
-import PanelSection from './PanelSection.vue'
-import ColorInput from './ColorInput.vue'
+import PanelButton from '@/components/PanelButton.vue'
+import ColorInput from '@/components/ColorInput.vue'
+import { toHexColor } from '@/utils/Colors'
 
-interface Props {
-    modelValue: string[]
-}
-const props = defineProps<Props>()
-
-interface Emits {
-    (e: 'update:modelValue', value: string[]): void
-}
-const emit = defineEmits<Emits>()
-
-const palettes = [
-    {
-        name: 'Techno',
-        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB'],
-    },
-    {
-        name: 'Funky',
-        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3'],
-    },
-    {
-        name: 'Magic',
-        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B'],
-    },
-    {
-        name: 'Forest',
-        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B'],
-    },
-    {
-        name: 'Amethyst',
-        colors: ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA'],
-    },
-    {
-        name: 'Ice',
-        colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A'],
-    },
-    {
-        name: 'Satellite photo',
-        colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3'],
-    },
-]
-
-function onSwapClick(ev: Event) {
-    const data = (ev.currentTarget as HTMLElement).dataset
-    const i1 = Number(data.i1)
-    const i2 = Number(data.i2)
-
-    const new_palette = props.modelValue.slice()
-    const temp = new_palette[i1]
-    new_palette[i1] = new_palette[i2]
-    new_palette[i2] = temp
-
-    emit('update:modelValue', new_palette)
-}
+const colors = defineModel<string[]>()
 </script>
 
 <template>
-    <PanelSection>
-        <template v-for="(color, i) in props.modelValue" :key="i">
-            <ColorInput
-                :model-value="color"
-                @update:model-value="
-                    (new_color?: string) => {
-                        const color_value = new_color || '#000000'
-                        const before = props.modelValue.slice(0, i)
-                        const after = props.modelValue.slice(i + 1)
-                        const new_palette = before.concat([color_value]).concat(after)
-                        emit('update:modelValue', new_palette)
+    <div class="container">
+        <div class="column">
+            <PanelButton
+                :mdi-path="mdiPlus"
+                @click="
+                    () => {
+                        const colors_copy = colors!.slice()
+                        colors_copy.unshift(
+                            toHexColor({
+                                red: Math.floor(Math.random() * 255),
+                                green: Math.floor(Math.random() * 255),
+                                blue: Math.floor(Math.random() * 255),
+                            }),
+                        )
+
+                        colors = colors_copy
                     }
                 "
             />
-            <button
-                v-if="i < props.modelValue.length - 1"
-                :data-i1="i"
-                :data-i2="i + 1"
-                class="swap"
-                @click="onSwapClick"
-            >
-                <svg-icon type="mdi" :path="mdiSwapHorizontal" />
-            </button>
-        </template>
-    </PanelSection>
-    <PanelSection>
-        <PanelButton
-            v-for="palette in palettes"
-            :key="palette.name"
-            :text="palette.name"
-            @click="
-                () => {
-                    emit('update:modelValue', palette.colors)
-                }
-            "
-        />
-    </PanelSection>
+            <div v-for="(hex_color, i) in colors" :key="i" class="color-unit">
+                <PanelButton
+                    v-if="colors!.length > 2"
+                    :mdi-path="mdiDelete"
+                    @click="
+                        () => {
+                            const colors_copy = colors!.slice()
+                            colors_copy.splice(i, 1)
+                            colors = colors_copy
+                        }
+                    "
+                />
+                <ColorInput
+                    :model-value="hex_color"
+                    :data-index="i"
+                    @update:model-value="
+                        (new_color?: string) => {
+                            const colors_copy = colors!.slice()
+                            colors_copy.splice(i, 1, new_color!)
+                            colors = colors_copy
+                        }
+                    "
+                />
+            </div>
+        </div>
+        <div class="column">
+            <PanelButton
+                text="Biomes"
+                @click="
+                    () => {
+                        colors = ['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']
+                    }
+                "
+            />
+            <PanelButton
+                text="Rainbow"
+                @click="
+                    () => {
+                        colors = [
+                            '#BE38F3',
+                            '#0061FF',
+                            '#00C7FC',
+                            '#00F900',
+                            '#F5EC00',
+                            '#FFAA00',
+                            '#FF4013',
+                        ]
+                    }
+                "
+            />
+            <PanelButton
+                text="Fire & Ice"
+                @click="
+                    () => {
+                        colors = ['#0B90B7', '#00C7FC', '#94E3FE', '#FAB700', '#FF6A00', '#EA4F00']
+                    }
+                "
+            />
+            <PanelButton
+                text="Lava"
+                @click="
+                    () => {
+                        colors = ['#FEC700', '#FF6A00', '#E32400', '#606060', '#444444']
+                    }
+                "
+            />
+        </div>
+    </div>
 </template>
 
 <style scoped>
-.swap {
-    background-color: transparent;
-    border: none;
-    color: var(--text-color);
-    padding: 0;
-    cursor: pointer;
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
 }
 
-.swap:hover {
-    color: var(--accent-color);
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--small-gap);
+}
+
+.color-unit {
+    width: 100%;
+    display: flex;
+    gap: var(--small-gap);
+    align-items: center;
+    justify-content: center;
 }
 </style>

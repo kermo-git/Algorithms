@@ -2,7 +2,6 @@
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { shaderColorArray } from '@/utils/Colors'
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { type NoiseAlgorithm } from '@/Noise/Types'
 
@@ -10,17 +9,15 @@ import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
+import ColorPanel from '@/components/ColorPalette.vue'
 
 import VoronoiScene from './VoronoiScene'
 import { type DistanceMeasure, type VoronoiUniforms } from './VoronoiShader'
-import ColorPanel from './ColorPanel.vue'
 
 const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
-const voronoi_colors = ref<FloatArray>(
-    shaderColorArray(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']),
-)
+const voronoi_colors = ref(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB'])
 const voronoi_n_columns = ref(16)
 
 const noise_algorithm = ref<NoiseAlgorithm | 'None'>('None')
@@ -46,7 +43,7 @@ async function initScene(canvas: HTMLCanvasElement) {
     const init_info = await renderer.value.init(canvas)
     const init_params: VoronoiUniforms = {
         voronoi_n_columns: voronoi_n_columns.value,
-        voronoi_colors: voronoi_colors.value,
+        voronoi_colors: shaderColorArray(voronoi_colors.value),
         noise_scale: noise_scale.value,
         noise_warp_strength: noise_warp_strength.value,
         noise_z: noise_z.value,
@@ -80,7 +77,8 @@ watch(voronoi_n_columns, (new_grid_size) => {
 })
 
 watch(voronoi_colors, (new_colors) => {
-    scene.value.updateVoronoiColors(new_colors, renderer.value.device)
+    const shader_colors = shaderColorArray(new_colors)
+    scene.value.updateVoronoiColors(shader_colors, renderer.value.device)
     renderer.value.render(scene.value)
 })
 

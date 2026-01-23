@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import { mdiContentCopy, mdiDice5 } from '@mdi/js'
 
-import ColorPalette from '@/components/ColorPalette.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
@@ -15,6 +14,7 @@ import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import { Matrix } from '@/utils/Matrix'
 import { drawDiscreteColors } from '@/utils/DrawPixels'
 import { generatePattern, createRule, type FirstGenType, getNumRules } from './Automaton1D'
+import ColorPalette from './ColorPalette.vue'
 
 const activeTab = ref('Configuration')
 const numStates = ref(2)
