@@ -3,11 +3,61 @@ import { ref } from 'vue'
 import { mdiPlay } from '@mdi/js'
 import PanelButton from './PanelButton.vue'
 
+const KEYWORDS = [
+    'fn',
+    'var',
+    'let',
+    'const',
+    'u32',
+    'i32',
+    'f32',
+    'vec2',
+    'vec3',
+    'vec4',
+    'vec2u',
+    'vec2i',
+    'vec2f',
+    'vec3u',
+    'vec3i',
+    'vec3f',
+    'vec4u',
+    'vec4i',
+    'vec4f',
+    'array',
+]
+
+const SEPARATOR_REGEX = '([\\s=\\(\\)\\{\\},;\\<\\>&]|^|$)'
+
+// 1$ - comment, 2$ - after
+const COMMENT_REGEX = /(\/\/.*?)(<br>|$)/g
+
+// 1$ - before, 2$ - keyword, 3$ - after
+const KEYWORD_REGEX = new RegExp(`${SEPARATOR_REGEX}(${KEYWORDS.join('|')})${SEPARATOR_REGEX}`, 'g')
+
+// 1$ - before, 2$ - number literal, 3$ - after
+const NUMBER_LITERAL_REGEX = new RegExp(
+    `${SEPARATOR_REGEX}(\\d+\\.?\\d*[uf]?)${SEPARATOR_REGEX}`,
+    'g',
+)
+
+// 1$ - before, 2$ - function name, 3$ - whitespace + opening parenthesis
+const FUNCTION_NAME_REGEX = new RegExp(`${SEPARATOR_REGEX}([\\w]+)(\\s*\\()`, 'g')
+
 const code = defineModel<string>()
 const editor_code = ref<string>(code.value || '')
 
 function syntaxHighlight(text: string) {
-    return text.replace(/\n/g, '<br/>').replace(/fn/g, '<span style="color: magenta">fn</span>')
+    return text
+        .replace(/</g, '&lt;')
+        .replace(/>/, '&gt;')
+        .replace(/\n/g, '<br>')
+        .replace(COMMENT_REGEX, '<span style="color: gray">$1</span>$2')
+        .replace(KEYWORD_REGEX, '$1<span style="color: magenta; font-weight: bold">$2</span>$3')
+        .replace(NUMBER_LITERAL_REGEX, '$1<span style="color: green">$2</span>$3')
+        .replace(
+            FUNCTION_NAME_REGEX,
+            '$1<span style="color: yellow; font-weight: bold">$2</span>$3',
+        )
 }
 
 function getCaretOffset(el: HTMLElement): number {
@@ -108,8 +158,8 @@ function onInput(ev: InputEvent) {
 }
 
 .code-editor {
-    resize: none;
     font-size: inherit;
+    font-family: monospace;
     color: inherit;
     padding: var(--small-gap);
     background-color: var(--background-color);
