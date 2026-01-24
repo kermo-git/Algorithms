@@ -1,7 +1,16 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 
-export type Activation = 'Discrete' | 'Sigmoid' | 'Inverted Gaussian'
+export const invertedGaussian = /* wgsl */ `// Inverted Gaussian function
+fn activate(x: f32) -> f32 {
+    return -1/(0.9 * pow(x, 2) + 1) + 1;
+}`
+
+export const sigmoid = /* wgsl */ `// Sigmoid function
+fn activate(x: f32) -> f32 {
+    let exp_x = exp(x);
+    return exp_x / (exp_x + 1);
+}`
 
 export interface NeuralUniforms {
     grid_size: number
@@ -10,31 +19,8 @@ export interface NeuralUniforms {
     colors: FloatArray
 }
 
-function activationShader(activation: Activation): string {
-    if (activation === 'Discrete') {
-        return /* wgsl */ `
-            fn activate(x: f32) -> f32 {
-                return select(0, 1, x > 0);
-            }
-        `
-    } else if (activation === 'Sigmoid') {
-        return /* wgsl */ `
-            fn activate(x: f32) -> f32 {
-                let exp_x = exp(x);
-                return exp_x / (exp_x + 1);
-            }
-        `
-    } else {
-        return /* wgsl */ `
-            fn activate(x: f32) -> f32 {
-                return -1/(0.9 * pow(x, 2) + 1) + 1;
-            }
-        `
-    }
-}
-
 export default function neuralShader(
-    activation: Activation,
+    activation_shader: string,
     color_format: GPUTextureFormat,
 ): string {
     return /* wgsl */ `
@@ -52,7 +38,7 @@ export default function neuralShader(
         @group(2) @binding(1) var<uniform> kernel_size: u32;
         @group(2) @binding(2) var<uniform> colors: Colors;
 
-        ${activationShader(activation)}
+        ${activation_shader}
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(

@@ -1,5 +1,5 @@
 import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
-import type { Activation, NeuralUniforms } from './NeuralShader'
+import type { NeuralUniforms } from './NeuralShader'
 import neuralShader from './NeuralShader'
 import {
     createIntUniform,
@@ -23,10 +23,10 @@ export class NeuralScene implements Scene {
 
     pipeline!: GPUComputePipeline
 
-    activation: Activation
+    activation_shader: string
 
-    constructor(activation: Activation) {
-        this.activation = activation
+    constructor(activation: string) {
+        this.activation_shader = activation
     }
 
     getPipeline(): GPUComputePipeline {
@@ -36,7 +36,7 @@ export class NeuralScene implements Scene {
     async init(data: NeuralUniforms, info: InitInfo) {
         const { device, color_format } = info
 
-        const shader_code = neuralShader(this.activation, color_format)
+        const shader_code = neuralShader(this.activation_shader, color_format)
         this.pipeline = await createComputePipeline(shader_code, device)
 
         this.initGrid(data.grid_size, device)
@@ -129,11 +129,11 @@ export class NeuralScene implements Scene {
     }
 
     cleanup(): void {
-        this.generation_1.destroy()
-        this.generation_2.destroy()
-        this.kernel.destroy()
-        this.kernel_size.destroy()
-        this.colors.destroy()
+        this.generation_1?.destroy()
+        this.generation_2?.destroy()
+        this.kernel?.destroy()
+        this.kernel_size?.destroy()
+        this.colors?.destroy()
     }
 }
 

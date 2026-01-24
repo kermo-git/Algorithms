@@ -1,5 +1,5 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import type { Activation } from './NeuralShader'
+import { invertedGaussian, sigmoid } from './NeuralShader'
 
 export interface Example {
     name: string
@@ -7,7 +7,7 @@ export interface Example {
     color_1: string
     kernel_size: number
     get_kernel: () => FloatArray
-    activation: Activation
+    activation: string
 }
 
 export function normalizeKernel(kernel: FloatArray) {
@@ -62,7 +62,7 @@ export const examples: Example[] = [
                 ),
             )
         },
-        activation: 'Sigmoid',
+        activation: sigmoid,
     },
     {
         name: 'Zebra',
@@ -90,7 +90,7 @@ export const examples: Example[] = [
                 ),
             )
         },
-        activation: 'Sigmoid',
+        activation: sigmoid,
     },
     {
         // https://neuralpatterns.io
@@ -112,7 +112,7 @@ export const examples: Example[] = [
                 ].flat(),
             )
         },
-        activation: 'Inverted Gaussian',
+        activation: invertedGaussian,
     },
     {
         // https://neuralpatterns.io
@@ -134,6 +134,6 @@ export const examples: Example[] = [
                 ].flat(),
             )
         },
-        activation: 'Inverted Gaussian',
+        activation: invertedGaussian,
     },
 ]

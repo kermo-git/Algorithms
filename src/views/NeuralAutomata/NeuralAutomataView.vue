@@ -8,15 +8,15 @@ import PanelSection from '@/components/PanelSection.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import MatrixEditor from '@/views/NeuralAutomata/MatrixEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-
 import MenuItem from '@/components/MenuItem.vue'
 import ColorInput from '@/components/ColorInput.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
+
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { NeuralScene } from './NeuralScene'
-import type { Activation } from './NeuralShader'
 import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { shaderColorArray } from '@/utils/Colors'
 
+import { NeuralScene } from './NeuralScene'
 import { examples, normalizeKernel, type Example } from './Examples'
 
 const default_example = examples[0]
@@ -27,7 +27,7 @@ const color_0 = ref(default_example.color_0)
 const color_1 = ref(default_example.color_1)
 const kernel_size = ref(default_example.kernel_size)
 const kernel = ref<FloatArray>(default_example.get_kernel())
-const activation = ref<Activation>(default_example.activation)
+const activation = ref<string>(default_example.activation)
 const FPS = ref<number>(60)
 
 const scene = shallowRef(markRaw(new NeuralScene(activation.value)))
@@ -139,12 +139,7 @@ watch(activation, (new_activation) => {
         @canvas-ready="initScene"
     >
         <template v-if="activeTab === 'Configuration'">
-            <TextSingleSelect
-                text="Activation"
-                name="activation"
-                :options="['Discrete', 'Sigmoid', 'Inverted Gaussian']"
-                v-model="activation"
-            />
+            <CodeEditor title="Activation function" v-model="activation" />
 
             <NumberSingleSelect
                 text="Kernel size"

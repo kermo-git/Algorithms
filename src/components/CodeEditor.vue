@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref, useTemplateRef } from 'vue'
 import { mdiPlay } from '@mdi/js'
 import PanelButton from './PanelButton.vue'
 
@@ -51,8 +51,16 @@ interface Props {
     title: string
 }
 const props = defineProps<Props>()
-const code = defineModel<string>()
-const editor_code = ref<string>(code.value || '')
+const working_code = defineModel<string>()
+const editor_code = ref<string>('')
+
+const editor_ref = useTemplateRef('editor')
+onMounted(() => {
+    editor_code.value = working_code.value?.replace(/\u{20}\u{20}+/gu, '\u{A0}\u{A0}\u{A0}') || ''
+    if (editor_ref.value) {
+        editor_ref.value.innerHTML = syntaxHighlight(editor_code.value)
+    }
+})
 
 function syntaxHighlight(text: string) {
     return text
@@ -148,12 +156,12 @@ function onInput(ev: InputEvent) {
                 :mdi-path="mdiPlay"
                 @click="
                     () => {
-                        code = editor_code
+                        working_code = editor_code.replace(/\u{A0}/gu, '\u{20}')
                     }
                 "
             />
         </div>
-        <div class="code-editor" contenteditable="true" @input="onInput" />
+        <div ref="editor" class="code-editor" contenteditable="true" @input="onInput" />
     </div>
 </template>
 
