@@ -1,4 +1,9 @@
-import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
+import {
+    compileShader,
+    type InitInfo,
+    type Scene,
+    type ShaderIssue,
+} from '@/WebGPU/ComputeRenderer'
 import {
     type FloatArray,
     createFloatUniform,
@@ -44,13 +49,20 @@ export default class VoronoiScene implements Scene {
     static_bind_group!: GPUBindGroup
     color_bind_group!: GPUBindGroup
 
-    async init(data: VoronoiUniforms, info: InitInfo) {
+    async init(data: VoronoiUniforms, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
         const { warp_algorithm, warp_dimension } = this.setup
 
         const shader_code = `${voronoiShader(this.setup, color_format)}`
-        this.pipeline = await createComputePipeline(shader_code, device)
 
+        const { module, issues } = await compileShader(device, shader_code)
+
+        this.pipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: module,
+            },
+        })
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.voronoi_n_columns = createFloatUniform(data.voronoi_n_columns || 16, device)
         this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
@@ -133,6 +145,8 @@ export default class VoronoiScene implements Scene {
                 },
             ],
         })
+
+        return issues
     }
 
     render(encoder: GPUComputePassEncoder): void {

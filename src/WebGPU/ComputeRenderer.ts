@@ -1,41 +1,43 @@
 export const WG_DIM = 8
 
+export interface ShaderIssue {
+    message: string
+    codeLine: string
+}
+
+export interface ShaderCompilationResult {
+    module: GPUShaderModule
+    issues: ShaderIssue[]
+}
+
 export async function compileShader(
     device: GPUDevice,
     shader_code: string,
-): Promise<GPUShaderModule> {
+): Promise<ShaderCompilationResult> {
     const trimmed_code = shader_code.trim()
 
     const module = device.createShaderModule({
         code: trimmed_code,
     })
     const info = await module.getCompilationInfo()
+    const issues: ShaderIssue[] = []
 
     if (info.messages.length > 0) {
         const lines = trimmed_code.split('\n')
 
         for (const message of info.messages) {
             const error_line = lines[message.lineNum - 1].trim()
-
-            console.error(`${message.type} in shader code: ${message.message}\n\n${error_line}`)
+            issues.push({
+                message: `${message.type}: ${message.message}`,
+                codeLine: error_line,
+            })
         }
     }
-    return module
-}
-
-export async function createComputePipeline(shader_code: string, device: GPUDevice) {
-    const shader_module = await compileShader(device, shader_code)
-
-    return device.createComputePipeline({
-        layout: 'auto',
-        compute: {
-            module: shader_module,
-        },
-    })
+    return { module, issues }
 }
 
 export interface Scene {
-    init(data: unknown, info: InitInfo): Promise<void>
+    init(data: unknown, info: InitInfo): Promise<ShaderIssue[]>
     getPipeline(): GPUComputePipeline
     render(encoder: GPUComputePassEncoder): void
     cleanup(): void

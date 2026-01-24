@@ -1,4 +1,9 @@
-import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
+import {
+    compileShader,
+    type InitInfo,
+    type Scene,
+    type ShaderIssue,
+} from '@/WebGPU/ComputeRenderer'
 import type { NeuralUniforms } from './NeuralShader'
 import neuralShader from './NeuralShader'
 import {
@@ -33,14 +38,19 @@ export class NeuralScene implements Scene {
         return this.pipeline
     }
 
-    async init(data: NeuralUniforms, info: InitInfo) {
+    async init(data: NeuralUniforms, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
 
         const shader_code = neuralShader(this.activation_shader, color_format)
-        this.pipeline = await createComputePipeline(shader_code, device)
+        const { module, issues } = await compileShader(device, shader_code)
 
+        this.pipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: module,
+            },
+        })
         this.initGrid(data.grid_size, device)
-
         this.kernel_size = createIntUniform(data.kernel_size, device)
         this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
         this.colors = createUniformBuffer(data.colors, device)
@@ -68,6 +78,8 @@ export class NeuralScene implements Scene {
                 },
             ],
         })
+
+        return issues
     }
 
     initGrid(grid_size: number, device: GPUDevice) {

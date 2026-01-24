@@ -13,7 +13,7 @@ import ColorInput from '@/components/ColorInput.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import ComputeRenderer from '@/WebGPU/ComputeRenderer'
+import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
 import { shaderColorArray } from '@/utils/Colors'
 
 import { NeuralScene } from './NeuralScene'
@@ -32,6 +32,7 @@ const FPS = ref<number>(60)
 
 const scene = shallowRef(markRaw(new NeuralScene(activation.value)))
 const renderer = shallowRef(markRaw(new ComputeRenderer()))
+const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
@@ -40,7 +41,7 @@ async function initScene(canvas: HTMLCanvasElement) {
     canvas.height = grid_size.value
 
     const init_info = await renderer.value.init(canvas)
-    await scene.value.init(
+    shader_issues.value = await scene.value.init(
         {
             grid_size: grid_size.value,
             kernel_size: kernel_size.value,
@@ -135,6 +136,7 @@ watch(activation, (new_activation) => {
 <template>
     <SidePanelCanvas
         :tab-captions="['Configuration', 'Run']"
+        :issues="shader_issues"
         v-model="activeTab"
         @canvas-ready="initScene"
     >

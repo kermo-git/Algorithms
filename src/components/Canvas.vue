@@ -2,11 +2,17 @@
 import { onMounted, useTemplateRef } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
+import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
 import PanelButton from '@/components/PanelButton.vue'
+
+interface Props {
+    issues?: ShaderIssue[]
+}
 
 interface Emits {
     (e: 'canvasReady', canvas: HTMLCanvasElement): void
 }
+const props = defineProps<Props>()
 const canvasRef = useTemplateRef('canvas')
 const emit = defineEmits<Emits>()
 
@@ -45,6 +51,14 @@ function download() {
             <PanelButton class="save-button" :mdi-path="mdiFloppy" />
             <canvas ref="canvas" />
         </div>
+        <div v-if="props.issues" class="issue-block">
+            <template v-for="(issue, i) in props.issues" :key="i">
+                <p class="issue">{{ issue.message }}</p>
+                <p class="issue">
+                    &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{ issue.codeLine }}
+                </p>
+            </template>
+        </div>
         <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>
 </template>
@@ -53,6 +67,7 @@ function download() {
 .main-container {
     position: relative;
     overflow-y: scroll;
+    --error-color: rgb(255, 65, 65);
 }
 
 .canvas-container {
@@ -70,5 +85,16 @@ canvas {
     position: absolute;
     right: 2em;
     bottom: 2em;
+}
+
+.issue-block {
+    position: absolute;
+    top: 0;
+    left: 1rem;
+    width: 100%;
+    text-align: left;
+    font-size: 15pt;
+    font-family: monospace;
+    color: var(--error-color);
 }
 </style>

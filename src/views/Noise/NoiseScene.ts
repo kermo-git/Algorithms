@@ -1,4 +1,9 @@
-import { createComputePipeline, type InitInfo, type Scene } from '@/WebGPU/ComputeRenderer'
+import {
+    compileShader,
+    type InitInfo,
+    type Scene,
+    type ShaderIssue,
+} from '@/WebGPU/ComputeRenderer'
 import {
     createFloatUniform,
     createIntUniform,
@@ -42,14 +47,21 @@ export default class NoiseScene implements Scene {
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
-    async init(data: NoiseUniforms, info: InitInfo) {
+    async init(data: NoiseUniforms, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
         const { algorithm, dimension, transform } = this.setup
 
         const shader_code = noiseShader(this.setup, color_format)
         const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
 
-        this.pipeline = await createComputePipeline(shader_code, device)
+        const { module, issues } = await compileShader(device, shader_code)
+
+        this.pipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: module,
+            },
+        })
         this.hash_table = createStorageBuffer(generateHashTable(256), device)
         this.random_elements = createStorageBuffer(random_elements, device)
         this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
@@ -128,6 +140,8 @@ export default class NoiseScene implements Scene {
                 },
             ],
         })
+
+        return issues
     }
 
     render(encoder: GPUComputePassEncoder): void {

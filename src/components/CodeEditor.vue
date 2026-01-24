@@ -2,6 +2,7 @@
 import { onMounted, ref, useTemplateRef } from 'vue'
 import { mdiPlay } from '@mdi/js'
 import PanelButton from './PanelButton.vue'
+import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
 
 const KEYWORDS = [
     'fn',
@@ -172,7 +173,6 @@ function onInput(ev: InputEvent) {
     align-items: center;
     gap: var(--small-gap);
     width: 100%;
-    height: 15rem;
 }
 
 .code-header {
@@ -189,6 +189,7 @@ function onInput(ev: InputEvent) {
     border-radius: var(--border-radius);
     border: var(--border);
     width: 100%;
+    height: 15rem;
     flex-grow: 1;
     box-sizing: border-box;
     overflow-y: scroll;

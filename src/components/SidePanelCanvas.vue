@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useAttrs } from 'vue'
+
+import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
 import Canvas from './Canvas.vue'
 import TabControl from './TabControl.vue'
 
 interface Props {
     tabCaptions: string[]
+    issues?: ShaderIssue[]
 }
 const props = defineProps<Props>()
 const active_tab = defineModel<string>()
@@ -18,7 +21,7 @@ const attrs = useAttrs()
         <TabControl :captions="props.tabCaptions" v-model="active_tab">
             <slot />
         </TabControl>
-        <Canvas v-bind="attrs" />
+        <Canvas :issues="props.issues" v-bind="attrs" />
     </div>
 </template>
 
