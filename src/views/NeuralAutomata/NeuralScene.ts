@@ -4,8 +4,6 @@ import {
     type Scene,
     type ShaderIssue,
 } from '@/WebGPU/ComputeRenderer'
-import type { NeuralUniforms } from './NeuralShader'
-import neuralShader from './NeuralShader'
 import {
     createIntUniform,
     createStorageBuffer,
@@ -14,6 +12,8 @@ import {
     updateIntUniform,
     type FloatArray,
 } from '@/WebGPU/ShaderDataUtils'
+
+import { type NeuralUniforms, neuralShader } from './NeuralShader'
 
 export class NeuralScene implements Scene {
     generation_1_is_prev = true
@@ -87,7 +87,7 @@ export class NeuralScene implements Scene {
         this.generation_2?.destroy()
 
         const n_cells = grid_size * grid_size
-        const random_data = generateRandomFloatBits(n_cells)
+        const random_data = new Float32Array(n_cells).map(Math.random)
 
         this.generation_1 = createStorageBuffer(random_data, device)
         this.generation_2 = createStorageBuffer(random_data, device)
@@ -147,8 +147,4 @@ export class NeuralScene implements Scene {
         this.kernel_size?.destroy()
         this.colors?.destroy()
     }
-}
-
-function generateRandomFloatBits(n: number): FloatArray {
-    return new Float32Array(n).map(() => Math.round(Math.random()))
 }

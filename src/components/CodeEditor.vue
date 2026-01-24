@@ -2,7 +2,6 @@
 import { onMounted, ref, useTemplateRef } from 'vue'
 import { mdiPlay } from '@mdi/js'
 import PanelButton from './PanelButton.vue'
-import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
 
 const KEYWORDS = [
     'fn',

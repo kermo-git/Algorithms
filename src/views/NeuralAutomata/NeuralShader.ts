@@ -19,10 +19,7 @@ export interface NeuralUniforms {
     colors: FloatArray
 }
 
-export default function neuralShader(
-    activation_shader: string,
-    color_format: GPUTextureFormat,
-): string {
+export function neuralShader(activation_shader: string, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         struct Colors {
             color_0: vec4f,

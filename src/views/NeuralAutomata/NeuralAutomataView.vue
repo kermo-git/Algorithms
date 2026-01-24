@@ -2,20 +2,19 @@
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 
+import { shaderColorArray } from '@/utils/Colors'
+import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
+import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
+
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
-import TextSingleSelect from '@/components/TextSingleSelect.vue'
-import MatrixEditor from '@/views/NeuralAutomata/MatrixEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
-import { shaderColorArray } from '@/utils/Colors'
-
+import MatrixEditor from './MatrixEditor.vue'
 import { NeuralScene } from './NeuralScene'
 import { examples, normalizeKernel, type Example } from './Examples'
 
