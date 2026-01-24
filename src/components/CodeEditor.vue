@@ -47,6 +47,10 @@ const NUMBER_LITERAL_REGEX = new RegExp(
 // 1$ - before, 2$ - function name, 3$ - whitespace + opening parenthesis
 const FUNCTION_NAME_REGEX = new RegExp(`${SEPARATOR_REGEX}([\\w]+)(\\s*\\()`, 'g')
 
+interface Props {
+    title: string
+}
+const props = defineProps<Props>()
 const code = defineModel<string>()
 const editor_code = ref<string>(code.value || '')
 
@@ -137,15 +141,18 @@ function onInput(ev: InputEvent) {
 
 <template>
     <div class="code-component">
-        <PanelButton
-            text="Run"
-            :mdi-path="mdiPlay"
-            @click="
-                () => {
-                    code = editor_code
-                }
-            "
-        />
+        <div class="code-header">
+            <p>{{ props.title }}</p>
+            <PanelButton
+                text="Run"
+                :mdi-path="mdiPlay"
+                @click="
+                    () => {
+                        code = editor_code
+                    }
+                "
+            />
+        </div>
         <div class="code-editor" contenteditable="true" @input="onInput" />
     </div>
 </template>
@@ -156,6 +163,14 @@ function onInput(ev: InputEvent) {
     flex-direction: column;
     align-items: center;
     gap: var(--small-gap);
+    width: 100%;
+    height: 15rem;
+}
+
+.code-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
 }
 
 .code-editor {
@@ -166,7 +181,9 @@ function onInput(ev: InputEvent) {
     border-radius: var(--border-radius);
     border: var(--border);
     width: 100%;
+    flex-grow: 1;
     box-sizing: border-box;
+    overflow-y: scroll;
 
     color: rgb(247, 160, 255);
     --comment-color: rgb(255, 158, 46);
