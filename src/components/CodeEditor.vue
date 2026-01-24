@@ -24,6 +24,7 @@ const KEYWORDS = [
     'vec4i',
     'vec4f',
     'array',
+    'return',
 ]
 
 const SEPARATOR_REGEX = '([\\s=\\(\\)\\{\\},;\\<\\>&]|^|$)'
@@ -54,14 +55,11 @@ function syntaxHighlight(text: string) {
         .replace(/</g, '&lt;')
         .replace(/>/, '&gt;')
         .replace(/\n/g, '<br>')
-        .replace(SINGLE_LINE_COMMENT_REGEX, '<span style="color: gray">$1</span>$2')
-        .replace(MULTILINE_COMMENT_REGEX, '<span style="color: gray">$1</span>')
-        .replace(KEYWORD_REGEX, '$1<span style="color: magenta; font-weight: bold">$2</span>$3')
-        .replace(NUMBER_LITERAL_REGEX, '$1<span style="color: green">$2</span>$3')
-        .replace(
-            FUNCTION_NAME_REGEX,
-            '$1<span style="color: yellow; font-weight: bold">$2</span>$3',
-        )
+        .replace(SINGLE_LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>$2')
+        .replace(MULTILINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
+        .replace(KEYWORD_REGEX, '$1<span class="code-keyword">$2</span>$3')
+        .replace(NUMBER_LITERAL_REGEX, '$1<span class="code-number-literal">$2</span>$3')
+        .replace(FUNCTION_NAME_REGEX, '$1<span class="code-function-name">$2</span>$3')
 }
 
 function getCaretOffset(el: HTMLElement): number {
@@ -138,14 +136,13 @@ function onInput(ev: InputEvent) {
 </script>
 
 <template>
-    <div class="container">
+    <div class="code-component">
         <PanelButton
             text="Run"
             :mdi-path="mdiPlay"
             @click="
                 () => {
                     code = editor_code
-                    console.log(editor_code)
                 }
             "
         />
@@ -153,8 +150,8 @@ function onInput(ev: InputEvent) {
     </div>
 </template>
 
-<style scoped>
-.container {
+<style>
+.code-component {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -164,17 +161,39 @@ function onInput(ev: InputEvent) {
 .code-editor {
     font-size: inherit;
     font-family: monospace;
-    color: inherit;
     padding: var(--small-gap);
     background-color: var(--background-color);
     border-radius: var(--border-radius);
     border: var(--border);
     width: 100%;
     box-sizing: border-box;
+
+    color: rgb(247, 160, 255);
+    --comment-color: rgb(255, 158, 46);
+    --keyword-color: rgb(0, 187, 255);
+    --function-name-color: rgb(157, 255, 0);
+    --number-literal-color: rgb(72, 255, 212);
 }
 
 .code-editor:focus {
     outline: none;
     border: var(--accent-border);
+}
+
+.code-keyword {
+    color: var(--keyword-color);
+}
+
+.code-function-name {
+    color: var(--function-name-color);
+}
+
+.code-number-literal {
+    color: var(--number-literal-color);
+}
+
+.code-comment,
+.code-comment * {
+    color: var(--comment-color);
 }
 </style>
