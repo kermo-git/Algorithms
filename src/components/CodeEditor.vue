@@ -42,7 +42,9 @@ const NUMBER_REGEX = new RegExp(`${SEP_LOOKBEHIND}(\\d+\\.?\\d*[uf]?)${SEP_LOOKA
 const FUNCTION_NAME_REGEX = new RegExp(`${SEP_LOOKBEHIND}([\\w]+)(?=\\s*\\()`, 'g')
 
 interface Props {
-    title: string
+    caption?: string
+    buttonText?: string
+    buttonMdiPath?: string
 }
 const props = defineProps<Props>()
 const working_code = defineModel<string>()
@@ -151,10 +153,10 @@ function onInput(ev: InputEvent) {
 <template>
     <div class="code-component">
         <div class="code-header">
-            <p>{{ props.title }}</p>
+            <p>{{ props.caption }}</p>
             <PanelButton
-                text="Run"
-                :mdi-path="mdiPlay"
+                :text="props.buttonText || 'Run'"
+                :mdi-path="props.buttonMdiPath || mdiPlay"
                 @click="
                     () => {
                         working_code = editor_code.replace(/\u{A0}/gu, '\u{20}')

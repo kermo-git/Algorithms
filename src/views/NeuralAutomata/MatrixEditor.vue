@@ -45,6 +45,9 @@ function onInput(ev: Event) {
                 :value="matrix![matrixSize * (row - 1) + (col - 1)].toFixed(2)"
                 @click="onCellClick"
                 @change="onInput"
+                :style="{
+                    fontSize: `${2.4 * (3 / matrixSize)}rem`,
+                }"
             />
         </template>
     </div>
@@ -65,7 +68,6 @@ function onInput(ev: Event) {
     -moz-appearance: textfield;
 }
 .cell {
-    font-size: inherit;
     text-align: center;
     background-color: inherit;
     color: inherit;

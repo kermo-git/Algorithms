@@ -134,13 +134,17 @@ watch(activation, (new_activation) => {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Run']"
+        :tab-captions="['Configuration', 'Run', 'Examples']"
         :issues="shader_issues"
         v-model="activeTab"
         @canvas-ready="initScene"
     >
         <template v-if="activeTab === 'Configuration'">
-            <CodeEditor title="Activation function" v-model="activation" />
+            <CodeEditor
+                caption="Activation function (WGSL)"
+                button-text="Compile"
+                v-model="activation"
+            />
 
             <NumberSingleSelect
                 text="Kernel size"
@@ -186,6 +190,7 @@ watch(activation, (new_activation) => {
                 <p>Select colors</p>
                 <ColorInput v-model="color_1" />
             </PanelSection>
+            <p>Load example</p>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"
