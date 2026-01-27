@@ -162,17 +162,6 @@ watch([matrix, colors], ([new_matrix, new_colors]) => {
                 "
             />
             <MenuItem
-                text="Some abstract art"
-                @click="
-                    () => {
-                        ruleNumber = '63096863032213108194227104012183027904'
-                        numStates = 4
-                        neighborhoodRadius = 1
-                        colors = ['#FF87FD', '#323232', '#009200', '#FECB3E']
-                    }
-                "
-            />
-            <MenuItem
                 text="Electrical circuit board"
                 @click="
                     () => {

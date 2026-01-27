@@ -134,7 +134,7 @@ watch(activation, (new_activation) => {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Run', 'Examples']"
+        :tab-captions="['Configuration', 'Run']"
         :issues="shader_issues"
         v-model="activeTab"
         @canvas-ready="initScene"
