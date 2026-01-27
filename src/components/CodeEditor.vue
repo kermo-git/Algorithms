@@ -27,25 +27,19 @@ const KEYWORDS = [
     'return',
 ]
 
-const SEPARATOR_REGEX = '([\\s=\\(\\)\\{\\},;\\<\\>&]|^|$)'
+const SEP_REGEX = '[\\s=\\(\\)\\{\\},;\\<\\>&]|^|$'
+const SEP_LOOKBEHIND = `(?<=${SEP_REGEX})`
+const SEP_LOOKAHEAD = `(?=${SEP_REGEX})`
 
-// 1$ - comment, 2$ - after
-const SINGLE_LINE_COMMENT_REGEX = /(\/\/.*?)(<br>|$)/g
+const SINGLE_LINE_COMMENT_REGEX = /(\/\/.*?)(?=<br>|$)/g
 
-// 1$ - comment
 const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
 
-// 1$ - before, 2$ - keyword, 3$ - after
-const KEYWORD_REGEX = new RegExp(`${SEPARATOR_REGEX}(${KEYWORDS.join('|')})${SEPARATOR_REGEX}`, 'g')
+const KEYWORD_REGEX = new RegExp(`${SEP_LOOKBEHIND}(${KEYWORDS.join('|')})${SEP_LOOKAHEAD}`, 'g')
 
-// 1$ - before, 2$ - number literal, 3$ - after
-const NUMBER_LITERAL_REGEX = new RegExp(
-    `${SEPARATOR_REGEX}(\\d+\\.?\\d*[uf]?)${SEPARATOR_REGEX}`,
-    'g',
-)
+const NUMBER_REGEX = new RegExp(`${SEP_LOOKBEHIND}(\\d+\\.?\\d*[uf]?)${SEP_LOOKAHEAD}`, 'g')
 
-// 1$ - before, 2$ - function name, 3$ - whitespace + opening parenthesis
-const FUNCTION_NAME_REGEX = new RegExp(`${SEPARATOR_REGEX}([\\w]+)(\\s*\\()`, 'g')
+const FUNCTION_NAME_REGEX = new RegExp(`${SEP_LOOKBEHIND}([\\w]+)(?=\\s*\\()`, 'g')
 
 interface Props {
     title: string
@@ -67,11 +61,11 @@ function syntaxHighlight(text: string) {
         .replace(/</g, '&lt;')
         .replace(/>/, '&gt;')
         .replace(/\n/g, '<br>')
-        .replace(SINGLE_LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>$2')
+        .replace(SINGLE_LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
         .replace(MULTILINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
-        .replace(KEYWORD_REGEX, '$1<span class="code-keyword">$2</span>$3')
-        .replace(NUMBER_LITERAL_REGEX, '$1<span class="code-number-literal">$2</span>$3')
-        .replace(FUNCTION_NAME_REGEX, '$1<span class="code-function-name">$2</span>$3')
+        .replace(KEYWORD_REGEX, '<span class="code-keyword">$1</span>')
+        .replace(NUMBER_REGEX, '<span class="code-number">$1</span>')
+        .replace(FUNCTION_NAME_REGEX, '<span class="code-function-name">$1</span>')
 }
 
 function getCaretOffset(el: HTMLElement): number {
@@ -213,7 +207,7 @@ function onInput(ev: InputEvent) {
     color: var(--function-name-color);
 }
 
-.code-number-literal {
+.code-number {
     color: var(--number-literal-color);
 }
 
