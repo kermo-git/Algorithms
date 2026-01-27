@@ -15,7 +15,7 @@ import ColorInput from '@/components/ColorInput.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 
 import MatrixEditor from './MatrixEditor.vue'
-import { NeuralScene } from './NeuralScene'
+import { NeuralScene } from './Scene'
 import { examples, normalizeKernel, type Example } from './Examples'
 
 const default_example = examples[0]

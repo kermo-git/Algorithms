@@ -16,12 +16,12 @@ import {
 
 import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
-import { type VoronoiSetup, voronoiShader, type VoronoiUniforms } from './VoronoiShader'
+import { type Setup, createShader, type UniformData } from './Shader'
 
 export default class VoronoiScene implements Scene {
-    setup: VoronoiSetup
+    setup: Setup
 
-    constructor(setup: VoronoiSetup) {
+    constructor(setup: Setup) {
         this.setup = setup
     }
 
@@ -49,11 +49,11 @@ export default class VoronoiScene implements Scene {
     static_bind_group!: GPUBindGroup
     color_bind_group!: GPUBindGroup
 
-    async init(data: VoronoiUniforms, info: InitInfo): Promise<ShaderIssue[]> {
+    async init(data: UniformData, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
         const { warp_algorithm, warp_dimension } = this.setup
 
-        const shader_code = `${voronoiShader(this.setup, color_format)}`
+        const shader_code = `${createShader(this.setup, color_format)}`
 
         const { module, issues } = await compileShader(device, shader_code)
 

@@ -14,7 +14,7 @@ import {
 } from '@/Noise/ShaderUtils'
 import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 
-export interface NoiseSetup {
+export interface Setup {
     algorithm: NoiseAlgorithm
     dimension: NoiseDimension
     transform: DomainTransform
@@ -31,7 +31,7 @@ export interface NoiseUniforms {
     color_points?: FloatArray
 }
 
-function enchancedNoiseShader({ algorithm, dimension, transform }: NoiseSetup) {
+function enchancedNoiseShader({ algorithm, dimension, transform }: Setup) {
     let noise_functions = `
         ${noiseFunctionShader(algorithm, dimension)}
         ${octaveNoiseShader(dimension)}
@@ -114,7 +114,7 @@ function noisePosCode(dimension: NoiseDimension) {
     }
 }
 
-export default function noiseShader(setup: NoiseSetup, color_format: GPUTextureFormat): string {
+export default function createShader(setup: Setup, color_format: GPUTextureFormat): string {
     const { dimension, transform } = setup
     const not_2D = dimension !== '2D' ? '' : '//'
     const only_4D = dimension === '4D' ? '' : '//'

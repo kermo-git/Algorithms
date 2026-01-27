@@ -1,24 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Automata1DView from '@/views/Automata1D/Automata1DView.vue'
-import NeuralAutomataView from '@/views/NeuralAutomata/NeuralAutomataView.vue'
-import NoiseView from '@/views/Noise/NoiseView.vue'
-import VoronoiView from '@/views/VoronoiCells/VoronoiView.vue'
+import Automata1DView from '@/views/CellularAutomata1D/View.vue'
+import NeuralAutomataView from '@/views/NeuralCellularAutomata2D/View.vue'
+import NoiseView from '@/views/Noise/View.vue'
+import VoronoiView from '@/views/VoronoiCells/View.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
             path: '/',
-            redirect: '/ca1d',
+            redirect: '/1d-ca',
         },
         {
-            path: '/ca1d',
-            name: 'ca1d',
+            path: '/1d-ca',
+            name: '1d-ca',
             component: Automata1DView,
         },
         {
-            path: '/nca',
-            name: 'nca',
+            path: '/2d-neural-ca',
+            name: '2d-neural-ca',
             component: NeuralAutomataView,
         },
         {

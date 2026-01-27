@@ -17,12 +17,12 @@ import {
 import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 
-import noiseShader, { type NoiseSetup, type NoiseUniforms } from './NoiseShader'
+import createShader, { type Setup, type NoiseUniforms } from './Shader'
 
 export default class NoiseScene implements Scene {
-    setup: NoiseSetup
+    setup: Setup
 
-    constructor(setup: NoiseSetup) {
+    constructor(setup: Setup) {
         this.setup = setup
     }
 
@@ -51,7 +51,7 @@ export default class NoiseScene implements Scene {
         const { device, color_format } = info
         const { algorithm, dimension, transform } = this.setup
 
-        const shader_code = noiseShader(this.setup, color_format)
+        const shader_code = createShader(this.setup, color_format)
         const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
 
         const { module, issues } = await compileShader(device, shader_code)

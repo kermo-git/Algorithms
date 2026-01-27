@@ -11,8 +11,8 @@ import { defaultColorPoints } from '@/Noise/Buffers'
 import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 
 import ColorPanel from './ColorPanel.vue'
-import NoiseScene from './NoiseScene'
-import type { NoiseUniforms } from './NoiseShader'
+import NoiseScene from './Scene'
+import type { NoiseUniforms } from './Shader'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')

@@ -11,8 +11,8 @@ import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from '@/components/ColorPalette.vue'
 
-import VoronoiScene from './VoronoiScene'
-import { type DistanceMeasure, type VoronoiUniforms } from './VoronoiShader'
+import VoronoiScene from './Scene'
+import { type DistanceMeasure, type UniformData } from './Shader'
 
 const active_tab = ref('Configuration')
 
@@ -41,7 +41,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     const init_info = await renderer.value.init(canvas)
-    const init_params: VoronoiUniforms = {
+    const init_params: UniformData = {
         voronoi_n_columns: voronoi_n_columns.value,
         voronoi_colors: shaderColorArray(voronoi_colors.value),
         noise_scale: noise_scale.value,

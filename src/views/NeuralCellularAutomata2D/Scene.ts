@@ -13,7 +13,7 @@ import {
     type FloatArray,
 } from '@/WebGPU/ShaderDataUtils'
 
-import { type NeuralUniforms, neuralShader } from './NeuralShader'
+import { type UniformData, createShader } from './Shader'
 
 export class NeuralScene implements Scene {
     generation_1_is_prev = true
@@ -38,10 +38,10 @@ export class NeuralScene implements Scene {
         return this.pipeline
     }
 
-    async init(data: NeuralUniforms, info: InitInfo): Promise<ShaderIssue[]> {
+    async init(data: UniformData, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
 
-        const shader_code = neuralShader(this.activation_shader, color_format)
+        const shader_code = createShader(this.activation_shader, color_format)
         const { module, issues } = await compileShader(device, shader_code)
 
         this.pipeline = device.createComputePipeline({

@@ -12,13 +12,13 @@ import {
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
 export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 
-export interface VoronoiSetup {
+export interface Setup {
     distance_measure: DistanceMeasure
     warp_algorithm?: NoiseAlgorithm
     warp_dimension?: NoiseDimension
 }
 
-export interface VoronoiUniforms {
+export interface UniformData {
     voronoi_n_columns?: number
     voronoi_colors?: FloatArray
     noise_scale?: number
@@ -28,8 +28,8 @@ export interface VoronoiUniforms {
     noise_z?: number
 }
 
-export function voronoiShader(
-    { distance_measure, warp_algorithm, warp_dimension }: VoronoiSetup,
+export function createShader(
+    { distance_measure, warp_algorithm, warp_dimension }: Setup,
     color_format: GPUTextureFormat,
 ) {
     const has_noise = warp_algorithm !== undefined && warp_dimension !== undefined

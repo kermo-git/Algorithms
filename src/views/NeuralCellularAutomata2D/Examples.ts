@@ -1,5 +1,5 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { invertedGaussian, sigmoid } from './NeuralShader'
+import { invertedGaussian, sigmoid } from './Shader'
 
 export interface Example {
     name: string

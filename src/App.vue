@@ -5,8 +5,10 @@ import { RouterLink, RouterView } from 'vue-router'
 <template>
     <div class="app">
         <nav>
-            <RouterLink class="router-link" to="/ca1d">1D cellular automata</RouterLink>
-            <RouterLink class="router-link" to="/nca">Neural Cellular Automata</RouterLink>
+            <RouterLink class="router-link" to="/1d-ca">1D cellular automata</RouterLink>
+            <RouterLink class="router-link" to="/2d-neural-ca"
+                >2D neural cellular automata</RouterLink
+            >
             <RouterLink class="router-link" to="/noise">Procedural noise</RouterLink>
             <RouterLink class="router-link" to="/voronoi">Voronoi cells</RouterLink>
         </nav>

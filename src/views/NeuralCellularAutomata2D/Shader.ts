@@ -12,14 +12,14 @@ fn activate(x: f32) -> f32 {
     return exp_x / (exp_x + 1);
 }`
 
-export interface NeuralUniforms {
+export interface UniformData {
     grid_size: number
     kernel_size: number
     kernel: FloatArray
     colors: FloatArray
 }
 
-export function neuralShader(activation_shader: string, color_format: GPUTextureFormat): string {
+export function createShader(activation_shader: string, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         struct Colors {
             color_0: vec4f,
