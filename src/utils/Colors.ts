@@ -1,4 +1,9 @@
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
+export const COLOR_PALETTES = new Map<string, string[]>([
+    ['Biomes', ['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']],
+    ['Rainbow', ['#BE38F3', '#0061FF', '#00C7FC', '#00F900', '#F5EC00', '#FFAA00', '#FF4013']],
+    ['Ice & Fire', ['#0B90B7', '#00C7FC', '#94E3FE', '#FAB700', '#FF6A00', '#EA4F00']],
+    ['Lava', ['#FEC700', '#FF6A00', '#E32400', '#606060', '#444444']],
+])
 
 export interface Color {
     red: number
@@ -48,7 +53,35 @@ export function lerpColors(t: number, a: Color, b: Color): Color {
     }
 }
 
-export function shaderColorArray(hex_colors: string[]): FloatArray {
+export function lerpColorArray(color_points: string[], n_colors: number): string[] {
+    const max_color = n_colors - 1
+    const max_color_point = color_points.length - 1
+
+    if (max_color === max_color_point) {
+        return color_points
+    }
+    const result = [color_points[0]]
+    const index_factor = max_color_point / max_color
+
+    for (let i = 1; i < n_colors - 1; i++) {
+        const float_index = i * index_factor
+
+        const index_1 = Math.floor(float_index)
+        const index_2 = Math.ceil(float_index)
+        const lerp_point = float_index - index_1
+
+        const color_1 = parseHexColor(color_points[index_1])
+        const color_2 = parseHexColor(color_points[index_2])
+
+        const color = lerpColors(lerp_point, color_1, color_2)
+        result.push(toHexColor(color))
+    }
+    result.push(color_points[max_color_point])
+
+    return result
+}
+
+export function shaderColorArray(hex_colors: string[]) {
     const result = new Float32Array(4 * hex_colors.length)
 
     for (let i = 0; i < hex_colors.length; i++) {

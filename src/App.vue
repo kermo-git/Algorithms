@@ -6,6 +6,9 @@ import { RouterLink, RouterView } from 'vue-router'
     <div class="app">
         <nav>
             <RouterLink class="router-link" to="/1d-ca">1D cellular automata</RouterLink>
+            <RouterLink class="router-link" to="/2d-discrete-ca"
+                >2D discrete cellular automata</RouterLink
+            >
             <RouterLink class="router-link" to="/2d-neural-ca"
                 >2D neural cellular automata</RouterLink
             >
