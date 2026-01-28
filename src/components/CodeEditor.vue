@@ -8,6 +8,9 @@ const KEYWORDS = [
     'var',
     'let',
     'const',
+    'bool',
+    'true',
+    'false',
     'u32',
     'i32',
     'f32',
@@ -24,6 +27,17 @@ const KEYWORDS = [
     'vec4i',
     'vec4f',
     'array',
+    'struct',
+    'if',
+    'else',
+    'switch',
+    'case',
+    'for',
+    'while',
+    'loop',
+    'break',
+    'continue',
+    'continuing',
     'return',
 ]
 
@@ -37,7 +51,7 @@ const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
 
 const KEYWORD_REGEX = new RegExp(`${SEP_LOOKBEHIND}(${KEYWORDS.join('|')})${SEP_LOOKAHEAD}`, 'g')
 
-const NUMBER_REGEX = new RegExp(`${SEP_LOOKBEHIND}(\\d+\\.?\\d*[uf]?)${SEP_LOOKAHEAD}`, 'g')
+const NUMBER_REGEX = new RegExp(`${SEP_LOOKBEHIND}(\\d+\\.?\\d*[iuf]?)${SEP_LOOKAHEAD}`, 'g')
 
 const FUNCTION_NAME_REGEX = new RegExp(`${SEP_LOOKBEHIND}([\\w]+)(?=\\s*\\()`, 'g')
 
@@ -45,6 +59,7 @@ interface Props {
     caption?: string
     buttonText?: string
     buttonMdiPath?: string
+    height?: string
 }
 const props = defineProps<Props>()
 const working_code = defineModel<string>()
@@ -52,7 +67,7 @@ const editor_code = ref<string>('')
 
 const editor_ref = useTemplateRef('editor')
 onMounted(() => {
-    editor_code.value = working_code.value?.replace(/\u{20}\u{20}+/gu, '\u{A0}\u{A0}\u{A0}') || ''
+    editor_code.value = working_code.value?.replace(/\u{20}/gu, '\u{A0}') || ''
     if (editor_ref.value) {
         editor_ref.value.innerHTML = syntaxHighlight(editor_code.value)
     }
@@ -164,7 +179,13 @@ function onInput(ev: InputEvent) {
                 "
             />
         </div>
-        <div ref="editor" class="code-editor" contenteditable="true" @input="onInput" />
+        <div
+            ref="editor"
+            class="code-editor"
+            :style="{ height: props.height || '15rem' }"
+            contenteditable="true"
+            @input="onInput"
+        />
     </div>
 </template>
 
@@ -191,7 +212,6 @@ function onInput(ev: InputEvent) {
     border-radius: var(--border-radius);
     border: var(--border);
     width: 100%;
-    height: 15rem;
     flex-grow: 1;
     box-sizing: border-box;
     overflow-y: scroll;
