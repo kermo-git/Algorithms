@@ -6,7 +6,6 @@ import SvgIcon from '@jamescoyle/vue-icon'
 
 interface Props {
     code: string
-    FPS: number
 }
 
 interface Emits {
@@ -20,7 +19,6 @@ const emits = defineEmits<Emits>()
 
 const code_changed = ref(false)
 const editor_ref = useTemplateRef('editor')
-const interval_ref = ref<number | null>(null)
 
 function applyCode() {
     if (code_changed.value && editor_ref.value) {
@@ -44,13 +42,32 @@ function onStepClick() {
     }
 }
 
-function onRunClick() {
-    applyCode()
-    startAnimation(props.FPS)
+const interval_ref = ref<number | null>(null)
+const FPS = ref<number>(0)
+
+function onRunClick(fps: number) {
+    if (FPS.value === 0) {
+        applyCode()
+        startAnimation(fps)
+    } else if (FPS.value === fps) {
+        pauseAnimation()
+    } else {
+        pauseAnimation()
+        applyCode()
+        startAnimation(fps)
+    }
+}
+
+function getRunIcon(fps: number) {
+    if (FPS.value === fps) {
+        return mdiPause
+    }
+    return mdiPlay
 }
 
 function startAnimation(fps: number) {
-    interval_ref.value = setInterval(() => emits('step'), 1000 / props.FPS)
+    interval_ref.value = setInterval(() => emits('step'), 1000 / fps)
+    FPS.value = fps
 }
 
 function pauseAnimation() {
@@ -58,15 +75,8 @@ function pauseAnimation() {
         clearInterval(interval_ref.value)
     }
     interval_ref.value = null
+    FPS.value = 0
 }
-
-watch(
-    () => props.FPS,
-    (new_FPS) => {
-        pauseAnimation()
-        startAnimation(new_FPS)
-    },
-)
 
 onBeforeUnmount(() => {
     pauseAnimation()
@@ -75,30 +85,56 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="container">
-        <div class="header" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
-            <button class="header-button" @click="onResetClick">
+        <div class="header" :style="{ gridTemplateColumns: 'repeat(6, 1fr)' }">
+            <button
+                class="header-button"
+                :style="{ gridColumnStart: 1, gridColumnEnd: 4 }"
+                @click="onResetClick"
+            >
                 <span>
                     <svg-icon type="mdi" :path="mdiReload" />
                 </span>
                 <span>Reset</span>
             </button>
-            <button class="header-button" @click="onStepClick">
+            <button
+                class="header-button"
+                :style="{ gridColumnStart: 4, gridColumnEnd: 7 }"
+                @click="onStepClick"
+            >
                 <span>
                     <svg-icon type="mdi" :path="mdiStepForward" />
                 </span>
                 <span>Step</span>
             </button>
-            <button v-if="interval_ref === null" class="header-button" @click="onRunClick">
+            <button
+                class="header-button"
+                :style="{ gridColumnStart: 1, gridColumnEnd: 3 }"
+                @click="() => onRunClick(15)"
+            >
                 <span>
-                    <svg-icon type="mdi" :path="mdiPlay" />
+                    <svg-icon type="mdi" :path="getRunIcon(15)" />
                 </span>
-                <span>Run</span>
+                <span>15 FPS</span>
             </button>
-            <button v-else class="header-button" @click="pauseAnimation">
+            <button
+                class="header-button"
+                :style="{ gridColumnStart: 3, gridColumnEnd: 5 }"
+                @click="() => onRunClick(30)"
+            >
                 <span>
-                    <svg-icon type="mdi" :path="mdiPause" />
+                    <svg-icon type="mdi" :path="getRunIcon(30)" />
                 </span>
-                <span>Pause</span>
+                <span>30 FPS</span>
+            </button>
+            <button
+                class="header-button"
+                :style="{ gridColumnStart: 5, gridColumnEnd: 7 }"
+                @click="() => onRunClick(60)"
+            >
+                <span>
+                    <svg-icon type="mdi" :path="getRunIcon(60)" />
+                </span>
+                <span>60 FPS</span>
             </button>
         </div>
         <CodeEditor class="ca-editor" :code="props.code" v-model="code_changed" ref="editor" />
@@ -115,17 +151,17 @@ onBeforeUnmount(() => {
 .header {
     width: 100%;
     display: grid;
-    gap: 0;
+    gap: 2pt;
+    background-color: var(--secondary-color);
     border-bottom: var(--border);
-    height: var(--button-height);
 }
 
 .header-button {
+    height: var(--button-height);
     background-color: var(--bg-color);
     font-size: inherit;
     color: inherit;
     border: none;
-    border-left: var(--border);
     display: flex;
     align-items: center;
     justify-content: center;

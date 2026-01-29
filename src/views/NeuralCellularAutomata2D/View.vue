@@ -28,7 +28,6 @@ const color_1 = ref(default_example.color_1)
 const kernel_radius = ref(default_example.kernel_radius)
 const kernel = ref<FloatArray>(default_example.get_kernel())
 const activation_shader = ref<string>(default_example.activation)
-const FPS = ref<number>(60)
 
 const scene = shallowRef(
     markRaw(
@@ -121,10 +120,9 @@ watch(
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-if="active_tab === 'Configuration'">
+        <template v-if="active_tab === 'Configuration'" #no-padding>
             <CACodeEditor
                 :code="activation_shader"
-                :FPS="FPS"
                 @code-change="
                     (new_activation_shader) => {
                         activation_shader = new_activation_shader
@@ -133,13 +131,14 @@ watch(
                 @reset="reset"
                 @step="step"
             />
+        </template>
+
+        <template v-if="active_tab === 'Configuration'" #default>
             <PanelSection>
                 <ColorInput v-model="color_0" />
                 <p>Select colors</p>
                 <ColorInput v-model="color_1" />
             </PanelSection>
-
-            <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
 
             <NumberSingleSelect
                 text="Grid size"
@@ -148,7 +147,7 @@ watch(
                 v-model="grid_size"
             />
         </template>
-        <template v-else-if="active_tab === 'Kernel'">
+        <template v-else-if="active_tab === 'Kernel'" #default>
             <NumberSingleSelect
                 text="Kernel size"
                 name="radius"
@@ -168,7 +167,7 @@ watch(
                 />
             </PanelSection>
         </template>
-        <template v-else>
+        <template v-else #default>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"

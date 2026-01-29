@@ -18,6 +18,7 @@ const active_tab = defineModel<string>()
                 {{ caption }}
             </button>
         </div>
+        <slot name="no-padding" />
         <div class="tab-content">
             <slot />
         </div>

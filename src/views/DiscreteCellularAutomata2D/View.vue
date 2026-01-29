@@ -24,14 +24,13 @@ const activeTab = ref('Configuration')
 const grid_size = ref(256)
 const colors = ref(default_example.colors)
 const n_states = ref(default_example.nStates)
-const update_shader = ref<string>(default_example.updateRuleShader)
-const FPS = ref<number>(60)
+const update_shader = ref<string>(default_example.updateShader)
 
 const scene = shallowRef(
     markRaw(
         new AutomatonScene({
             n_states: n_states.value,
-            update_rule_shader: update_shader.value,
+            update_shader: update_shader.value,
             n_grid_rows: grid_size.value,
             n_grid_cols: grid_size.value,
         }),
@@ -61,7 +60,7 @@ onBeforeUnmount(() => {
 function setExample(example: Example) {
     colors.value = example.colors
     n_states.value = example.nStates
-    update_shader.value = example.updateRuleShader
+    update_shader.value = example.updateShader
 }
 
 watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
@@ -70,7 +69,7 @@ watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_u
 
     scene.value = new AutomatonScene({
         n_states: new_n_states,
-        update_rule_shader: new_update_shader,
+        update_shader: new_update_shader,
         n_grid_rows: new_grid_size,
         n_grid_cols: new_grid_size,
     })
@@ -107,17 +106,17 @@ watch(colors, (new_colors) => {
         v-model="activeTab"
         @canvas-ready="initScene"
     >
-        <template v-if="activeTab === 'Configuration'">
+        <template v-if="activeTab === 'Configuration'" #no-padding>
             <CACodeEditor
                 :code="update_shader"
-                :FPS="FPS"
                 @code-change="(new_update_shader) => (update_shader = new_update_shader)"
                 @reset="reset"
                 @step="step"
             />
+        </template>
+        <template v-if="activeTab === 'Configuration'" #default>
             <p>Number of states: {{ n_states }}</p>
             <RangeInput :min="2" :max="32" :step="1" v-model="n_states" />
-            <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
             <NumberSingleSelect
                 text="Grid size"
                 name="grid-size"
@@ -125,10 +124,10 @@ watch(colors, (new_colors) => {
                 v-model="grid_size"
             />
         </template>
-        <template v-else-if="activeTab === 'Colors'">
+        <template v-else-if="activeTab === 'Colors'" #default>
             <ColorPalette v-model="colors" />
         </template>
-        <template v-else>
+        <template v-else #default>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"

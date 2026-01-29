@@ -19,7 +19,12 @@ const attrs = useAttrs()
 <template>
     <div class="container">
         <TabControl :captions="props.tabCaptions" v-model="active_tab">
-            <slot />
+            <template #no-padding>
+                <slot name="no-padding" />
+            </template>
+            <template #default>
+                <slot name="default" />
+            </template>
         </TabControl>
         <Canvas :issues="props.issues" v-bind="attrs" />
     </div>

@@ -18,12 +18,12 @@ export interface Setup {
      * A WGSL (WebGPU shading language) function that takes a cell's state in the current generation and returns its state in the next generation
      *
      * ```{wgsl}
-     * fn update_rule(cell_pos: vec2u, cell_state: u32) -> u32 {
+     * fn update(pos: vec2u, state: u32) -> u32 {
      *    // calculate and return next generation state
      * }
      * ```
      */
-    update_rule_shader: string
+    update_shader: string
     n_grid_rows: number
     n_grid_cols: number
 }
@@ -70,7 +70,7 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
             return result;
         }
 
-        ${setup.update_rule_shader}
+        ${setup.update_shader}
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
@@ -85,7 +85,7 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
             let grid_i = grid_pos.y * n_grid_cols + grid_pos.x;
             let current_state = current_generation[grid_i];
 
-            let next_state = update_rule(shifted_grid_pos, current_state);
+            let next_state = update(shifted_grid_pos, current_state);
             next_generation[grid_i] = next_state;
 
             textureStore(texture, grid_pos, colors[current_state]);
