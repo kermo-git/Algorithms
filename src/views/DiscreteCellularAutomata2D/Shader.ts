@@ -13,7 +13,7 @@ fn activate(x: f32) -> f32 {
 }`
 
 export interface Setup {
-    nStates: number
+    n_states: number
     /**
      * A WGSL (WebGPU shading language) function that takes a cell's state in the current generation and returns its state in the next generation
      *
@@ -23,9 +23,9 @@ export interface Setup {
      * }
      * ```
      */
-    updateRuleShader: string
-    nGridRows: number
-    nGridCols: number
+    update_rule_shader: string
+    n_grid_rows: number
+    n_grid_cols: number
 }
 
 export function createShader(setup: Setup, color_format: GPUTextureFormat): string {
@@ -36,9 +36,9 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
         @group(1) @binding(1) var<storage, read_write> next_generation: array<u32>;
         @group(2) @binding(0) var<storage> colors: array<vec4f>;
 
-        const n_grid_rows = ${setup.nGridRows};
-        const n_grid_cols = ${setup.nGridCols};
-        const n_states = ${setup.nStates};
+        const n_grid_rows = ${setup.n_grid_rows};
+        const n_grid_cols = ${setup.n_grid_cols};
+        const n_states = ${setup.n_states};
 
         fn neighbor(center_pos: vec2u, offset_x: i32, offset_y: i32) -> u32 {
             let grid_x = (i32(center_pos.x) + offset_x) % n_grid_cols;
@@ -70,7 +70,7 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
             return result;
         }
 
-        ${setup.updateRuleShader}
+        ${setup.update_rule_shader}
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(

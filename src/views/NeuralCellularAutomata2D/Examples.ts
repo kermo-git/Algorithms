@@ -5,7 +5,7 @@ export interface Example {
     name: string
     color_0: string
     color_1: string
-    kernel_size: number
+    kernel_radius: number
     get_kernel: () => FloatArray
     activation: string
 }
@@ -39,7 +39,7 @@ export const examples: Example[] = [
         color_0: '#59F9CE',
         color_1: '#4842FF',
 
-        kernel_size: 11,
+        kernel_radius: 5,
         get_kernel: () => {
             const N = -1
             const P = 1
@@ -69,7 +69,7 @@ export const examples: Example[] = [
         color_0: '#000000',
         color_1: '#EBEBEB',
 
-        kernel_size: 9,
+        kernel_radius: 4,
         get_kernel: () => {
             const N = -1
             const P = 1
@@ -98,7 +98,7 @@ export const examples: Example[] = [
         color_0: '#000000',
         color_1: '#FFFC41',
 
-        kernel_size: 3,
+        kernel_radius: 1,
         get_kernel: () => {
             const X = -0.85
             const Y = -0.2
@@ -120,7 +120,7 @@ export const examples: Example[] = [
         color_0: '#001E57',
         color_1: '#00CE00',
 
-        kernel_size: 3,
+        kernel_radius: 1,
         get_kernel: () => {
             const X = 0.88
             const Y = 0.4

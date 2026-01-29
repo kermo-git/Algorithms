@@ -3,7 +3,6 @@ import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 
 import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -11,13 +10,13 @@ import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
-import ColorInput from '@/components/ColorInput.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
+import CACodeEditor from '@/components/CACodeEditor.vue'
 
 const default_example = examples[0]
 
@@ -31,10 +30,10 @@ const FPS = ref<number>(60)
 const scene = shallowRef(
     markRaw(
         new AutomatonScene({
-            nStates: n_states.value,
-            updateRuleShader: update_shader.value,
-            nGridRows: grid_size.value,
-            nGridCols: grid_size.value,
+            n_states: n_states.value,
+            update_rule_shader: update_shader.value,
+            n_grid_rows: grid_size.value,
+            n_grid_cols: grid_size.value,
         }),
     ),
 )
@@ -54,11 +53,32 @@ async function initScene(canvas: HTMLCanvasElement) {
     renderer.value.render(scene.value)
 }
 
+onBeforeUnmount(() => {
+    renderer.value.cleanup()
+    scene.value.cleanup()
+})
+
 function setExample(example: Example) {
     colors.value = example.colors
     n_states.value = example.nStates
     update_shader.value = example.updateRuleShader
 }
+
+watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
+    renderer.value.cleanup()
+    scene.value.cleanup()
+
+    scene.value = new AutomatonScene({
+        n_states: new_n_states,
+        update_rule_shader: new_update_shader,
+        n_grid_rows: new_grid_size,
+        n_grid_cols: new_grid_size,
+    })
+
+    if (canvasRef.value) {
+        initScene(canvasRef.value)
+    }
+})
 
 function reset() {
     const device = renderer.value.device
@@ -66,35 +86,11 @@ function reset() {
     renderer.value.render(scene.value)
 }
 
-function automatonStep() {
+function step() {
     const device = renderer.value.device
     scene.value.switchGenerations(device)
     renderer.value.render(scene.value)
 }
-
-const intervalRef = ref<number | null>(null)
-
-function startAnimation(fps: number) {
-    intervalRef.value = setInterval(automatonStep, 1000 / fps)
-}
-
-function pauseAnimation() {
-    if (intervalRef.value) {
-        clearInterval(intervalRef.value)
-    }
-    intervalRef.value = null
-}
-
-watch(FPS, (new_FPS) => {
-    pauseAnimation()
-    startAnimation(new_FPS)
-})
-
-onBeforeUnmount(() => {
-    pauseAnimation()
-    renderer.value.cleanup()
-    scene.value.cleanup()
-})
 
 watch(colors, (new_colors) => {
     const lerp_colors = lerpColorArray(new_colors, n_states.value)
@@ -102,56 +98,25 @@ watch(colors, (new_colors) => {
     scene.value.updateColors(shaderColorArray(lerp_colors), device)
     renderer.value.render(scene.value)
 })
-
-watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
-    renderer.value.cleanup()
-    scene.value.cleanup()
-
-    scene.value = new AutomatonScene({
-        nStates: new_n_states,
-        updateRuleShader: new_update_shader,
-        nGridRows: new_grid_size,
-        nGridCols: new_grid_size,
-    })
-
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
-    }
-})
 </script>
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Colors', 'Run']"
+        :tab-captions="['Configuration', 'Colors', 'Examples']"
         :issues="shader_issues"
         v-model="activeTab"
         @canvas-ready="initScene"
     >
         <template v-if="activeTab === 'Configuration'">
+            <CACodeEditor
+                :code="update_shader"
+                :FPS="FPS"
+                @code-change="(new_update_shader) => (update_shader = new_update_shader)"
+                @reset="reset"
+                @step="step"
+            />
             <p>Number of states: {{ n_states }}</p>
             <RangeInput :min="2" :max="32" :step="1" v-model="n_states" />
-            <CodeEditor
-                caption="Update rule (WGSL)"
-                button-text="Compile"
-                height="27rem"
-                v-model="update_shader"
-            />
-        </template>
-        <template v-else-if="activeTab === 'Colors'">
-            <ColorPalette v-model="colors" />
-        </template>
-        <template v-else>
-            <PanelSection>
-                <PanelButton :mdi-path="mdiReload" text="Reset" @click="reset" />
-                <PanelButton :mdi-path="mdiStepForward" text="Step" @click="automatonStep()" />
-                <PanelButton
-                    v-if="!intervalRef"
-                    :mdi-path="mdiPlay"
-                    text="Run"
-                    @click="() => startAnimation(FPS)"
-                />
-                <PanelButton v-else :mdi-path="mdiPause" text="Pause" @click="pauseAnimation" />
-            </PanelSection>
             <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
             <NumberSingleSelect
                 text="Grid size"
@@ -159,7 +124,11 @@ watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_u
                 :options="[256, 512, 1024]"
                 v-model="grid_size"
             />
-            <p>Load example</p>
+        </template>
+        <template v-else-if="activeTab === 'Colors'">
+            <ColorPalette v-model="colors" />
+        </template>
+        <template v-else>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"

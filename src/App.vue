@@ -28,16 +28,25 @@ import { RouterLink, RouterView } from 'vue-router'
     display: flex;
     flex-direction: column;
 
-    --button-height: 2.8rem;
-    --label-height: 2.5rem; /* Just to get HTML label elements the same height as --button-height makes HTML button elements. */
-    --border-radius: 0.7rem;
-    --small-gap: 0.5rem;
     --bg-color: rgb(50, 50, 50);
     --secondary-color: rgb(100, 100, 100);
     --accent-color: rgb(255, 57, 156);
     --text-color: rgb(210, 210, 210);
+
+    --code-bg-color: var(--bg-color);
+    --code-text-color: rgb(247, 160, 255);
+    --code-comment-color: rgb(255, 158, 46);
+    --code-keyword-color: rgb(0, 187, 255);
+    --code-function-color: rgb(157, 255, 0);
+    --code-number-color: rgb(72, 255, 212);
+
     --border: 2pt solid var(--secondary-color);
     --accent-border: 2pt solid var(--accent-color);
+
+    --button-height: 2.8rem;
+    --label-height: 2.5rem; /* Just to get HTML label elements the same height as --button-height makes HTML button elements. */
+    --border-radius: 0.7rem;
+    --small-gap: 0.5rem;
 
     background-color: var(--bg-color);
     color: var(--text-color);

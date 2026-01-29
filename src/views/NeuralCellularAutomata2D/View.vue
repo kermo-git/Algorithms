@@ -17,19 +17,30 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import MatrixEditor from './MatrixEditor.vue'
 import { NeuralScene } from './Scene'
 import { examples, normalizeKernel, type Example } from './Examples'
+import CACodeEditor from '@/components/CACodeEditor.vue'
 
 const default_example = examples[0]
 
-const activeTab = ref('Configuration')
+const active_tab = ref('Configuration')
 const grid_size = ref(256)
 const color_0 = ref(default_example.color_0)
 const color_1 = ref(default_example.color_1)
-const kernel_size = ref(default_example.kernel_size)
+const kernel_radius = ref(default_example.kernel_radius)
 const kernel = ref<FloatArray>(default_example.get_kernel())
-const activation = ref<string>(default_example.activation)
+const activation_shader = ref<string>(default_example.activation)
 const FPS = ref<number>(60)
 
-const scene = shallowRef(markRaw(new NeuralScene(activation.value)))
+const scene = shallowRef(
+    markRaw(
+        new NeuralScene({
+            activation_shader: activation_shader.value,
+            n_grid_rows: grid_size.value,
+            n_grid_cols: grid_size.value,
+            kernel_radius: kernel_radius.value,
+            kernel: kernel.value,
+        }),
+    ),
+)
 const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -41,12 +52,7 @@ async function initScene(canvas: HTMLCanvasElement) {
 
     const init_info = await renderer.value.init(canvas)
     shader_issues.value = await scene.value.init(
-        {
-            grid_size: grid_size.value,
-            kernel_size: kernel_size.value,
-            kernel: kernel.value,
-            colors: shaderColorArray([color_0.value, color_1.value]),
-        },
+        shaderColorArray([color_0.value, color_1.value]),
         init_info,
     )
     renderer.value.render(scene.value)
@@ -55,64 +61,26 @@ async function initScene(canvas: HTMLCanvasElement) {
 function setExample(example: Example) {
     color_0.value = example.color_0
     color_1.value = example.color_1
-    kernel_size.value = example.kernel_size
+    kernel_radius.value = example.kernel_radius
     kernel.value = example.get_kernel()
-    activation.value = example.activation
-}
-
-function onKernelSizeChange(new_value: number) {
-    const data_length = new_value * new_value
-    kernel.value = new Float32Array(data_length)
+    activation_shader.value = example.activation
 }
 
 function reset() {
     const device = renderer.value.device
-    scene.value.initGrid(grid_size.value, device)
+    scene.value.initGrid(device)
     renderer.value.render(scene.value)
 }
 
-function automatonStep() {
+function step() {
     const device = renderer.value.device
     scene.value.switchGenerations(device)
     renderer.value.render(scene.value)
 }
 
-const intervalRef = ref<number | null>(null)
-
-function startAnimation(fps: number) {
-    intervalRef.value = setInterval(automatonStep, 1000 / fps)
-}
-
-function pauseAnimation() {
-    if (intervalRef.value) {
-        clearInterval(intervalRef.value)
-    }
-    intervalRef.value = null
-}
-
-watch(FPS, (new_FPS) => {
-    pauseAnimation()
-    startAnimation(new_FPS)
-})
-
 onBeforeUnmount(() => {
-    pauseAnimation()
     renderer.value.cleanup()
     scene.value.cleanup()
-})
-
-watch(grid_size, (new_grid_size) => {
-    const canvas = canvasRef.value
-    if (canvas) {
-        canvas.width = new_grid_size
-        canvas.height = new_grid_size
-        reset()
-    }
-})
-
-watch(kernel, (new_kernel) => {
-    const device = renderer.value.device
-    scene.value.updateKernel(kernel_size.value, new_kernel, device)
 })
 
 watch([color_0, color_1], ([new_color_0, new_color_1]) => {
@@ -121,39 +89,74 @@ watch([color_0, color_1], ([new_color_0, new_color_1]) => {
     renderer.value.render(scene.value)
 })
 
-watch(activation, (new_activation) => {
-    renderer.value.cleanup()
-    scene.value.cleanup()
-    scene.value = new NeuralScene(new_activation)
+function onKernelRadiusChange(new_radius: number) {
+    const new_size = 2 * new_radius + 1
+    kernel.value = new Float32Array(new_size * new_size)
+}
 
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
-    }
-})
+watch(
+    [grid_size, activation_shader, kernel_radius, kernel],
+    ([new_grid_size, new_activation, new_kernel_size, new_kernel]) => {
+        renderer.value.cleanup()
+        scene.value.cleanup()
+        scene.value = new NeuralScene({
+            activation_shader: new_activation,
+            n_grid_rows: new_grid_size,
+            n_grid_cols: new_grid_size,
+            kernel_radius: new_kernel_size,
+            kernel: new_kernel,
+        })
+
+        if (canvasRef.value) {
+            initScene(canvasRef.value)
+        }
+    },
+)
 </script>
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Run']"
+        :tab-captions="['Configuration', 'Kernel', 'Examples']"
         :issues="shader_issues"
-        v-model="activeTab"
+        v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-if="activeTab === 'Configuration'">
-            <CodeEditor
-                caption="Activation function (WGSL)"
-                button-text="Compile"
-                v-model="activation"
+        <template v-if="active_tab === 'Configuration'">
+            <CACodeEditor
+                :code="activation_shader"
+                :FPS="FPS"
+                @code-change="
+                    (new_activation_shader) => {
+                        activation_shader = new_activation_shader
+                    }
+                "
+                @reset="reset"
+                @step="step"
             />
+            <PanelSection>
+                <ColorInput v-model="color_0" />
+                <p>Select colors</p>
+                <ColorInput v-model="color_1" />
+            </PanelSection>
 
+            <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
+
+            <NumberSingleSelect
+                text="Grid size"
+                name="grid-size"
+                :options="[256, 512, 1024]"
+                v-model="grid_size"
+            />
+        </template>
+        <template v-else-if="active_tab === 'Kernel'">
             <NumberSingleSelect
                 text="Kernel size"
                 name="radius"
-                :options="[3, 5, 7, 9, 11]"
-                v-model="kernel_size"
-                @update:model-value="onKernelSizeChange"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="kernel_radius"
+                @update:model-value="onKernelRadiusChange"
             />
-
+            <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
             <PanelSection>
                 <PanelButton
                     text="Normalize kernel"
@@ -164,33 +167,8 @@ watch(activation, (new_activation) => {
                     "
                 />
             </PanelSection>
-            <MatrixEditor :matrix-size="kernel_size" v-model:matrix="kernel" />
         </template>
         <template v-else>
-            <PanelSection>
-                <PanelButton :mdi-path="mdiReload" text="Reset" @click="reset" />
-                <PanelButton :mdi-path="mdiStepForward" text="Step" @click="automatonStep()" />
-                <PanelButton
-                    v-if="!intervalRef"
-                    :mdi-path="mdiPlay"
-                    text="Run"
-                    @click="() => startAnimation(FPS)"
-                />
-                <PanelButton v-else :mdi-path="mdiPause" text="Pause" @click="pauseAnimation" />
-            </PanelSection>
-            <NumberSingleSelect text="FPS" name="fps" :options="[15, 30, 60]" v-model="FPS" />
-            <NumberSingleSelect
-                text="Grid size"
-                name="grid-size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-            />
-            <PanelSection>
-                <ColorInput v-model="color_0" />
-                <p>Select colors</p>
-                <ColorInput v-model="color_1" />
-            </PanelSection>
-            <p>Load example</p>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"

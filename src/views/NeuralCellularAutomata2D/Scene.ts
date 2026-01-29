@@ -5,15 +5,13 @@ import {
     type ShaderIssue,
 } from '@/WebGPU/ComputeRenderer'
 import {
-    createIntUniform,
     createStorageBuffer,
     createUniformBuffer,
     updateBuffer,
-    updateIntUniform,
     type FloatArray,
 } from '@/WebGPU/ShaderDataUtils'
 
-import { type UniformData, createShader } from './Shader'
+import { type Setup, createShader } from './Shader'
 
 export class NeuralScene implements Scene {
     generation_1_is_prev = true
@@ -21,27 +19,27 @@ export class NeuralScene implements Scene {
     generation_2!: GPUBuffer
     generation_bind_group!: GPUBindGroup
 
-    kernel_size!: GPUBuffer
     kernel!: GPUBuffer
     colors!: GPUBuffer
     static_bind_group!: GPUBindGroup
 
     pipeline!: GPUComputePipeline
 
-    activation_shader: string
+    setup: Setup
 
-    constructor(activation: string) {
-        this.activation_shader = activation
+    constructor(setup: Setup) {
+        this.setup = setup
     }
 
     getPipeline(): GPUComputePipeline {
         return this.pipeline
     }
 
-    async init(data: UniformData, info: InitInfo): Promise<ShaderIssue[]> {
+    async init(colors: FloatArray, info: InitInfo): Promise<ShaderIssue[]> {
         const { device, color_format } = info
+        const { kernel } = this.setup
 
-        const shader_code = createShader(this.activation_shader, color_format)
+        const shader_code = createShader(this.setup, color_format)
         const { module, issues } = await compileShader(device, shader_code)
 
         this.pipeline = device.createComputePipeline({
@@ -50,10 +48,9 @@ export class NeuralScene implements Scene {
                 module: module,
             },
         })
-        this.initGrid(data.grid_size, device)
-        this.kernel_size = createIntUniform(data.kernel_size, device)
-        this.kernel = createStorageBuffer(data.kernel, device, 11 * 11 * 4)
-        this.colors = createUniformBuffer(data.colors, device)
+        this.initGrid(device)
+        this.kernel = createStorageBuffer(kernel, device)
+        this.colors = createUniformBuffer(colors, device)
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -67,12 +64,6 @@ export class NeuralScene implements Scene {
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.kernel_size,
-                    },
-                },
-                {
-                    binding: 2,
-                    resource: {
                         buffer: this.colors,
                     },
                 },
@@ -82,11 +73,12 @@ export class NeuralScene implements Scene {
         return issues
     }
 
-    initGrid(grid_size: number, device: GPUDevice) {
+    initGrid(device: GPUDevice) {
         this.generation_1?.destroy()
         this.generation_2?.destroy()
 
-        const n_cells = grid_size * grid_size
+        const { n_grid_rows, n_grid_cols } = this.setup
+        const n_cells = n_grid_rows * n_grid_cols
         const random_data = new Float32Array(n_cells).map(Math.random)
 
         this.generation_1 = createStorageBuffer(random_data, device)
@@ -94,11 +86,6 @@ export class NeuralScene implements Scene {
 
         this.generation_1_is_prev = true
         this.setGenerations(this.generation_1, this.generation_2, device)
-    }
-
-    updateKernel(kernel_size: number, kernel_data: FloatArray, device: GPUDevice) {
-        updateIntUniform(this.kernel_size, kernel_size, device)
-        updateBuffer(this.kernel, kernel_data, device)
     }
 
     updateColors(colors: FloatArray, device: GPUDevice) {
@@ -144,7 +131,6 @@ export class NeuralScene implements Scene {
         this.generation_1?.destroy()
         this.generation_2?.destroy()
         this.kernel?.destroy()
-        this.kernel_size?.destroy()
         this.colors?.destroy()
     }
 }

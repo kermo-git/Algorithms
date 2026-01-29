@@ -70,10 +70,10 @@ export class AutomatonScene implements Scene {
         this.generation_1?.destroy()
         this.generation_2?.destroy()
 
-        const { nGridRows, nGridCols, nStates } = this.setup
-        const n_cells = nGridRows * nGridCols
+        const { n_grid_rows, n_grid_cols, n_states } = this.setup
+        const n_cells = n_grid_rows * n_grid_cols
         const random_data = new Uint32Array(n_cells).map(() => {
-            return Math.floor(Math.random() * nStates)
+            return Math.floor(Math.random() * n_states)
         })
 
         this.generation_1 = createStorageBuffer(random_data, device)

@@ -13,7 +13,7 @@ const props = defineProps<Props>()
         <span v-if="props.mdiPath">
             <svg-icon type="mdi" :path="props.mdiPath" />
         </span>
-        <span class="button-text" v-if="props.text">{{ props.text }}</span>
+        <span v-if="props.text">{{ props.text }}</span>
     </button>
 </template>
 

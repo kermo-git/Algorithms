@@ -1,7 +1,36 @@
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef } from 'vue'
-import { mdiPlay } from '@mdi/js'
-import PanelButton from './PanelButton.vue'
+import { onMounted, useTemplateRef } from 'vue'
+
+interface Props {
+    code: string
+}
+const props = defineProps<Props>()
+const changed = defineModel<boolean>()
+const editor_ref = useTemplateRef('editor')
+
+onMounted(() => {
+    if (editor_ref.value) {
+        const editor_code = props.code?.replace(/\u{20}/gu, '\u{A0}') || ''
+        editor_ref.value.innerHTML = syntaxHighlight(editor_code)
+    }
+})
+
+function getCode() {
+    const text = editor_ref.value?.innerText || ''
+    return text.replace(/\u{A0}/gu, '\u{20}')
+}
+
+defineExpose({ getCode })
+
+function onInput(ev: InputEvent) {
+    const el = ev.target as HTMLTextAreaElement
+    const text = el.innerText
+
+    const caret_offset = getCaretOffset(el)
+    el.innerHTML = syntaxHighlight(text)
+    setCaretOffset(el, caret_offset)
+    changed.value = true
+}
 
 const KEYWORDS = [
     'fn',
@@ -42,47 +71,25 @@ const KEYWORDS = [
 ]
 
 const SEP_REGEX = '[\\s=\\(\\)\\{\\},;\\<\\>&]|^|$'
-const SEP_LOOKBEHIND = `(?<=${SEP_REGEX})`
-const SEP_LOOKAHEAD = `(?=${SEP_REGEX})`
+const SEP_BEFORE = `(?<=${SEP_REGEX})`
+const SEP_AFTER = `(?=${SEP_REGEX})`
 
-const SINGLE_LINE_COMMENT_REGEX = /(\/\/.*?)(?=<br>|$)/g
-
+const LINE_COMMENT_REGEX = /(\/\/.*?)(?=<br>|$)/g
 const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
-
-const KEYWORD_REGEX = new RegExp(`${SEP_LOOKBEHIND}(${KEYWORDS.join('|')})${SEP_LOOKAHEAD}`, 'g')
-
-const NUMBER_REGEX = new RegExp(`${SEP_LOOKBEHIND}(\\d+\\.?\\d*[iuf]?)${SEP_LOOKAHEAD}`, 'g')
-
-const FUNCTION_NAME_REGEX = new RegExp(`${SEP_LOOKBEHIND}([\\w]+)(?=\\s*\\()`, 'g')
-
-interface Props {
-    caption?: string
-    buttonText?: string
-    buttonMdiPath?: string
-    height?: string
-}
-const props = defineProps<Props>()
-const working_code = defineModel<string>()
-const editor_code = ref<string>('')
-
-const editor_ref = useTemplateRef('editor')
-onMounted(() => {
-    editor_code.value = working_code.value?.replace(/\u{20}/gu, '\u{A0}') || ''
-    if (editor_ref.value) {
-        editor_ref.value.innerHTML = syntaxHighlight(editor_code.value)
-    }
-})
+const KEYWORD_REGEX = new RegExp(`${SEP_BEFORE}(${KEYWORDS.join('|')})${SEP_AFTER}`, 'g')
+const NUMBER_REGEX = new RegExp(`${SEP_BEFORE}(\\d+\\.?\\d*[iuf]?)${SEP_AFTER}`, 'g')
+const FUNCTION_REGEX = new RegExp(`${SEP_BEFORE}([\\w]+)(?=\\s*\\()`, 'g')
 
 function syntaxHighlight(text: string) {
     return text
         .replace(/</g, '&lt;')
         .replace(/>/, '&gt;')
         .replace(/\n/g, '<br>')
-        .replace(SINGLE_LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
+        .replace(LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
         .replace(MULTILINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
         .replace(KEYWORD_REGEX, '<span class="code-keyword">$1</span>')
         .replace(NUMBER_REGEX, '<span class="code-number">$1</span>')
-        .replace(FUNCTION_NAME_REGEX, '<span class="code-function-name">$1</span>')
+        .replace(FUNCTION_REGEX, '<span class="code-function">$1</span>')
 }
 
 function getCaretOffset(el: HTMLElement): number {
@@ -153,95 +160,42 @@ function setCaretOffset(el: HTMLElement, offset: number) {
     selection.removeAllRanges()
     selection.addRange(range)
 }
-
-function onInput(ev: InputEvent) {
-    const el = ev.target as HTMLTextAreaElement
-    const text = el.innerText
-
-    const caret_offset = getCaretOffset(el)
-    el.innerHTML = syntaxHighlight(text)
-    setCaretOffset(el, caret_offset)
-    editor_code.value = text
-}
 </script>
 
 <template>
-    <div class="code-component">
-        <div class="code-header">
-            <p>{{ props.caption }}</p>
-            <PanelButton
-                :text="props.buttonText || 'Run'"
-                :mdi-path="props.buttonMdiPath || mdiPlay"
-                @click="
-                    () => {
-                        working_code = editor_code.replace(/\u{A0}/gu, '\u{20}')
-                    }
-                "
-            />
-        </div>
-        <div
-            ref="editor"
-            class="code-editor"
-            :style="{ height: props.height || '15rem' }"
-            contenteditable="true"
-            @input="onInput"
-        />
-    </div>
+    <div ref="editor" class="code-editor" contenteditable="true" @input="onInput" />
 </template>
 
 <style>
-.code-component {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--small-gap);
-    width: 100%;
-}
-
-.code-header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-}
-
 .code-editor {
     font-size: inherit;
     font-family: monospace;
     padding: var(--small-gap);
-    background-color: var(--background-color);
-    border-radius: var(--border-radius);
-    border: var(--border);
-    width: 100%;
-    flex-grow: 1;
     box-sizing: border-box;
     overflow-y: scroll;
 
-    color: rgb(247, 160, 255);
-    --comment-color: rgb(255, 158, 46);
-    --keyword-color: rgb(0, 187, 255);
-    --function-name-color: rgb(157, 255, 0);
-    --number-literal-color: rgb(72, 255, 212);
+    background-color: var(--code-bg-color);
+    color: var(--code-text-color);
 }
 
 .code-editor:focus {
     outline: none;
-    border: var(--accent-border);
 }
 
 .code-keyword {
-    color: var(--keyword-color);
+    color: var(--code-keyword-color);
 }
 
-.code-function-name {
-    color: var(--function-name-color);
+.code-function {
+    color: var(--code-function-color);
 }
 
 .code-number {
-    color: var(--number-literal-color);
+    color: var(--code-number-color);
 }
 
 .code-comment,
 .code-comment * {
-    color: var(--comment-color);
+    color: var(--code-comment-color);
 }
 </style>
