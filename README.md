@@ -21,15 +21,26 @@ This application doesn't document itself, but here I will refer to online resour
 
 ### 1D Cellular automata
 
-This section is inspired from this website:
+This section is inspired from websites like this:
 
-https://discover-automata.vercel.app
+* [Discover Automata](https://discover-automata.vercel.app)
+* [1D Cellular Automata and the Edge Of Chaos](https://math.hws.edu/eck/js/edge-of-chaos/CA.html)
 
-### Neural Cellular Automata
+### 2D discrete cellular Automata
 
-Watch this video:
+This page lets you implement things like this:
+* [The cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=430)
+* [More cyclic cellular automata](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=431)
+* [A rose-producing cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=432)
+* [Miscellaneous cellular automata](https://english.rejbrand.se/rejbrand/mathart_other_ca.asp) (scroll to the bottom of that page to read more about the examples)
 
-https://www.youtube.com/watch?v=3H79ZcBuw4M
+### 2D neural cellular Automata
+
+Watch this video: [What are neural cellular automata?](https://www.youtube.com/watch?v=3H79ZcBuw4M)
+
+The web application mentioned in that video (epilepsy warning!):
+
+https://neuralpatterns.io
 
 ### Procedural noise
 
