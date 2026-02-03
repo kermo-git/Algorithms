@@ -4,14 +4,7 @@ import {
     type Scene,
     type ShaderIssue,
 } from '@/WebGPU/ComputeRenderer'
-import {
-    createIntUniform,
-    createStorageBuffer,
-    createUniformBuffer,
-    updateBuffer,
-    updateIntUniform,
-    type FloatArray,
-} from '@/WebGPU/ShaderDataUtils'
+import { createStorageBuffer, updateBuffer, type FloatArray } from '@/WebGPU/ShaderDataUtils'
 
 import { createShader, type Setup } from './Shader'
 
@@ -78,9 +71,6 @@ export class AutomatonScene implements Scene {
 
         this.generation_1 = createStorageBuffer(random_data, device)
         this.generation_2 = createStorageBuffer(random_data, device)
-
-        this.generation_1_is_prev = true
-        this.setGenerations(this.generation_1, this.generation_2, device)
     }
 
     updateColors(colors: FloatArray, device: GPUDevice) {
