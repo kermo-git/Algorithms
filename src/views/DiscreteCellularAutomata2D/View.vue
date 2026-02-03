@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
-import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 
 import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
 import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import PanelButton from '@/components/PanelButton.vue'
-import PanelSection from '@/components/PanelSection.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
-import CodeEditor from '@/components/CodeEditor.vue'
 
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
@@ -85,10 +81,8 @@ function reset() {
     renderer.value.render(scene.value)
 }
 
-function step() {
-    const device = renderer.value.device
-    scene.value.switchGenerations(device)
-    renderer.value.render(scene.value)
+function step(two_frames?: boolean) {
+    renderer.value.render(scene.value, two_frames)
 }
 
 watch(colors, (new_colors) => {

@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
 import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 import CodeEditor from './CodeEditor.vue'
 import SvgIcon from '@jamescoyle/vue-icon'
+import Checkbox from './Checkbox.vue'
 
 interface Props {
     code: string
@@ -11,7 +12,7 @@ interface Props {
 interface Emits {
     (e: 'reset'): void
     (e: 'codeChange', new_code: string): void
-    (e: 'step'): void
+    (e: 'step', two_frames?: boolean): void
 }
 
 const props = defineProps<Props>()
@@ -19,6 +20,7 @@ const emits = defineEmits<Emits>()
 
 const code_changed = ref(false)
 const editor_ref = useTemplateRef('editor')
+const skip_frames = ref(false)
 
 function applyCode() {
     if (code_changed.value && editor_ref.value) {
@@ -48,13 +50,13 @@ const FPS = ref<number>(0)
 function onRunClick(fps: number) {
     if (FPS.value === 0) {
         applyCode()
-        startAnimation(fps)
+        startAnimation(fps, skip_frames.value)
     } else if (FPS.value === fps) {
         pauseAnimation()
     } else {
         pauseAnimation()
         applyCode()
-        startAnimation(fps)
+        startAnimation(fps, skip_frames.value)
     }
 }
 
@@ -65,8 +67,8 @@ function getRunIcon(fps: number) {
     return mdiPlay
 }
 
-function startAnimation(fps: number) {
-    interval_ref.value = setInterval(() => emits('step'), 1000 / fps)
+function startAnimation(fps: number, skip_frames: boolean) {
+    interval_ref.value = setInterval(() => emits('step', skip_frames), 1000 / fps)
     FPS.value = fps
 }
 
@@ -76,6 +78,13 @@ function pauseAnimation() {
     }
     interval_ref.value = null
     FPS.value = 0
+}
+
+function changeSkip(new_skip_frames: boolean) {
+    if (interval_ref.value) {
+        clearInterval(interval_ref.value)
+        startAnimation(FPS.value, new_skip_frames)
+    }
 }
 
 onBeforeUnmount(() => {
@@ -139,6 +148,14 @@ onBeforeUnmount(() => {
         </div>
         <CodeEditor class="ca-editor" :code="props.code" v-model="code_changed" ref="editor" />
     </div>
+    <div class="skip-frames-section">
+        <Checkbox
+            text="Skip every second frame"
+            name="skip_frames"
+            v-model="skip_frames"
+            @update:model-value="(value) => changeSkip(value!)"
+        />
+    </div>
 </template>
 
 <style scoped>
@@ -187,5 +204,10 @@ onBeforeUnmount(() => {
 .ca-editor {
     border-bottom: var(--border);
     width: 100%;
+}
+
+.skip-frames-section {
+    padding: var(--small-gap);
+    border-bottom: var(--border);
 }
 </style>

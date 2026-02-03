@@ -112,7 +112,7 @@ export class NeuralScene implements Scene {
         })
     }
 
-    switchGenerations(device: GPUDevice) {
+    render(encoder: GPUComputePassEncoder, device: GPUDevice): void {
         this.generation_1_is_prev = !this.generation_1_is_prev
 
         if (this.generation_1_is_prev) {
@@ -120,9 +120,6 @@ export class NeuralScene implements Scene {
         } else {
             this.setGenerations(this.generation_2, this.generation_1, device)
         }
-    }
-
-    render(encoder: GPUComputePassEncoder): void {
         encoder.setBindGroup(1, this.generation_bind_group)
         encoder.setBindGroup(2, this.static_bind_group)
     }

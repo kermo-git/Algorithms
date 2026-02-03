@@ -39,7 +39,7 @@ export async function compileShader(
 export interface Scene {
     init(data: unknown, info: InitInfo): Promise<ShaderIssue[]>
     getPipeline(): GPUComputePipeline
-    render(encoder: GPUComputePassEncoder): void
+    render(encoder: GPUComputePassEncoder, device: GPUDevice): void
     cleanup(): void
 }
 
@@ -101,7 +101,7 @@ export default class ComputeRenderer {
         this.observer.observe(canvas)
     }
 
-    render(scene: Scene) {
+    render(scene: Scene, two_frames?: boolean) {
         const texture = this.context.getCurrentTexture()
         const cmd_encoder = this.device.createCommandEncoder()
         const pass_encoder = cmd_encoder.beginComputePass()
@@ -119,12 +119,20 @@ export default class ComputeRenderer {
         pass_encoder.setPipeline(pipeline)
         pass_encoder.setBindGroup(0, canvas_bind_group)
 
-        scene.render(pass_encoder)
+        scene.render(pass_encoder, this.device)
 
         pass_encoder.dispatchWorkgroups(
             Math.ceil(texture.width / WG_DIM),
             Math.ceil(texture.height / WG_DIM),
         )
+        if (two_frames) {
+            scene.render(pass_encoder, this.device)
+
+            pass_encoder.dispatchWorkgroups(
+                Math.ceil(texture.width / WG_DIM),
+                Math.ceil(texture.height / WG_DIM),
+            )
+        }
         pass_encoder.end()
 
         this.device.queue.submit([cmd_encoder.finish()])

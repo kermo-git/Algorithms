@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
-import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
 
 import { shaderColorArray } from '@/utils/Colors'
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
@@ -12,7 +11,6 @@ import PanelSection from '@/components/PanelSection.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import ColorInput from '@/components/ColorInput.vue'
-import CodeEditor from '@/components/CodeEditor.vue'
 
 import MatrixEditor from './MatrixEditor.vue'
 import { NeuralScene } from './Scene'
@@ -71,10 +69,8 @@ function reset() {
     renderer.value.render(scene.value)
 }
 
-function step() {
-    const device = renderer.value.device
-    scene.value.switchGenerations(device)
-    renderer.value.render(scene.value)
+function step(two_frames?: boolean) {
+    renderer.value.render(scene.value, two_frames)
 }
 
 onBeforeUnmount(() => {
