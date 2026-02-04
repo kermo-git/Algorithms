@@ -89,7 +89,6 @@ watch(colors, (new_colors) => {
     const lerp_colors = lerpColorArray(new_colors, n_states.value)
     const device = renderer.value.device
     scene.value.updateColors(shaderColorArray(lerp_colors), device)
-    renderer.value.render(scene.value)
 })
 </script>
 

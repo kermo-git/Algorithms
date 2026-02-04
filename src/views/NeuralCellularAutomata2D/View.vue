@@ -81,7 +81,6 @@ onBeforeUnmount(() => {
 watch([color_0, color_1], ([new_color_0, new_color_1]) => {
     const device = renderer.value.device
     scene.value.updateColors(shaderColorArray([new_color_0, new_color_1]), device)
-    renderer.value.render(scene.value)
 })
 
 function onKernelRadiusChange(new_radius: number) {

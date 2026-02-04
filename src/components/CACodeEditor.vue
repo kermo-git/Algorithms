@@ -45,31 +45,26 @@ function onStepClick() {
 }
 
 const interval_ref = ref<number | null>(null)
-const FPS = ref<number>(0)
 
-function onRunClick(fps: number) {
-    if (FPS.value === 0) {
+function onRunClick() {
+    if (!interval_ref.value) {
         applyCode()
-        startAnimation(fps, skip_frames.value)
-    } else if (FPS.value === fps) {
-        pauseAnimation()
+        startAnimation(skip_frames.value)
     } else {
         pauseAnimation()
-        applyCode()
-        startAnimation(fps, skip_frames.value)
     }
 }
 
-function getRunIcon(fps: number) {
-    if (FPS.value === fps) {
+function getRunIcon() {
+    if (interval_ref.value) {
         return mdiPause
     }
     return mdiPlay
 }
 
-function startAnimation(fps: number, skip_frames: boolean) {
+function startAnimation(skip_frames: boolean) {
+    const fps = 60
     interval_ref.value = setInterval(() => emits('step', skip_frames), 1000 / fps)
-    FPS.value = fps
 }
 
 function pauseAnimation() {
@@ -77,13 +72,12 @@ function pauseAnimation() {
         clearInterval(interval_ref.value)
     }
     interval_ref.value = null
-    FPS.value = 0
 }
 
 function changeSkip(new_skip_frames: boolean) {
     if (interval_ref.value) {
         clearInterval(interval_ref.value)
-        startAnimation(FPS.value, new_skip_frames)
+        startAnimation(new_skip_frames)
     }
 }
 
@@ -94,56 +88,24 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="container">
-        <div class="header" :style="{ gridTemplateColumns: 'repeat(6, 1fr)' }">
-            <button
-                class="header-button"
-                :style="{ gridColumnStart: 1, gridColumnEnd: 4 }"
-                @click="onResetClick"
-            >
+        <div class="header" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
+            <button class="header-button" @click="onResetClick">
                 <span>
                     <svg-icon type="mdi" :path="mdiReload" />
                 </span>
                 <span>Reset</span>
             </button>
-            <button
-                class="header-button"
-                :style="{ gridColumnStart: 4, gridColumnEnd: 7 }"
-                @click="onStepClick"
-            >
+            <button class="header-button" @click="onStepClick">
                 <span>
                     <svg-icon type="mdi" :path="mdiStepForward" />
                 </span>
                 <span>Step</span>
             </button>
-            <button
-                class="header-button"
-                :style="{ gridColumnStart: 1, gridColumnEnd: 3 }"
-                @click="() => onRunClick(15)"
-            >
+            <button class="header-button" @click="() => onRunClick()">
                 <span>
-                    <svg-icon type="mdi" :path="getRunIcon(15)" />
+                    <svg-icon type="mdi" :path="getRunIcon()" />
                 </span>
-                <span>15 FPS</span>
-            </button>
-            <button
-                class="header-button"
-                :style="{ gridColumnStart: 3, gridColumnEnd: 5 }"
-                @click="() => onRunClick(30)"
-            >
-                <span>
-                    <svg-icon type="mdi" :path="getRunIcon(30)" />
-                </span>
-                <span>30 FPS</span>
-            </button>
-            <button
-                class="header-button"
-                :style="{ gridColumnStart: 5, gridColumnEnd: 7 }"
-                @click="() => onRunClick(60)"
-            >
-                <span>
-                    <svg-icon type="mdi" :path="getRunIcon(60)" />
-                </span>
-                <span>60 FPS</span>
+                <span>Run</span>
             </button>
         </div>
         <CodeEditor class="ca-editor" :code="props.code" v-model="code_changed" ref="editor" />
