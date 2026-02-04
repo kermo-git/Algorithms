@@ -14,7 +14,7 @@ import ColorInput from '@/components/ColorInput.vue'
 
 import MatrixEditor from './MatrixEditor.vue'
 import { NeuralScene } from './Scene'
-import { examples, normalizeKernel, type Example } from './Examples'
+import { examples, type Example } from './Examples'
 import CACodeEditor from '@/components/CACodeEditor.vue'
 
 const default_example = examples[0]
@@ -110,7 +110,7 @@ watch(
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Kernel', 'Examples']"
+        :tab-captions="['Configuration', 'Style & Examples']"
         :issues="shader_issues"
         v-model="active_tab"
         @canvas-ready="initScene"
@@ -129,6 +129,16 @@ watch(
         </template>
 
         <template v-if="active_tab === 'Configuration'" #default>
+            <NumberSingleSelect
+                text="Kernel size"
+                name="radius"
+                :options="[1, 2, 3, 4, 5]"
+                v-model="kernel_radius"
+                @update:model-value="onKernelRadiusChange"
+            />
+            <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
+        </template>
+        <template v-else #default>
             <PanelSection>
                 <ColorInput v-model="color_0" />
                 <p>Select colors</p>
@@ -141,28 +151,6 @@ watch(
                 :options="[256, 512, 1024]"
                 v-model="grid_size"
             />
-        </template>
-        <template v-else-if="active_tab === 'Kernel'" #default>
-            <NumberSingleSelect
-                text="Kernel size"
-                name="radius"
-                :options="[1, 2, 3, 4, 5]"
-                v-model="kernel_radius"
-                @update:model-value="onKernelRadiusChange"
-            />
-            <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
-            <PanelSection>
-                <PanelButton
-                    text="Normalize kernel"
-                    @click="
-                        () => {
-                            kernel = normalizeKernel(kernel)
-                        }
-                    "
-                />
-            </PanelSection>
-        </template>
-        <template v-else #default>
             <MenuItem
                 v-for="example in examples"
                 :key="example.name"

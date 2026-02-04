@@ -70,7 +70,7 @@ const KEYWORDS = [
     'return',
 ]
 
-const SEP_REGEX = '[\\s=\\(\\)\\{\\},;\\<\\>&]|^|$'
+const SEP_REGEX = '[\\s=/+*\\(\\)\\{\\},;\\<\\>&]|^|$'
 const SEP_BEFORE = `(?<=${SEP_REGEX})`
 const SEP_AFTER = `(?=${SEP_REGEX})`
 

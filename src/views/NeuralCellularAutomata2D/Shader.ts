@@ -3,7 +3,7 @@ import { WG_DIM } from '@/WebGPU/ComputeRenderer'
 
 export const invertedGaussian = /* wgsl */ `// Inverted Gaussian function
 fn activate(x: f32) -> f32 {
-    return -1/(0.9 * pow(x, 2) + 1) + 1;
+    return -1/(0.89 * pow(x, 2) + 1) + 1;
 }`
 
 export const sigmoid = /* wgsl */ `// Sigmoid function

@@ -32,6 +32,7 @@ function onInput(ev: Event) {
         class="matrix"
         :style="{
             gridTemplateColumns: `repeat(${matrixSize}, 1fr)`,
+            width: `${50 + (50 * (matrixSize - 3)) / 8}%`,
         }"
     >
         <template v-for="row in matrixSize" :key="row">
@@ -46,7 +47,7 @@ function onInput(ev: Event) {
                 @click="onCellClick"
                 @change="onInput"
                 :style="{
-                    fontSize: `${2.4 * (3 / matrixSize)}rem`,
+                    fontSize: `${1.1 - 0.45 * ((matrixSize - 3) / 8)}rem`,
                 }"
             />
         </template>
@@ -58,7 +59,6 @@ function onInput(ev: Event) {
     display: grid;
     border-right: var(--border);
     border-top: var(--border);
-    width: 100%;
 }
 
 .cell::-webkit-inner-spin-button,

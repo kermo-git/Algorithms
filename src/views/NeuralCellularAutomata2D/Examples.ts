@@ -93,6 +93,27 @@ export const examples: Example[] = [
         activation: sigmoid,
     },
     {
+        name: 'Merging bubbles',
+        color_0: '#000000',
+        color_1: '#D585FF',
+
+        kernel_radius: 1,
+        get_kernel: () => {
+            const X = -0.7
+            const Y = 0.2
+            const Z = 0.35
+
+            return new Float32Array(
+                [
+                    [Z, X, Z],
+                    [X, Y, X],
+                    [Z, X, Z],
+                ].flat(),
+            )
+        },
+        activation: invertedGaussian,
+    },
+    {
         // https://neuralpatterns.io
         name: 'Slime mold',
         color_0: '#000000',
