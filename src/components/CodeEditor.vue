@@ -77,7 +77,7 @@ const SEP_AFTER = `(?=${SEP_REGEX})`
 const LINE_COMMENT_REGEX = /(\/\/.*?)(?=<br>|$)/g
 const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
 const KEYWORD_REGEX = new RegExp(`${SEP_BEFORE}(${KEYWORDS.join('|')})${SEP_AFTER}`, 'g')
-const NUMBER_REGEX = new RegExp(`${SEP_BEFORE}(\\d+\\.?\\d*[iuf]?)${SEP_AFTER}`, 'g')
+const NUMBER_REGEX = new RegExp(`${SEP_BEFORE}(-?\\d+\\.?\\d*[iuf]?)${SEP_AFTER}`, 'g')
 const FUNCTION_REGEX = new RegExp(`${SEP_BEFORE}([\\w]+)(?=\\s*\\()`, 'g')
 
 function syntaxHighlight(text: string) {
