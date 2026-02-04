@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
                 <span>
                     <svg-icon type="mdi" :path="getRunIcon()" />
                 </span>
-                <span>Run</span>
+                <span>{{ interval_ref ? 'Pause' : 'Run' }}</span>
             </button>
         </div>
         <CodeEditor class="ca-editor" :code="props.code" v-model="code_changed" ref="editor" />
@@ -171,5 +171,6 @@ onBeforeUnmount(() => {
 .skip-frames-section {
     padding: var(--small-gap);
     border-bottom: var(--border);
+    box-sizing: border-box;
 }
 </style>
