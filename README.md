@@ -23,16 +23,17 @@ This application doesn't document itself, but here I will refer to online resour
 
 This section is inspired from websites like this:
 
-* [Discover Automata](https://discover-automata.vercel.app)
-* [1D Cellular Automata and the Edge Of Chaos](https://math.hws.edu/eck/js/edge-of-chaos/CA.html)
+- [Discover Automata](https://discover-automata.vercel.app)
+- [1D Cellular Automata and the Edge Of Chaos](https://math.hws.edu/eck/js/edge-of-chaos/CA.html)
 
 ### 2D discrete cellular Automata
 
 This page lets you implement things like this:
-* [The cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=430)
-* [More cyclic cellular automata](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=431)
-* [A rose-producing cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=432)
-* [Miscellaneous cellular automata](https://english.rejbrand.se/rejbrand/mathart_other_ca.asp) (scroll to the bottom of that page to read more about the examples)
+
+- [The cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=430)
+- [More cyclic cellular automata](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=431)
+- [A rose-producing cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=432)
+- [Miscellaneous cellular automata](https://english.rejbrand.se/rejbrand/mathart_other_ca.asp) (scroll to the bottom of that page to read more about the examples)
 
 ### 2D neural cellular Automata
 
@@ -46,13 +47,22 @@ https://neuralpatterns.io
 
 This section uses various algorithms to generate random patterns:
 
-* [Value noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/introduction.html)
-* [Perlin noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/perlin-noise-part-2/perlin-noise.html)
-* [Simplex noise](https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf)
-* [Cubic noise](https://jobtalle.com/cubic_noise.html)
-* [Worley noise](https://en.wikipedia.org/wiki/Worley_noise)
+- [Value noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/introduction.html)
+- [Perlin noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/perlin-noise-part-2/perlin-noise.html)
+- [Simplex noise](https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf)
+- [Cubic noise](https://jobtalle.com/cubic_noise.html)
+- [Worley noise](https://en.wikipedia.org/wiki/Worley_noise)
 
 The result of these basic noises can be tweaked in a few different ways:
-* [Multiple octaves](https://iquilezles.org/articles/fbm/)
-* [Domain warping](https://iquilezles.org/articles/warp/)
-* [Domain rotation](https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html)
+
+- [Multiple octaves](https://iquilezles.org/articles/fbm/)
+- [Domain warping](https://iquilezles.org/articles/warp/)
+- [Domain rotation](https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html)
+
+TODO:
+
+Implement erosion simulation on top of noise-generated terrain:
+
+- This [paper](https://inria.hal.science/inria-00402079/document) describes a GPU-compatible algorithm for hydraulic erosion.
+- This [paper](https://old.cescg.org/CESCG-2011/papers/TUBudapest-Jako-Balazs.pdf) decribes an improvement to previous paper by integrating thermal erosion.
+- This [post](https://math.stackexchange.com/questions/1044044/local-tilt-angle-based-on-height-field) explains what "local tilt angle" means, useful for understanding both papers.
