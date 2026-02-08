@@ -94,7 +94,7 @@ export const warp2D_shader = /* wgsl */ `
                   persistence: f32) -> f32 {
         
         let theta_pos = noise_pos + ${randVec('2D')};
-        let theta_noise = octave_noise(warp_noitheta_posse_pos, n_warp_octaves, persistence);
+        let theta_noise = octave_noise(theta_pos, n_warp_octaves, persistence);
         let theta = 2 * PI * theta_noise;
 
         let warp_direction = vec2f(
