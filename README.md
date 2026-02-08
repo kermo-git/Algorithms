@@ -59,10 +59,23 @@ The result of these basic noises can be tweaked in a few different ways:
 - [Domain warping](https://iquilezles.org/articles/warp/)
 - [Domain rotation](https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html)
 
-TODO:
+## Planned features
 
-Implement erosion simulation on top of noise-generated terrain:
+### Wave function collapse
+
+I already have an implementation, but it's currently unused.
+
+### Global erosion simulator
+
+Implement erosion simulation on top of noise-generated terrain. The algorithm simulates soil material falling down the slopes and depositing in areas of lower elevation. Since any part of the terrain can be influenced by any other part of the terrain, this type of algorithm is better suited for fixed size worlds.
 
 - This [paper](https://inria.hal.science/inria-00402079/document) describes a GPU-compatible algorithm for hydraulic erosion.
 - This [paper](https://old.cescg.org/CESCG-2011/papers/TUBudapest-Jako-Balazs.pdf) decribes an improvement to previous paper by integrating thermal erosion.
 - This [post](https://math.stackexchange.com/questions/1044044/local-tilt-angle-based-on-height-field) explains what "local tilt angle" means, useful for understanding both papers.
+
+### Local erosion simulator
+
+Implement an algorithm that simulates erosion in a locally computed manner, so that it's suitable for infinite procedurally generated worlds.
+
+- Dendry: [code](https://github.com/mgaillard/Noise) and [paper](https://dl.acm.org/doi/epdf/10.1145/3306131.3317020).
+- Analytical terrain: [code](https://gitlab.inria.fr/landscapes/analytical-terrains/-/tree/main/analytical?ref_type=heads) and [paper](https://hal.science/hal-04525371v1/document)
