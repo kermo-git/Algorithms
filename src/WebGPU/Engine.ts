@@ -112,6 +112,7 @@ export default class Engine {
                 })
             }
         }
+
         return { module, issues }
     }
 

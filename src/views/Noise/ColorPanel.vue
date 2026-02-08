@@ -2,12 +2,12 @@
 import { computed } from 'vue'
 import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
 
+import type { FloatArray } from '@/WebGPU/Engine'
+import { parseHexColor, toHexColor } from '@/utils/Colors'
+
 import RangeInput from '@/components/RangeInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
-
-import { parseHexColor, toHexColor } from '@/utils/Colors'
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 
 interface Props {
     /**

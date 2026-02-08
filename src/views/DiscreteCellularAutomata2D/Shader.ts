@@ -1,4 +1,3 @@
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
 import { WG_DIM } from '@/WebGPU/Engine'
 
 export const invertedGaussian = /* wgsl */ `// Inverted Gaussian function

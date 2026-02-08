@@ -1,14 +1,13 @@
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { WG_DIM } from '@/WebGPU/Engine'
+import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
 import {
     interpolate_colors_shader,
     findGridPosShader,
-    double_warp2D_shader,
-    double_warp3D_shader,
-    warp3D_shader,
-    warp2D_shader,
-    rotate4D_shader,
     rotate3D_shader,
+    rotate4D_shader,
+    warp2D_shader,
+    double_warp2D_shader,
+    warp3D_shader,
+    double_warp3D_shader,
     octaveNoiseShader,
     noiseFunctionShader,
 } from '@/Noise/ShaderUtils'

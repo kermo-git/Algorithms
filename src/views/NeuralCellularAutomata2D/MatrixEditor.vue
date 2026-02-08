@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
+import type { FloatArray } from '@/WebGPU/Engine'
 
 interface Props {
     matrixSize: number
