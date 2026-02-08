@@ -1,5 +1,5 @@
 import type { IntArray, FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { WG_DIM } from '@/WebGPU/ComputeRenderer'
+import { WG_DIM } from '@/WebGPU/Engine'
 import type { NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 import {
     findGridPosShader,

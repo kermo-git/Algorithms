@@ -1,19 +1,10 @@
-import {
-    compileShader,
-    type InitInfo,
-    type Scene,
-    type ShaderIssue,
-} from '@/WebGPU/ComputeRenderer'
-import {
-    createStorageBuffer,
-    createUniformBuffer,
-    updateBuffer,
-    type FloatArray,
-} from '@/WebGPU/ShaderDataUtils'
+import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
 
 import { type Setup, createShader } from './Shader'
 
-export class NeuralScene implements Scene {
+export class NeuralScene {
+    engine!: Engine
+
     generation_1_is_prev = true
     generation_1!: GPUBuffer
     generation_2!: GPUBuffer
@@ -31,16 +22,17 @@ export class NeuralScene implements Scene {
         this.setup = setup
     }
 
-    getPipeline(): GPUComputePipeline {
-        return this.pipeline
-    }
+    async init(colors: FloatArray, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+        this.engine = new Engine()
+        await this.engine.init(canvas)
 
-    async init(colors: FloatArray, info: InitInfo): Promise<ShaderIssue[]> {
-        const { device, color_format } = info
-        const { kernel } = this.setup
+        const { device, color_format } = this.engine
+        const { kernel, n_grid_rows, n_grid_cols } = this.setup
+        canvas.width = n_grid_cols
+        canvas.height = n_grid_rows
 
         const shader_code = createShader(this.setup, color_format)
-        const { module, issues } = await compileShader(device, shader_code)
+        const { module, issues } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
@@ -48,9 +40,8 @@ export class NeuralScene implements Scene {
                 module: module,
             },
         })
-        this.initGrid(device)
-        this.kernel = createStorageBuffer(kernel, device)
-        this.colors = createUniformBuffer(colors, device)
+        this.kernel = this.engine.createStorageBuffer(kernel)
+        this.colors = this.engine.createUniformBuffer(colors)
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -69,28 +60,31 @@ export class NeuralScene implements Scene {
                 },
             ],
         })
+        const n_cells = n_grid_rows * n_grid_cols
+        const random_data = new Float32Array(n_cells).map(Math.random)
+
+        this.generation_1_is_prev = true
+        this.generation_1 = this.engine.createStorageBuffer(random_data)
+        this.generation_2 = this.engine.createStorageBuffer(random_data)
+        this.setGenerations(this.generation_1, this.generation_2)
+        this.redraw()
 
         return issues
     }
 
-    initGrid(device: GPUDevice) {
-        this.generation_1?.destroy()
-        this.generation_2?.destroy()
-
+    reset() {
         const { n_grid_rows, n_grid_cols } = this.setup
         const n_cells = n_grid_rows * n_grid_cols
         const random_data = new Float32Array(n_cells).map(Math.random)
 
-        this.generation_1 = createStorageBuffer(random_data, device)
-        this.generation_2 = createStorageBuffer(random_data, device)
+        this.engine.updateBuffer(this.generation_1, random_data)
+        this.generation_1_is_prev = true
+        this.setGenerations(this.generation_1, this.generation_2)
+        this.redraw()
     }
 
-    updateColors(colors: FloatArray, device: GPUDevice) {
-        updateBuffer(this.colors, colors, device)
-    }
-
-    setGenerations(prev: GPUBuffer, next: GPUBuffer, device: GPUDevice) {
-        this.generation_bind_group = device.createBindGroup({
+    setGenerations(prev: GPUBuffer, next: GPUBuffer) {
+        this.generation_bind_group = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
             entries: [
                 {
@@ -109,19 +103,65 @@ export class NeuralScene implements Scene {
         })
     }
 
-    render(encoder: GPUComputePassEncoder, device: GPUDevice): void {
-        this.generation_1_is_prev = !this.generation_1_is_prev
+    redraw(): void {
+        const texture = this.engine.getTexture()
+        const encoder = this.engine.beginPass()
 
-        if (this.generation_1_is_prev) {
-            this.setGenerations(this.generation_1, this.generation_2, device)
-        } else {
-            this.setGenerations(this.generation_2, this.generation_1, device)
-        }
+        const canvas_bind_group = this.engine.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture.createView(),
+                },
+            ],
+        })
+        encoder.setPipeline(this.pipeline)
+        encoder.setBindGroup(0, canvas_bind_group)
         encoder.setBindGroup(1, this.generation_bind_group)
         encoder.setBindGroup(2, this.static_bind_group)
+        this.engine.encodeDraw(encoder, texture)
+        this.engine.endPass(encoder)
+    }
+
+    step(n_generations = 1): void {
+        const texture = this.engine.getTexture()
+        const encoder = this.engine.beginPass()
+
+        const canvas_bind_group = this.engine.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture.createView(),
+                },
+            ],
+        })
+        encoder.setPipeline(this.pipeline)
+        encoder.setBindGroup(0, canvas_bind_group)
+        encoder.setBindGroup(2, this.static_bind_group)
+
+        for (let i = 0; i < n_generations; i++) {
+            this.generation_1_is_prev = !this.generation_1_is_prev
+
+            if (this.generation_1_is_prev) {
+                this.setGenerations(this.generation_1, this.generation_2)
+            } else {
+                this.setGenerations(this.generation_2, this.generation_1)
+            }
+            encoder.setBindGroup(1, this.generation_bind_group)
+            this.engine.encodeDraw(encoder, texture)
+        }
+        this.engine.endPass(encoder)
+    }
+
+    updateColors(colors: FloatArray) {
+        this.engine.updateBuffer(this.colors, colors)
+        this.redraw()
     }
 
     cleanup(): void {
+        this.engine.cleanup()
         this.generation_1?.destroy()
         this.generation_2?.destroy()
         this.kernel?.destroy()

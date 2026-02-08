@@ -12,7 +12,7 @@ interface Props {
 interface Emits {
     (e: 'reset'): void
     (e: 'codeChange', new_code: string): void
-    (e: 'step', two_frames?: boolean): void
+    (e: 'step', two_frames: boolean): void
 }
 
 const props = defineProps<Props>()
@@ -40,7 +40,7 @@ function onResetClick() {
 
 function onStepClick() {
     if (!applyCode()) {
-        emits('step')
+        emits('step', false)
     }
 }
 

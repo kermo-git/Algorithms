@@ -2,7 +2,7 @@
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { shaderColorArray } from '@/utils/Colors'
-import ComputeRenderer from '@/WebGPU/ComputeRenderer'
+import Engine from '@/WebGPU/Engine'
 import { type NoiseAlgorithm } from '@/Noise/Types'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
@@ -35,12 +35,11 @@ const scene = shallowRef(
         }),
     ),
 )
-const renderer = shallowRef(markRaw(new ComputeRenderer()))
+const renderer = shallowRef(markRaw(new Engine()))
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    const init_info = await renderer.value.init(canvas)
     const init_params: UniformData = {
         voronoi_n_columns: voronoi_n_columns.value,
         voronoi_colors: shaderColorArray(voronoi_colors.value),
@@ -50,8 +49,7 @@ async function initScene(canvas: HTMLCanvasElement) {
         noise_n_octaves: noise_n_octaves.value,
         noise_persistence: noise_persistence.value,
     }
-    await scene.value.init(init_params, init_info)
-    renderer.value.initObserver(canvas, scene.value)
+    await scene.value.init(init_params, canvas)
 }
 
 watch(
@@ -72,39 +70,32 @@ watch(
 )
 
 watch(voronoi_n_columns, (new_grid_size) => {
-    scene.value.updateVoronoiNColumns(new_grid_size, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateVoronoiNColumns(new_grid_size)
 })
 
 watch(voronoi_colors, (new_colors) => {
     const shader_colors = shaderColorArray(new_colors)
-    scene.value.updateVoronoiColors(shader_colors, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateVoronoiColors(shader_colors)
 })
 
 watch(noise_scale, (new_scale) => {
-    scene.value.updateNoiseScale(new_scale, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNoiseScale(new_scale)
 })
 
 watch(noise_warp_strength, (new_warp_strength) => {
-    scene.value.updateNoiseWarpStrength(new_warp_strength, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNoiseWarpStrength(new_warp_strength)
 })
 
 watch(noise_n_octaves, (new_n_octaves) => {
-    scene.value.updateNoiseOctaves(new_n_octaves, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNoiseOctaves(new_n_octaves)
 })
 
 watch(noise_persistence, (new_persistence) => {
-    scene.value.updateNoisePersistence(new_persistence, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNoisePersistence(new_persistence)
 })
 
 watch(noise_z, (new_z_coord) => {
-    scene.value.updateNoiseZ(new_z_coord, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNoiseZ(new_z_coord)
 })
 
 onBeforeUnmount(() => {

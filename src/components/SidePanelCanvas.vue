@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAttrs } from 'vue'
 
-import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
+import type { ShaderIssue } from '@/WebGPU/Engine'
 import Canvas from './Canvas.vue'
 import TabControl from './TabControl.vue'
 

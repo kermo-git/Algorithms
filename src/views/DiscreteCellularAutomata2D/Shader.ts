@@ -1,5 +1,5 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { WG_DIM } from '@/WebGPU/ComputeRenderer'
+import { WG_DIM } from '@/WebGPU/Engine'
 
 export const invertedGaussian = /* wgsl */ `// Inverted Gaussian function
 fn activate(x: f32) -> f32 {

@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { shaderColorArray } from '@/utils/Colors'
-import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
+import type { FloatArray } from '@/WebGPU/Engine'
+import { type ShaderIssue } from '@/WebGPU/Engine'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import PanelButton from '@/components/PanelButton.vue'
 import PanelSection from '@/components/PanelSection.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
@@ -28,31 +27,21 @@ const kernel = ref<FloatArray>(default_example.get_kernel())
 const activation_shader = ref<string>(default_example.activation)
 
 const scene = shallowRef(
-    markRaw(
-        new NeuralScene({
-            activation_shader: activation_shader.value,
-            n_grid_rows: grid_size.value,
-            n_grid_cols: grid_size.value,
-            kernel_radius: kernel_radius.value,
-            kernel: kernel.value,
-        }),
-    ),
+    new NeuralScene({
+        activation_shader: activation_shader.value,
+        n_grid_rows: grid_size.value,
+        n_grid_cols: grid_size.value,
+        kernel_radius: kernel_radius.value,
+        kernel: kernel.value,
+    }),
 )
-const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    canvas.width = grid_size.value
-    canvas.height = grid_size.value
-
-    const init_info = await renderer.value.init(canvas)
-    shader_issues.value = await scene.value.init(
-        shaderColorArray([color_0.value, color_1.value]),
-        init_info,
-    )
-    renderer.value.render(scene.value)
+    const colors = shaderColorArray([color_0.value, color_1.value])
+    shader_issues.value = await scene.value.init(colors, canvas)
 }
 
 function setExample(example: Example) {
@@ -64,23 +53,20 @@ function setExample(example: Example) {
 }
 
 function reset() {
-    const device = renderer.value.device
-    scene.value.initGrid(device)
-    renderer.value.render(scene.value)
+    scene.value.reset()
 }
 
-function step(two_frames?: boolean) {
-    renderer.value.render(scene.value, two_frames)
+function step(two_frames: boolean) {
+    scene.value.step(two_frames ? 2 : 1)
 }
 
 onBeforeUnmount(() => {
-    renderer.value.cleanup()
     scene.value.cleanup()
 })
 
 watch([color_0, color_1], ([new_color_0, new_color_1]) => {
-    const device = renderer.value.device
-    scene.value.updateColors(shaderColorArray([new_color_0, new_color_1]), device)
+    const colors = shaderColorArray([new_color_0, new_color_1])
+    scene.value.updateColors(colors)
 })
 
 function onKernelRadiusChange(new_radius: number) {
@@ -91,7 +77,6 @@ function onKernelRadiusChange(new_radius: number) {
 watch(
     [grid_size, activation_shader, kernel_radius, kernel],
     ([new_grid_size, new_activation, new_kernel_size, new_kernel]) => {
-        renderer.value.cleanup()
         scene.value.cleanup()
         scene.value = new NeuralScene({
             activation_shader: new_activation,

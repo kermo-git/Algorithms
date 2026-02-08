@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 
-import ComputeRenderer from '@/WebGPU/ComputeRenderer'
 import { defaultColorPoints } from '@/Noise/Buffers'
 import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
 
@@ -41,63 +40,50 @@ function getNoiseParams(): NoiseUniforms {
 }
 
 const scene = shallowRef(
-    markRaw(
-        new NoiseScene({
-            algorithm: algorithm.value,
-            dimension: dimension.value,
-            transform: domain_transform.value,
-        }),
-    ),
+    new NoiseScene({
+        algorithm: algorithm.value,
+        dimension: dimension.value,
+        transform: domain_transform.value,
+    }),
 )
 
-const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    const init_info = await renderer.value.init(canvas)
-    await scene.value.init(getNoiseParams(), init_info)
-    renderer.value.initObserver(canvas, scene.value)
+    await scene.value.init(getNoiseParams(), canvas)
 }
 
 watch(grid_size, (new_grid_size) => {
-    scene.value.updateNGridColumns(new_grid_size, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNGridColumns(new_grid_size)
 })
 
 watch(n_main_octaves, (new_n_octaves) => {
-    scene.value.updateNMainOctaves(new_n_octaves, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNMainOctaves(new_n_octaves)
 })
 
 watch(persistence, (new_persistence) => {
-    scene.value.updatePersistence(new_persistence, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updatePersistence(new_persistence)
 })
 
 watch(z_coord, (new_z_coord) => {
-    scene.value.updateZCoord(new_z_coord, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateZCoord(new_z_coord)
 })
 
 watch(w_coord, (new_w_coord) => {
-    scene.value.updateWCoord(new_w_coord, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateWCoord(new_w_coord)
 })
 
 watch(n_warp_octaves, (new_n_octaves) => {
-    scene.value.updateNWarpOctaves(new_n_octaves, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateNWarpOctaves(new_n_octaves)
 })
 
 watch(warp_strength, (new_warp_strength) => {
-    scene.value.updateWarpStrength(new_warp_strength, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateWarpStrength(new_warp_strength)
 })
 
 watch(color_points, (new_color_points) => {
-    scene.value.updateColorPoints(new_color_points, renderer.value.device)
-    renderer.value.render(scene.value)
+    scene.value.updateColorPoints(new_color_points)
 })
 
 watch(dimension, (new_dimension) => {
@@ -112,7 +98,6 @@ watch(dimension, (new_dimension) => {
 watch(
     [algorithm, dimension, domain_transform],
     ([new_algorithm, new_dimension, new_domain_transform]) => {
-        renderer.value.cleanup()
         scene.value.cleanup()
         scene.value = new NoiseScene({
             algorithm: new_algorithm,
@@ -127,7 +112,6 @@ watch(
 )
 
 onBeforeUnmount(() => {
-    renderer.value.cleanup()
     scene.value.cleanup()
 })
 

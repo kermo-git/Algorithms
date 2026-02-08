@@ -1,36 +1,19 @@
-import {
-    compileShader,
-    type InitInfo,
-    type Scene,
-    type ShaderIssue,
-} from '@/WebGPU/ComputeRenderer'
-import {
-    createFloatUniform,
-    createIntUniform,
-    createStorageBuffer,
-    updateFloatUniform,
-    updateIntUniform,
-    updateBuffer,
-    type FloatArray,
-} from '@/WebGPU/ShaderDataUtils'
+import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
 
 import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 
 import createShader, { type Setup, type NoiseUniforms } from './Shader'
 
-export default class NoiseScene implements Scene {
+export default class NoiseScene {
     setup: Setup
 
     constructor(setup: Setup) {
         this.setup = setup
     }
 
+    engine!: Engine
     pipeline!: GPUComputePipeline
-
-    getPipeline(): GPUComputePipeline {
-        return this.pipeline
-    }
 
     hash_table!: GPUBuffer
     random_elements!: GPUBuffer
@@ -47,14 +30,17 @@ export default class NoiseScene implements Scene {
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
-    async init(data: NoiseUniforms, info: InitInfo): Promise<ShaderIssue[]> {
-        const { device, color_format } = info
+    async init(data: NoiseUniforms, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+        this.engine = new Engine()
+        await this.engine.init(canvas)
+
+        const { device, color_format } = this.engine
         const { algorithm, dimension, transform } = this.setup
 
         const shader_code = createShader(this.setup, color_format)
         const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
 
-        const { module, issues } = await compileShader(device, shader_code)
+        const { module, issues } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
@@ -62,11 +48,11 @@ export default class NoiseScene implements Scene {
                 module: module,
             },
         })
-        this.hash_table = createStorageBuffer(generateHashTable(256), device)
-        this.random_elements = createStorageBuffer(random_elements, device)
-        this.n_grid_columns = createFloatUniform(data.n_grid_columns || 16, device)
-        this.n_main_octaves = createIntUniform(data.n_main_octaves || 1, device)
-        this.persistence = createFloatUniform(data.persistence || 0.5, device)
+        this.hash_table = this.engine.createStorageBuffer(generateHashTable(256))
+        this.random_elements = this.engine.createStorageBuffer(random_elements)
+        this.n_grid_columns = this.engine.createFloatUniform(data.n_grid_columns || 16)
+        this.n_main_octaves = this.engine.createIntUniform(data.n_main_octaves || 1)
+        this.persistence = this.engine.createFloatUniform(data.persistence || 0.5)
 
         const bind_group_entries = [
             {
@@ -92,13 +78,13 @@ export default class NoiseScene implements Scene {
         ]
 
         if (dimension !== '2D') {
-            this.z_coord = createFloatUniform(data.z_coord || 0, device)
+            this.z_coord = this.engine.createFloatUniform(data.z_coord || 0)
             bind_group_entries.push({
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
             if (dimension === '4D') {
-                this.w_coord = createFloatUniform(data.w_coord || 0, device)
+                this.w_coord = this.engine.createFloatUniform(data.w_coord || 0)
                 bind_group_entries.push({
                     binding: 6,
                     resource: { buffer: this.w_coord },
@@ -106,8 +92,8 @@ export default class NoiseScene implements Scene {
             }
         }
         if (transform === 'Warp' || transform === 'Warp 2X') {
-            this.n_warp_octaves = createIntUniform(data.n_warp_octaves || 1, device)
-            this.warp_strength = createFloatUniform(data.warp_strength || 1, device)
+            this.n_warp_octaves = this.engine.createIntUniform(data.n_warp_octaves || 1)
+            this.warp_strength = this.engine.createFloatUniform(data.warp_strength || 1)
 
             bind_group_entries.push({
                 binding: 7,
@@ -126,7 +112,7 @@ export default class NoiseScene implements Scene {
 
         const color_points_data = data.color_points || defaultColorPoints
         this.n_colors = color_points_data.length / 4
-        this.color_points = createStorageBuffer(color_points_data, device, 256)
+        this.color_points = this.engine.createStorageBuffer(color_points_data, 256)
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -140,50 +126,78 @@ export default class NoiseScene implements Scene {
                 },
             ],
         })
+        this.engine.initObserver(canvas, () => {
+            this.render()
+        })
 
         return issues
     }
 
-    render(encoder: GPUComputePassEncoder): void {
+    render(): void {
+        const texture = this.engine.getTexture()
+        const encoder = this.engine.beginPass()
+
+        const canvas_bind_group = this.engine.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture.createView(),
+                },
+            ],
+        })
+        encoder.setPipeline(this.pipeline)
+        encoder.setBindGroup(0, canvas_bind_group)
         encoder.setBindGroup(1, this.static_bind_group)
         encoder.setBindGroup(2, this.color_bind_group)
+        this.engine.encodeDraw(encoder, texture)
+        encoder.end()
+
+        this.engine.endPass(encoder)
     }
 
-    updateNGridColumns(value: number, device: GPUDevice) {
-        updateFloatUniform(this.n_grid_columns, value, device)
+    updateNGridColumns(value: number) {
+        this.engine.updateFloatUniform(this.n_grid_columns, value)
+        this.render()
     }
 
-    updateNMainOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.n_main_octaves, value, device)
+    updateNMainOctaves(value: number) {
+        this.engine.updateIntUniform(this.n_main_octaves, value)
+        this.render()
     }
 
-    updatePersistence(value: number, device: GPUDevice) {
-        updateFloatUniform(this.persistence, value, device)
+    updatePersistence(value: number) {
+        this.engine.updateFloatUniform(this.persistence, value)
+        this.render()
     }
 
-    updateZCoord(value: number, device: GPUDevice) {
-        updateFloatUniform(this.z_coord, value, device)
+    updateZCoord(value: number) {
+        this.engine.updateFloatUniform(this.z_coord, value)
+        this.render()
     }
 
-    updateWCoord(value: number, device: GPUDevice) {
-        updateFloatUniform(this.w_coord, value, device)
+    updateWCoord(value: number) {
+        this.engine.updateFloatUniform(this.w_coord, value)
+        this.render()
     }
 
-    updateNWarpOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.n_warp_octaves, value, device)
+    updateNWarpOctaves(value: number) {
+        this.engine.updateIntUniform(this.n_warp_octaves, value)
+        this.render()
     }
 
-    updateWarpStrength(value: number, device: GPUDevice) {
-        updateFloatUniform(this.warp_strength, value, device)
+    updateWarpStrength(value: number) {
+        this.engine.updateFloatUniform(this.warp_strength, value)
+        this.render()
     }
 
-    updateColorPoints(data: FloatArray, device: GPUDevice) {
-        updateBuffer(this.color_points, data, device)
+    updateColorPoints(data: FloatArray) {
+        this.engine.updateBuffer(this.color_points, data)
         const new_n_colors = data.length / 4
 
         if (new_n_colors != this.n_colors) {
             this.n_colors = new_n_colors
-            this.color_bind_group = device.createBindGroup({
+            this.color_bind_group = this.engine.device.createBindGroup({
                 layout: this.pipeline.getBindGroupLayout(2),
                 entries: [
                     {
@@ -196,9 +210,11 @@ export default class NoiseScene implements Scene {
                 ],
             })
         }
+        this.render()
     }
 
     cleanup() {
+        this.engine.cleanup()
         this.hash_table?.destroy()
         this.random_elements?.destroy()
         this.n_grid_columns?.destroy()

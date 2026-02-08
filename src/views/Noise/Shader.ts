@@ -1,5 +1,5 @@
 import type { FloatArray } from '@/WebGPU/ShaderDataUtils'
-import { WG_DIM } from '@/WebGPU/ComputeRenderer'
+import { WG_DIM } from '@/WebGPU/Engine'
 import {
     interpolate_colors_shader,
     findGridPosShader,

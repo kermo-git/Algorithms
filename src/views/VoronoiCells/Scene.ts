@@ -1,35 +1,18 @@
-import {
-    compileShader,
-    type InitInfo,
-    type Scene,
-    type ShaderIssue,
-} from '@/WebGPU/ComputeRenderer'
-import {
-    type FloatArray,
-    createFloatUniform,
-    createIntUniform,
-    createStorageBuffer,
-    updateFloatUniform,
-    updateIntUniform,
-    updateBuffer,
-} from '@/WebGPU/ShaderDataUtils'
+import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
 
 import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 import { type Setup, createShader, type UniformData } from './Shader'
 
-export default class VoronoiScene implements Scene {
+export default class VoronoiScene {
     setup: Setup
 
     constructor(setup: Setup) {
         this.setup = setup
     }
 
+    engine!: Engine
     pipeline!: GPUComputePipeline
-
-    getPipeline(): GPUComputePipeline {
-        return this.pipeline
-    }
 
     hash_table!: GPUBuffer
 
@@ -49,13 +32,16 @@ export default class VoronoiScene implements Scene {
     static_bind_group!: GPUBindGroup
     color_bind_group!: GPUBindGroup
 
-    async init(data: UniformData, info: InitInfo): Promise<ShaderIssue[]> {
-        const { device, color_format } = info
+    async init(data: UniformData, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+        this.engine = new Engine()
+        await this.engine.init(canvas)
+
+        const { device, color_format } = this.engine
         const { warp_algorithm, warp_dimension } = this.setup
 
         const shader_code = `${createShader(this.setup, color_format)}`
 
-        const { module, issues } = await compileShader(device, shader_code)
+        const { module, issues } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
@@ -63,9 +49,9 @@ export default class VoronoiScene implements Scene {
                 module: module,
             },
         })
-        this.hash_table = createStorageBuffer(generateHashTable(256), device)
-        this.voronoi_n_columns = createFloatUniform(data.voronoi_n_columns || 16, device)
-        this.voronoi_points = createStorageBuffer(shaderRandomPoints2D(256), device)
+        this.hash_table = this.engine.createStorageBuffer(generateHashTable(256))
+        this.voronoi_n_columns = this.engine.createFloatUniform(data.voronoi_n_columns || 16)
+        this.voronoi_points = this.engine.createStorageBuffer(shaderRandomPoints2D(256))
 
         let bind_group_entries: GPUBindGroupEntry[] = [
             {
@@ -88,11 +74,11 @@ export default class VoronoiScene implements Scene {
                 warp_dimension,
                 256,
             )
-            this.noise_scale = createFloatUniform(data.noise_scale || 1, device)
-            this.noise_random_elements = createStorageBuffer(random_elements, device)
-            this.noise_n_octaves = createIntUniform(data.noise_n_octaves || 1, device)
-            this.noise_persistence = createFloatUniform(data.noise_persistence || 0.5, device)
-            this.noise_warp_strength = createFloatUniform(data.noise_warp_strength || 1, device)
+            this.noise_scale = this.engine.createFloatUniform(data.noise_scale || 1)
+            this.noise_random_elements = this.engine.createStorageBuffer(random_elements)
+            this.noise_n_octaves = this.engine.createIntUniform(data.noise_n_octaves || 1)
+            this.noise_persistence = this.engine.createFloatUniform(data.noise_persistence || 0.5)
+            this.noise_warp_strength = this.engine.createFloatUniform(data.noise_warp_strength || 1)
 
             bind_group_entries = bind_group_entries.concat([
                 {
@@ -117,7 +103,7 @@ export default class VoronoiScene implements Scene {
                 },
             ])
             if (warp_dimension === '3D') {
-                this.noise_z = createFloatUniform(data.noise_z || 0, device)
+                this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
                 bind_group_entries.push({
                     binding: 9,
                     resource: { buffer: this.noise_z },
@@ -131,7 +117,7 @@ export default class VoronoiScene implements Scene {
         })
 
         this.n_colors = data.voronoi_colors!.length / 4
-        this.voronoi_colors = createStorageBuffer(data.voronoi_colors!, device, 256)
+        this.voronoi_colors = this.engine.createStorageBuffer(data.voronoi_colors!, 256)
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -145,31 +131,54 @@ export default class VoronoiScene implements Scene {
                 },
             ],
         })
+        this.engine.initObserver(canvas, () => {
+            this.render()
+        })
 
         return issues
     }
 
-    render(encoder: GPUComputePassEncoder): void {
+    render(): void {
+        const texture = this.engine.getTexture()
+        const encoder = this.engine.beginPass()
+
+        const canvas_bind_group = this.engine.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: texture.createView(),
+                },
+            ],
+        })
+        encoder.setPipeline(this.pipeline)
+        encoder.setBindGroup(0, canvas_bind_group)
         encoder.setBindGroup(1, this.static_bind_group)
         encoder.setBindGroup(2, this.color_bind_group)
+        this.engine.encodeDraw(encoder, texture)
+        encoder.end()
+
+        this.engine.endPass(encoder)
     }
 
-    updateVoronoiNColumns(value: number, device: GPUDevice) {
-        updateFloatUniform(this.voronoi_n_columns, value, device)
+    updateVoronoiNColumns(value: number) {
+        this.engine.updateFloatUniform(this.voronoi_n_columns, value)
+        this.render()
     }
 
-    updateVoronoiColorGrid(value: FloatArray, device: GPUDevice) {
-        updateBuffer(this.voronoi_color_grid, value, device)
+    updateVoronoiColorGrid(value: FloatArray) {
+        this.engine.updateBuffer(this.voronoi_color_grid, value)
+        this.render()
     }
 
-    updateVoronoiColors(value: FloatArray, device: GPUDevice) {
-        updateBuffer(this.voronoi_colors, value, device)
+    updateVoronoiColors(value: FloatArray) {
+        this.engine.updateBuffer(this.voronoi_colors, value)
         const new_n_colors = value.length / 4
 
         if (new_n_colors != this.n_colors) {
             this.n_colors = new_n_colors
 
-            this.color_bind_group = device.createBindGroup({
+            this.color_bind_group = this.engine.device.createBindGroup({
                 layout: this.pipeline.getBindGroupLayout(2),
                 entries: [
                     {
@@ -182,29 +191,37 @@ export default class VoronoiScene implements Scene {
                 ],
             })
         }
+        this.render()
     }
 
-    updateNoiseScale(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_scale, value, device)
+    updateNoiseScale(value: number) {
+        this.engine.updateFloatUniform(this.noise_scale, value)
+        this.render()
     }
 
-    updateNoiseOctaves(value: number, device: GPUDevice) {
-        updateIntUniform(this.noise_n_octaves, value, device)
+    updateNoiseOctaves(value: number) {
+        this.engine.updateIntUniform(this.noise_n_octaves, value)
+        this.render()
     }
 
-    updateNoisePersistence(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_persistence, value, device)
+    updateNoisePersistence(value: number) {
+        this.engine.updateFloatUniform(this.noise_persistence, value)
+        this.render()
     }
 
-    updateNoiseWarpStrength(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_warp_strength, value, device)
+    updateNoiseWarpStrength(value: number) {
+        this.engine.updateFloatUniform(this.noise_warp_strength, value)
+        this.render()
     }
 
-    updateNoiseZ(value: number, device: GPUDevice) {
-        updateFloatUniform(this.noise_z, value, device)
+    updateNoiseZ(value: number) {
+        this.engine.updateFloatUniform(this.noise_z, value)
+        this.render()
     }
 
     cleanup() {
+        this.engine.cleanup()
+
         this.hash_table?.destroy()
 
         this.voronoi_n_columns?.destroy()

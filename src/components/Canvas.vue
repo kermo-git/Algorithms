@@ -2,7 +2,7 @@
 import { onMounted, useTemplateRef } from 'vue'
 import { mdiFloppy } from '@mdi/js'
 
-import type { ShaderIssue } from '@/WebGPU/ComputeRenderer'
+import type { ShaderIssue } from '@/WebGPU/Engine'
 import PanelButton from '@/components/PanelButton.vue'
 
 interface Props {

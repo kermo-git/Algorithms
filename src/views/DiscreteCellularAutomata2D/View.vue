@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
-import ComputeRenderer, { type ShaderIssue } from '@/WebGPU/ComputeRenderer'
+import { type ShaderIssue } from '@/WebGPU/Engine'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
@@ -23,33 +23,23 @@ const n_states = ref(default_example.nStates)
 const update_shader = ref<string>(default_example.updateShader)
 
 const scene = shallowRef(
-    markRaw(
-        new AutomatonScene({
-            n_states: n_states.value,
-            update_shader: update_shader.value,
-            n_grid_rows: grid_size.value,
-            n_grid_cols: grid_size.value,
-        }),
-    ),
+    new AutomatonScene({
+        n_states: n_states.value,
+        update_shader: update_shader.value,
+        n_grid_rows: grid_size.value,
+        n_grid_cols: grid_size.value,
+    }),
 )
-const renderer = shallowRef(markRaw(new ComputeRenderer()))
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    canvas.width = grid_size.value
-    canvas.height = grid_size.value
-
     const shader_colors = shaderColorArray(lerpColorArray(colors.value, n_states.value))
-
-    const init_info = await renderer.value.init(canvas)
-    shader_issues.value = await scene.value.init(shader_colors, init_info)
-    renderer.value.render(scene.value)
+    shader_issues.value = await scene.value.init(shader_colors, canvas)
 }
 
 onBeforeUnmount(() => {
-    renderer.value.cleanup()
     scene.value.cleanup()
 })
 
@@ -60,7 +50,6 @@ function setExample(example: Example) {
 }
 
 watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
-    renderer.value.cleanup()
     scene.value.cleanup()
 
     scene.value = new AutomatonScene({
@@ -76,19 +65,16 @@ watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_u
 })
 
 function reset() {
-    const device = renderer.value.device
-    scene.value.initGrid(device)
-    renderer.value.render(scene.value)
+    scene.value.reset()
 }
 
 function step(two_frames?: boolean) {
-    renderer.value.render(scene.value, two_frames)
+    scene.value.step(two_frames ? 2 : 1)
 }
 
 watch(colors, (new_colors) => {
     const lerp_colors = lerpColorArray(new_colors, n_states.value)
-    const device = renderer.value.device
-    scene.value.updateColors(shaderColorArray(lerp_colors), device)
+    scene.value.updateColors(shaderColorArray(lerp_colors))
 })
 </script>
 
