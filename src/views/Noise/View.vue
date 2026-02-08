@@ -23,7 +23,7 @@ const n_main_octaves = ref(1)
 const persistence = ref(0.5)
 const z_coord = ref(0)
 const w_coord = ref(0)
-const warp_strength = ref(4)
+const warp_strength = ref(1)
 const n_warp_octaves = ref(1)
 const active_tab = ref('Configuration')
 
@@ -180,7 +180,7 @@ const available_transforms = computed(() =>
 
             <template v-if="domain_transform.startsWith('Warp')">
                 <p>Warp strength: {{ warp_strength }}</p>
-                <RangeInput :min="1" :max="10" :step="0.1" v-model="warp_strength" />
+                <RangeInput :min="0.01" :max="1" :step="0.01" v-model="warp_strength" />
             </template>
 
             <NumberSingleSelect

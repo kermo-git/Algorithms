@@ -82,94 +82,109 @@ export const rotate4D_shader = /* wgsl */ `
 
 // https://iquilezles.org/articles/warp/
 
+// a = warp_noise(warp_pos)
+// warp_x = cos(a)
+// warp_y = sin(a)
+
 export const warp2D_shader = /* wgsl */ `
+    const PI = radians(180.0);
+
     fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
                   n_warp_octaves: u32, n_main_octaves: u32, 
                   persistence: f32) -> f32 {
         
-        let warp_x = noise_pos + ${randVec('2D')};
-        let warp_y = noise_pos + ${randVec('2D')};
+        let theta_pos = noise_pos + ${randVec('2D')};
+        let theta_noise = octave_noise(warp_noitheta_posse_pos, n_warp_octaves, persistence);
+        let theta = 2 * PI * theta_noise;
 
-        let pos_q = vec2f(
-            octave_noise(warp_x, n_warp_octaves, persistence),
-            octave_noise(warp_y, n_warp_octaves, persistence)
+        let warp_direction = vec2f(
+            cos(theta),
+            sin(theta)
         );
-        let final_pos = noise_pos + warp_strength * pos_q;
+        let final_pos = noise_pos + warp_strength * warp_direction;
         return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const double_warp2D_shader = /* wgsl */ `
+    const PI = radians(180.0);
+
+    fn warp_pos(pos: vec2f, n_octaves: u32, strength: f32) -> vec2f {
+        let theta_pos = pos + ${randVec('2D')};
+        let theta_noise = octave_noise(theta_pos, n_octaves, persistence);
+        let phi = 2 * PI * theta_noise;
+
+        let direction = vec2f(
+            cos(phi),
+            sin(phi)
+        );
+        return pos + strength * direction;
+    }
+
     fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
                   n_warp_octaves: u32, n_main_octaves: u32, 
                   persistence: f32) -> f32 {
-        
-        let warp_qx = noise_pos + ${randVec('2D')};
-        let warp_qy = noise_pos + ${randVec('2D')};
-
-        let pos_q = vec2f(
-            octave_noise(warp_qx, n_warp_octaves, persistence),
-            octave_noise(warp_qy, n_warp_octaves, persistence)
-        );
-
-        let warp_r = noise_pos + warp_strength * pos_q;
-        let warp_rx = warp_r + ${randVec('2D')};
-        let warp_ry = warp_r + ${randVec('2D')};
-
-        let pos_r = vec2f(
-            octave_noise(warp_rx, n_warp_octaves, persistence),
-            octave_noise(warp_ry, n_warp_octaves, persistence)
-        );
-        let final_pos = noise_pos + warp_strength * pos_r;
+        let warp1_pos = warp_pos(noise_pos, n_warp_octaves, warp_strength);
+        let final_pos = warp_pos(warp1_pos, n_warp_octaves, warp_strength);
         return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const warp3D_shader = /* wgsl */ `
+    const PI = radians(180.0);
+
     fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
                   n_warp_octaves: u32, n_main_octaves: u32, 
                   persistence: f32) -> f32 {
-        
-        let warp_x = noise_pos + ${randVec('3D')};
-        let warp_y = noise_pos + ${randVec('3D')};
-        let warp_z = noise_pos + ${randVec('3D')};
 
-        let pos_q = vec3f(
-            octave_noise(warp_x, n_warp_octaves, persistence),
-            octave_noise(warp_y, n_warp_octaves, persistence),
-            octave_noise(warp_z, n_warp_octaves, persistence)
+        let phi_pos = noise_pos + ${randVec('3D')};
+        let theta_pos = noise_pos + ${randVec('3D')};
+
+        let phi_noise = octave_noise(phi_pos, n_warp_octaves, persistence);
+        let theta_noise = octave_noise(theta_pos, n_warp_octaves, persistence);
+        
+        let phi = 2 * PI * phi_noise;
+        let theta = PI * theta_noise;
+
+        let sin_theta = sin(theta);
+        let warp_direction = vec3f(
+            sin_theta * cos(phi),
+            sin_theta * sin(phi),
+            cos(theta)
         );
-        let final_pos = noise_pos + warp_strength * pos_q;
+        let final_pos = noise_pos + warp_strength * warp_direction;
         return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
 
 export const double_warp3D_shader = /* wgsl */ `
+    const PI = radians(180.0);
+
+    fn warp_pos(pos: vec3f, n_octaves: u32, strength: f32) -> vec3f {
+        let phi_pos = pos + ${randVec('3D')};
+        let theta_pos = pos + ${randVec('3D')};
+
+        let phi_noise = octave_noise(phi_pos, n_octaves, persistence);
+        let theta_noise = octave_noise(theta_pos, n_octaves, persistence);
+        
+        let phi = 2 * PI * phi_noise;
+        let theta = PI * theta_noise;
+
+        let sin_theta = sin(theta);
+        let direction = vec3f(
+            sin_theta * cos(phi),
+            sin_theta * sin(phi),
+            cos(theta)
+        );
+        return pos + strength * direction;
+    }
+
     fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
                   n_warp_octaves: u32, n_main_octaves: u32, 
                   persistence: f32) -> f32 {
         
-        let warp_qx = noise_pos + ${randVec('3D')};
-        let warp_qy = noise_pos + ${randVec('3D')};
-        let warp_qz = noise_pos + ${randVec('3D')};
-
-        let pos_q = vec3f(
-            octave_noise(warp_qx, n_warp_octaves, persistence),
-            octave_noise(warp_qy, n_warp_octaves, persistence),
-            octave_noise(warp_qz, n_warp_octaves, persistence)
-        );
-
-        let warp_r = noise_pos + warp_strength * pos_q;
-        let warp_rx = warp_r + ${randVec('3D')};
-        let warp_ry = warp_r + ${randVec('3D')};
-        let warp_rz = warp_r + ${randVec('3D')};
-
-        let pos_r = vec3f(
-            octave_noise(warp_rx, n_warp_octaves, persistence),
-            octave_noise(warp_ry, n_warp_octaves, persistence),
-            octave_noise(warp_rz, n_warp_octaves, persistence)
-        );
-        let final_pos = noise_pos + warp_strength * pos_r;
+        let warp1_pos = warp_pos(noise_pos, n_warp_octaves, warp_strength);
+        let final_pos = warp_pos(warp1_pos, n_warp_octaves, warp_strength);
         return octave_noise(final_pos, n_main_octaves, persistence);
     }
 `
