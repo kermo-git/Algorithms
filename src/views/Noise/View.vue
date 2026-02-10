@@ -12,6 +12,7 @@ import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Ty
 import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './Scene'
 import type { NoiseUniforms } from './Shader'
+import VBox from '@/components/VBox.vue'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<NoiseAlgorithm>('Perlin')
@@ -130,78 +131,87 @@ const available_transforms = computed(() =>
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-if="active_tab === 'Configuration'">
-            <TextSingleSelect
-                text="Noise algorithm"
-                name="algorithm"
-                :options="['Perlin', 'Simplex', 'Cubic', 'Value', 'Worley', 'Worley (2nd closest)']"
-                v-model="algorithm"
-            />
+        <VBox>
+            <template v-if="active_tab === 'Configuration'">
+                <TextSingleSelect
+                    text="Noise algorithm"
+                    name="algorithm"
+                    :options="[
+                        'Perlin',
+                        'Simplex',
+                        'Cubic',
+                        'Value',
+                        'Worley',
+                        'Worley (2nd closest)',
+                    ]"
+                    v-model="algorithm"
+                />
 
-            <TextSingleSelect
-                text="Noise dimension"
-                name="dimension"
-                :options="['2D', '3D', '4D']"
-                v-model="dimension"
-            />
+                <TextSingleSelect
+                    text="Noise dimension"
+                    name="dimension"
+                    :options="['2D', '3D', '4D']"
+                    v-model="dimension"
+                />
 
-            <template v-if="dimension !== '2D'">
-                <p>Z coordinate: {{ z_coord }}</p>
-                <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
+                <template v-if="dimension !== '2D'">
+                    <p>Z coordinate: {{ z_coord }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
 
-                <template v-if="dimension === '4D'">
-                    <p>W coordinate: {{ w_coord }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
+                    <template v-if="dimension === '4D'">
+                        <p>W coordinate: {{ w_coord }}</p>
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
+                    </template>
+                </template>
+
+                <TextSingleSelect
+                    text="Domain transformation"
+                    name="domain_transform"
+                    :options="available_transforms"
+                    v-model="domain_transform"
+                />
+
+                <template v-if="domain_transform.startsWith('Warp')">
+                    <p>Warp strength: {{ warp_strength }}</p>
+                    <RangeInput :min="0.01" :max="1" :step="0.01" v-model="warp_strength" />
+                </template>
+
+                <NumberSingleSelect
+                    text="Grid size"
+                    name="grid_size"
+                    :options="[4, 8, 16, 32, 64]"
+                    v-model="grid_size"
+                />
+
+                <NumberSingleSelect
+                    v-if="domain_transform.startsWith('Warp')"
+                    text="Warp octaves"
+                    name="n_warp_octaves"
+                    :options="[1, 2, 3, 4, 5]"
+                    v-model="n_warp_octaves"
+                />
+
+                <NumberSingleSelect
+                    :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
+                    name="n_main_octaves"
+                    :options="[1, 2, 3, 4, 5]"
+                    v-model="n_main_octaves"
+                />
+
+                <template
+                    v-if="
+                        n_main_octaves > 1 ||
+                        (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
+                    "
+                >
+                    <p>Persistence: {{ persistence }}</p>
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
                 </template>
             </template>
-
-            <TextSingleSelect
-                text="Domain transformation"
-                name="domain_transform"
-                :options="available_transforms"
-                v-model="domain_transform"
-            />
-
-            <template v-if="domain_transform.startsWith('Warp')">
-                <p>Warp strength: {{ warp_strength }}</p>
-                <RangeInput :min="0.01" :max="1" :step="0.01" v-model="warp_strength" />
+            <template v-else>
+                <ColorPanel v-model="color_points" />
             </template>
-
-            <NumberSingleSelect
-                text="Grid size"
-                name="grid_size"
-                :options="[4, 8, 16, 32, 64]"
-                v-model="grid_size"
-            />
-
-            <NumberSingleSelect
-                v-if="domain_transform.startsWith('Warp')"
-                text="Warp octaves"
-                name="n_warp_octaves"
-                :options="[1, 2, 3, 4, 5]"
-                v-model="n_warp_octaves"
-            />
-
-            <NumberSingleSelect
-                :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
-                name="n_main_octaves"
-                :options="[1, 2, 3, 4, 5]"
-                v-model="n_main_octaves"
-            />
-
-            <template
-                v-if="
-                    n_main_octaves > 1 ||
-                    (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
-                "
-            >
-                <p>Persistence: {{ persistence }}</p>
-                <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
-            </template>
-        </template>
-        <template v-else>
-            <ColorPanel v-model="color_points" />
-        </template>
+        </VBox>
     </SidePanelCanvas>
 </template>
 

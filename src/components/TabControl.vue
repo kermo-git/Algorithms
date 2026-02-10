@@ -18,14 +18,13 @@ const active_tab = defineModel<string>()
                 {{ caption }}
             </button>
         </div>
-        <slot name="no-padding" />
         <div class="tab-content">
             <slot />
         </div>
     </div>
 </template>
 
-<style>
+<style scoped>
 .tab-control {
     display: flex;
     flex-direction: column;
@@ -70,19 +69,6 @@ const active_tab = defineModel<string>()
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 1em;
-    gap: 1em;
     overflow: scroll;
-}
-
-.tab-content > p,
-.tab-content > h1,
-.tab-content > h2,
-.tab-content > h3,
-.tab-content > label {
-    text-align: left;
-    width: 100%;
-    margin: 0;
 }
 </style>

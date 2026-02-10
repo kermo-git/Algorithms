@@ -13,6 +13,7 @@ import { examples, type Example } from './Examples'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
 import CACodeEditor from '@/components/CACodeEditor.vue'
+import VBox from '@/components/VBox.vue'
 
 const default_example = examples[0]
 
@@ -85,39 +86,40 @@ watch(colors, (new_colors) => {
         v-model="activeTab"
         @canvas-ready="initScene"
     >
-        <template v-if="activeTab === 'Configuration'" #no-padding>
-            <CACodeEditor
-                :code="update_shader"
-                @code-change="(new_update_shader) => (update_shader = new_update_shader)"
-                @reset="reset"
-                @step="step"
-            />
-        </template>
-        <template v-if="activeTab === 'Configuration'" #default>
-            <p>Number of states: {{ n_states }}</p>
-            <RangeInput :min="2" :max="32" :step="1" v-model="n_states" />
-            <NumberSingleSelect
-                text="Grid size"
-                name="grid-size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-            />
-        </template>
-        <template v-else-if="activeTab === 'Colors'" #default>
-            <ColorPalette v-model="colors" />
-        </template>
-        <template v-else #default>
-            <MenuItem
-                v-for="example in examples"
-                :key="example.name"
-                :text="example.name"
-                @click="
-                    () => {
-                        setExample(example)
-                    }
-                "
-            />
-        </template>
+        <CACodeEditor
+            v-if="activeTab === 'Configuration'"
+            :code="update_shader"
+            @code-change="(new_update_shader) => (update_shader = new_update_shader)"
+            @reset="reset"
+            @step="step"
+        />
+        <VBox>
+            <template v-if="activeTab === 'Configuration'">
+                <p>Number of states: {{ n_states }}</p>
+                <RangeInput :min="2" :max="32" :step="1" v-model="n_states" />
+                <NumberSingleSelect
+                    text="Grid size"
+                    name="grid-size"
+                    :options="[256, 512, 1024]"
+                    v-model="grid_size"
+                />
+            </template>
+            <template v-else-if="activeTab === 'Colors'">
+                <ColorPalette v-model="colors" />
+            </template>
+            <template v-else>
+                <MenuItem
+                    v-for="example in examples"
+                    :key="example.name"
+                    :text="example.name"
+                    @click="
+                        () => {
+                            setExample(example)
+                        }
+                    "
+                />
+            </template>
+        </VBox>
     </SidePanelCanvas>
 </template>
 

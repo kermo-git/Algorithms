@@ -13,6 +13,7 @@ import ColorPanel from '@/components/ColorPalette.vue'
 
 import VoronoiScene from './Scene'
 import { type DistanceMeasure, type UniformData } from './Shader'
+import VBox from '@/components/VBox.vue'
 
 const active_tab = ref('Configuration')
 
@@ -110,60 +111,62 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-if="active_tab === 'Configuration'">
-            <NumberSingleSelect
-                text="Grid size"
-                name="n_grid_columns"
-                :options="[4, 8, 16, 32, 64]"
-                v-model="voronoi_n_columns"
-            />
-            <TextSingleSelect
-                text="Distance measure"
-                name="distance"
-                :options="['Euclidean', 'Manhattan']"
-                v-model="voronoi_distance"
-            />
-            <TextSingleSelect
-                text="Noise algorithm"
-                name="algorithm"
-                :options="['None', 'Perlin', 'Simplex', 'Value', 'Worley']"
-                v-model="noise_algorithm"
-            />
-
-            <template v-if="noise_algorithm !== 'None'">
-                <TextSingleSelect
-                    text="Noise dimension"
-                    name="dimension"
-                    :options="['2D', '3D']"
-                    v-model="noise_dimension"
-                />
-
-                <template v-if="noise_dimension !== '2D'">
-                    <p>Noise Z coordinate: {{ noise_z }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_z" />
-                </template>
-
+        <VBox>
+            <template v-if="active_tab === 'Configuration'">
                 <NumberSingleSelect
-                    text="Noise octaves"
-                    name="noise_n_octaves"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="noise_n_octaves"
+                    text="Grid size"
+                    name="n_grid_columns"
+                    :options="[4, 8, 16, 32, 64]"
+                    v-model="voronoi_n_columns"
+                />
+                <TextSingleSelect
+                    text="Distance measure"
+                    name="distance"
+                    :options="['Euclidean', 'Manhattan']"
+                    v-model="voronoi_distance"
+                />
+                <TextSingleSelect
+                    text="Noise algorithm"
+                    name="algorithm"
+                    :options="['None', 'Perlin', 'Simplex', 'Value', 'Worley']"
+                    v-model="noise_algorithm"
                 />
 
-                <template v-if="noise_n_octaves > 1">
-                    <p>Noise persistence: {{ noise_persistence }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_persistence" />
+                <template v-if="noise_algorithm !== 'None'">
+                    <TextSingleSelect
+                        text="Noise dimension"
+                        name="dimension"
+                        :options="['2D', '3D']"
+                        v-model="noise_dimension"
+                    />
+
+                    <template v-if="noise_dimension !== '2D'">
+                        <p>Noise Z coordinate: {{ noise_z }}</p>
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_z" />
+                    </template>
+
+                    <NumberSingleSelect
+                        text="Noise octaves"
+                        name="noise_n_octaves"
+                        :options="[1, 2, 3, 4, 5]"
+                        v-model="noise_n_octaves"
+                    />
+
+                    <template v-if="noise_n_octaves > 1">
+                        <p>Noise persistence: {{ noise_persistence }}</p>
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_persistence" />
+                    </template>
+
+                    <p>Noise scale relative to Voronoi cells: {{ noise_scale }}</p>
+                    <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_scale" />
+
+                    <p>Noise warp strength: {{ noise_warp_strength }}</p>
+                    <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_warp_strength" />
                 </template>
-
-                <p>Noise scale relative to Voronoi cells: {{ noise_scale }}</p>
-                <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_scale" />
-
-                <p>Noise warp strength: {{ noise_warp_strength }}</p>
-                <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_warp_strength" />
             </template>
-        </template>
-        <template v-else>
-            <ColorPanel v-model="voronoi_colors" />
-        </template>
+            <template v-else>
+                <ColorPanel v-model="voronoi_colors" />
+            </template>
+        </VBox>
     </SidePanelCanvas>
 </template>

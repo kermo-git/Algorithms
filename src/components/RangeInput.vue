@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PanelSection from './PanelSection.vue'
+import HBox from './HBox.vue'
 
 defineOptions({ inheritAttrs: false })
 const model = defineModel<number>()
@@ -11,12 +11,12 @@ function onInput(event: Event) {
 </script>
 
 <template>
-    <PanelSection>
+    <HBox>
         <p>{{ $attrs['min'] }}</p>
         <input v-bind="$attrs" type="range" :value="model" @input="onInput" />
         <p>{{ $attrs['max'] }}</p>
         <slot />
-    </PanelSection>
+    </HBox>
 </template>
 
 <style scoped>

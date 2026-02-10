@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PanelSection from './PanelSection.vue'
+import HBox from './HBox.vue'
 
 interface Props {
     text: string
@@ -11,7 +11,7 @@ const model = defineModel()
 </script>
 
 <template>
-    <PanelSection>
+    <HBox>
         <p class="caption">{{ props.text }}</p>
         <div class="options">
             <template v-for="value in props.options" :key="value">
@@ -25,7 +25,7 @@ const model = defineModel()
                 <label class="option" :for="`${props.name}-${value}`">{{ value }}</label>
             </template>
         </div>
-    </PanelSection>
+    </HBox>
 </template>
 
 <style scoped>

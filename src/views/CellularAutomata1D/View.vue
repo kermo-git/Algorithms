@@ -4,7 +4,7 @@ import { mdiContentCopy, mdiDice5 } from '@mdi/js'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
-import PanelSection from '@/components/PanelSection.vue'
+import HBox from '@/components/HBox.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import PanelField from '@/components/PanelField.vue'
 import RangeInput from '@/components/RangeInput.vue'
@@ -15,6 +15,7 @@ import { Matrix } from '@/utils/Matrix'
 import { drawDiscreteColors } from '@/utils/DrawPixels'
 import { generatePattern, createRule, type FirstGenType, getNumRules } from './Automaton1D'
 import ColorPalette from './ColorPalette.vue'
+import VBox from '@/components/VBox.vue'
 
 const activeTab = ref('Configuration')
 const numStates = ref(2)
@@ -81,132 +82,134 @@ watch([matrix, colors], ([new_matrix, new_colors]) => {
         v-model="activeTab"
         @canvas-ready="onCanvasReady"
     >
-        <template v-if="activeTab === 'Configuration'">
-            <NumberSingleSelect
-                text="Number of states"
-                name="n-states"
-                :options="[2, 3, 4]"
-                v-model="numStates"
-            />
+        <VBox>
+            <template v-if="activeTab === 'Configuration'">
+                <NumberSingleSelect
+                    text="Number of states"
+                    name="n-states"
+                    :options="[2, 3, 4]"
+                    v-model="numStates"
+                />
 
-            <NumberSingleSelect
-                text="Neighborhood radius"
-                name="radius"
-                :options="[1, 2, 3]"
-                v-model="neighborhoodRadius"
-            />
+                <NumberSingleSelect
+                    text="Neighborhood radius"
+                    name="radius"
+                    :options="[1, 2, 3]"
+                    v-model="neighborhoodRadius"
+                />
 
-            <TextSingleSelect
-                v-if="numStates == 2"
-                text="First generation initialization"
-                name="firstgen"
-                :options="['Random', 'Center']"
-                v-model="firstGen"
-            />
+                <TextSingleSelect
+                    v-if="numStates == 2"
+                    text="First generation initialization"
+                    name="firstgen"
+                    :options="['Random', 'Center']"
+                    v-model="firstGen"
+                />
 
-            <label for="rule">{{ ruleNumberLabel }}</label>
-            <PanelSection>
-                <PanelField id="rule" type="text" inputmode="numeric" v-model="ruleNumber" />
-                <PanelButton :mdi-path="mdiContentCopy" @click="copyRuleNumber" />
-            </PanelSection>
+                <label for="rule">{{ ruleNumberLabel }}</label>
+                <HBox>
+                    <PanelField id="rule" type="text" inputmode="numeric" v-model="ruleNumber" />
+                    <PanelButton :mdi-path="mdiContentCopy" @click="copyRuleNumber" />
+                </HBox>
 
-            <p>Lambda: {{ lambda }}</p>
+                <p>Lambda: {{ lambda }}</p>
 
-            <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
-                <PanelButton :mdi-path="mdiDice5" @click="randomizeRule" />
-            </RangeInput>
-        </template>
-        <template v-if="activeTab === 'Examples'">
-            <MenuItem
-                text="Rule 30"
-                @click="
-                    () => {
-                        ruleNumber = '30'
-                        numStates = 2
-                        neighborhoodRadius = 1
-                        colors = ['#323232', '#FECB3E', '#FF87FD', '#009200']
-                    }
-                "
-            />
-            <MenuItem
-                text="Triangles"
-                @click="
-                    () => {
-                        ruleNumber = '6637593129346'
-                        numStates = 3
-                        neighborhoodRadius = 1
-                        colors = ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
-                    }
-                "
-            />
-            <MenuItem
-                text="Sharp corners"
-                @click="
-                    () => {
-                        ruleNumber = '4234215280010'
-                        numStates = 3
-                        neighborhoodRadius = 1
-                        colors = ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
-                    }
-                "
-            />
-            <MenuItem
-                text="Vines"
-                @click="
-                    () => {
-                        ruleNumber = '135497638344673206598927780380850347174'
-                        numStates = 4
-                        neighborhoodRadius = 1
-                        colors = ['#FF87FD', '#323232', '#009200', '#FECB3E']
-                    }
-                "
-            />
-            <MenuItem
-                text="Electrical circuit board"
-                @click="
-                    () => {
-                        ruleNumber = '609058266'
-                        numStates = 2
-                        neighborhoodRadius = 2
-                        colors = ['#FECB3E', '#007628', '#000000', '#FFFFFF']
-                    }
-                "
-            />
-            <MenuItem
-                text="Tall buildings"
-                @click="
-                    () => {
-                        ruleNumber = '2939828314'
-                        numStates = 2
-                        neighborhoodRadius = 2
-                        colors = ['#F5CB6E', '#323232', '#000000', '#FFFFFF']
-                    }
-                "
-            />
-            <MenuItem
-                text="City"
-                @click="
-                    () => {
-                        ruleNumber = '9548131633201461177601464909579195651'
-                        numStates = 2
-                        neighborhoodRadius = 3
-                        colors = ['#F7F6CF', '#7A7A7A', '#000000', '#FFFFFF']
-                    }
-                "
-            />
-        </template>
-        <template v-if="activeTab === 'Style'">
-            <p>Colors</p>
+                <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
+                    <PanelButton :mdi-path="mdiDice5" @click="randomizeRule" />
+                </RangeInput>
+            </template>
+            <template v-if="activeTab === 'Examples'">
+                <MenuItem
+                    text="Rule 30"
+                    @click="
+                        () => {
+                            ruleNumber = '30'
+                            numStates = 2
+                            neighborhoodRadius = 1
+                            colors = ['#323232', '#FECB3E', '#FF87FD', '#009200']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Triangles"
+                    @click="
+                        () => {
+                            ruleNumber = '6637593129346'
+                            numStates = 3
+                            neighborhoodRadius = 1
+                            colors = ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Sharp corners"
+                    @click="
+                        () => {
+                            ruleNumber = '4234215280010'
+                            numStates = 3
+                            neighborhoodRadius = 1
+                            colors = ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Vines"
+                    @click="
+                        () => {
+                            ruleNumber = '135497638344673206598927780380850347174'
+                            numStates = 4
+                            neighborhoodRadius = 1
+                            colors = ['#FF87FD', '#323232', '#009200', '#FECB3E']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Electrical circuit board"
+                    @click="
+                        () => {
+                            ruleNumber = '609058266'
+                            numStates = 2
+                            neighborhoodRadius = 2
+                            colors = ['#FECB3E', '#007628', '#000000', '#FFFFFF']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="Tall buildings"
+                    @click="
+                        () => {
+                            ruleNumber = '2939828314'
+                            numStates = 2
+                            neighborhoodRadius = 2
+                            colors = ['#F5CB6E', '#323232', '#000000', '#FFFFFF']
+                        }
+                    "
+                />
+                <MenuItem
+                    text="City"
+                    @click="
+                        () => {
+                            ruleNumber = '9548131633201461177601464909579195651'
+                            numStates = 2
+                            neighborhoodRadius = 3
+                            colors = ['#F7F6CF', '#7A7A7A', '#000000', '#FFFFFF']
+                        }
+                    "
+                />
+            </template>
+            <template v-if="activeTab === 'Style'">
+                <p>Colors</p>
 
-            <ColorPalette v-model="colors" />
+                <ColorPalette v-model="colors" />
 
-            <NumberSingleSelect
-                text="Grid size"
-                name="gird-size"
-                :options="[64, 128, 256, 512]"
-                v-model="grid_size"
-            />
-        </template>
+                <NumberSingleSelect
+                    text="Grid size"
+                    name="gird-size"
+                    :options="[64, 128, 256, 512]"
+                    v-model="grid_size"
+                />
+            </template>
+        </VBox>
     </SidePanelCanvas>
 </template>
 

@@ -4,7 +4,7 @@ import { mdiSwapHorizontal } from '@mdi/js'
 
 import ColorInput from '@/components/ColorInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
-import PanelSection from '@/components/PanelSection.vue'
+import HBox from '@/components/HBox.vue'
 
 interface Props {
     modelValue: string[]
@@ -62,7 +62,7 @@ function onSwapClick(ev: Event) {
 </script>
 
 <template>
-    <PanelSection>
+    <HBox>
         <template v-for="(color, i) in props.modelValue" :key="i">
             <ColorInput
                 :model-value="color"
@@ -86,8 +86,8 @@ function onSwapClick(ev: Event) {
                 <svg-icon type="mdi" :path="mdiSwapHorizontal" />
             </button>
         </template>
-    </PanelSection>
-    <PanelSection>
+    </HBox>
+    <HBox>
         <PanelButton
             v-for="palette in palettes"
             :key="palette.name"
@@ -98,7 +98,7 @@ function onSwapClick(ev: Event) {
                 }
             "
         />
-    </PanelSection>
+    </HBox>
 </template>
 
 <style scoped>

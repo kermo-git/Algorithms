@@ -6,7 +6,7 @@ import type { FloatArray } from '@/WebGPU/Engine'
 import { type ShaderIssue } from '@/WebGPU/Engine'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import PanelSection from '@/components/PanelSection.vue'
+import HBox from '@/components/HBox.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import ColorInput from '@/components/ColorInput.vue'
@@ -15,6 +15,7 @@ import MatrixEditor from './MatrixEditor.vue'
 import { NeuralScene } from './Scene'
 import { examples, type Example } from './Examples'
 import CACodeEditor from '@/components/CACodeEditor.vue'
+import VBox from '@/components/VBox.vue'
 
 const default_example = examples[0]
 
@@ -100,53 +101,53 @@ watch(
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-if="active_tab === 'Configuration'" #no-padding>
-            <CACodeEditor
-                :code="activation_shader"
-                @code-change="
-                    (new_activation_shader) => {
-                        activation_shader = new_activation_shader
-                    }
-                "
-                @reset="reset"
-                @step="step"
-            />
-        </template>
+        <CACodeEditor
+            v-if="active_tab === 'Configuration'"
+            :code="activation_shader"
+            @code-change="
+                (new_activation_shader) => {
+                    activation_shader = new_activation_shader
+                }
+            "
+            @reset="reset"
+            @step="step"
+        />
+        <VBox>
+            <template v-if="active_tab === 'Configuration'">
+                <NumberSingleSelect
+                    text="Kernel size"
+                    name="radius"
+                    :options="[1, 2, 3, 4, 5]"
+                    v-model="kernel_radius"
+                    @update:model-value="onKernelRadiusChange"
+                />
+                <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
+            </template>
+            <template v-else>
+                <HBox>
+                    <ColorInput v-model="color_0" />
+                    <p>Select colors</p>
+                    <ColorInput v-model="color_1" />
+                </HBox>
 
-        <template v-if="active_tab === 'Configuration'" #default>
-            <NumberSingleSelect
-                text="Kernel size"
-                name="radius"
-                :options="[1, 2, 3, 4, 5]"
-                v-model="kernel_radius"
-                @update:model-value="onKernelRadiusChange"
-            />
-            <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
-        </template>
-        <template v-else #default>
-            <PanelSection>
-                <ColorInput v-model="color_0" />
-                <p>Select colors</p>
-                <ColorInput v-model="color_1" />
-            </PanelSection>
-
-            <NumberSingleSelect
-                text="Grid size"
-                name="grid-size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-            />
-            <MenuItem
-                v-for="example in examples"
-                :key="example.name"
-                :text="example.name"
-                @click="
-                    () => {
-                        setExample(example)
-                    }
-                "
-            />
-        </template>
+                <NumberSingleSelect
+                    text="Grid size"
+                    name="grid-size"
+                    :options="[256, 512, 1024]"
+                    v-model="grid_size"
+                />
+                <MenuItem
+                    v-for="example in examples"
+                    :key="example.name"
+                    :text="example.name"
+                    @click="
+                        () => {
+                            setExample(example)
+                        }
+                    "
+                />
+            </template>
+        </VBox>
     </SidePanelCanvas>
 </template>
 
