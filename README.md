@@ -79,3 +79,11 @@ Implement an algorithm that simulates erosion in a locally computed manner, so t
 
 - Dendry: [code](https://github.com/mgaillard/Noise) and [paper](https://dl.acm.org/doi/epdf/10.1145/3306131.3317020).
 - Analytical terrain: [code](https://gitlab.inria.fr/landscapes/analytical-terrains/-/tree/main/analytical?ref_type=heads) and [paper](https://hal.science/hal-04525371v1/document)
+
+### Cave generation
+
+Procedural generation of 3D cave systems. Maybe also implement a voxel engine to render the caves.
+
+- [A Voxel-based Octree Construction Approach for Procedural Cave Generation](https://www.researchgate.net/publication/266043303_A_Voxel-based_Octree_Construction_Approach_for_Procedural_Cave_Generation)
+- [Procedural Generation of 3D Caves for Games on the GPU](https://www.researchgate.net/publication/277707378_Procedural_Generation_of_3D_Caves_for_Games_on_the_GPU)
+- [Procedural generation of 3D karst caves with speleothems](https://www.sciencedirect.com/science/article/pii/S0097849321002132?utm_source=chatgpt.com)
