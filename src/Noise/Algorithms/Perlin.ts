@@ -1,29 +1,31 @@
-export function perlin2DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> gradients: array<vec2f>;
+import { type NoiseShaderNames } from '../ShaderUtils'
 
+export function perlin2DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_gradient = `${noise}_gradient`
+    const fade = `${noise}_fade`
+
+    return /* wgsl */ `
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
         const norm_factor = 1 / sqrt(2);
         
-        fn get_gradient(x: i32, y: i32) -> vec2f {
-            let hash = hash_table[hash_table[x] + y];
-            return gradients[hash];
+        fn ${get_gradient}(x: i32, y: i32) -> vec2f {
+            let hash = ${hash_table}[${hash_table}[x] + y];
+            return ${features}[hash];
         }
 
-        fn fade(t: vec2f) -> vec2f {
+        fn ${fade}(t: vec2f) -> vec2f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn noise(global_pos: vec2f) -> f32 {
+        fn ${noise}(global_pos: vec2f) -> f32 {
             let floor_pos = floor(global_pos);
             let p0 = vec2i(floor_pos) & vec2i(255, 255);
             let p1 = (p0 + 1i) & vec2i(255, 255);
             
-            let grad_00 = get_gradient(p0.x, p0.y);
-            let grad_10 = get_gradient(p1.x, p0.y);
-            let grad_01 = get_gradient(p0.x, p1.y);
-            let grad_11 = get_gradient(p1.x, p1.y);
+            let grad_00 = ${get_gradient}(p0.x, p0.y);
+            let grad_10 = ${get_gradient}(p1.x, p0.y);
+            let grad_01 = ${get_gradient}(p0.x, p1.y);
+            let grad_11 = ${get_gradient}(p1.x, p1.y);
             
             let local = global_pos - floor_pos;
 
@@ -32,40 +34,40 @@ export function perlin2DShader(): string {
             let c = dot(grad_01, vec2f(local.x, local.y - 1));
             let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
-            let s = fade(local);
+            let s = ${fade}(local);
             let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
             return clamp(norm_factor * n + 0.5, 0, 1);
         }
     `
 }
 
-export function perlin3DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> gradients: array<vec3f>;
+export function perlin3DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_gradient = `${noise}_gradient`
+    const fade = `${noise}_fade`
 
-        fn get_gradient(x: i32, y: i32, z: i32) -> vec3f {
-            let hash = hash_table[hash_table[hash_table[x] + y] + z];
-            return gradients[hash];
+    return /* wgsl */ `
+        fn ${get_gradient}(x: i32, y: i32, z: i32) -> vec3f {
+            let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
+            return ${features}[hash];
         }
 
-        fn fade(t: vec3f) -> vec3f {
+        fn ${fade}(t: vec3f) -> vec3f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn noise(global_pos: vec3f) -> f32 {
+        fn ${noise}(global_pos: vec3f) -> f32 {
             let floor_pos = floor(global_pos);
             let p0 = vec3i(floor_pos) & vec3i(255, 255, 255);
             let p1 = (p0 + 1i) & vec3i(255, 255, 255);
             
-            let grad_000 = get_gradient(p0.x, p0.y, p0.z);
-            let grad_100 = get_gradient(p1.x, p0.y, p0.z);
-            let grad_010 = get_gradient(p0.x, p1.y, p0.z);
-            let grad_110 = get_gradient(p1.x, p1.y, p0.z);
-            let grad_001 = get_gradient(p0.x, p0.y, p1.z);
-            let grad_101 = get_gradient(p1.x, p0.y, p1.z);
-            let grad_011 = get_gradient(p0.x, p1.y, p1.z);
-            let grad_111 = get_gradient(p1.x, p1.y, p1.z);
+            let grad_000 = ${get_gradient}(p0.x, p0.y, p0.z);
+            let grad_100 = ${get_gradient}(p1.x, p0.y, p0.z);
+            let grad_010 = ${get_gradient}(p0.x, p1.y, p0.z);
+            let grad_110 = ${get_gradient}(p1.x, p1.y, p0.z);
+            let grad_001 = ${get_gradient}(p0.x, p0.y, p1.z);
+            let grad_101 = ${get_gradient}(p1.x, p0.y, p1.z);
+            let grad_011 = ${get_gradient}(p0.x, p1.y, p1.z);
+            let grad_111 = ${get_gradient}(p1.x, p1.y, p1.z);
             
             let local = global_pos - floor_pos;
 
@@ -78,7 +80,7 @@ export function perlin3DShader(): string {
             let g = dot(grad_011, vec3f(local.x, local.y - 1, local.z - 1));
             let h = dot(grad_111, vec3f(local.x - 1, local.y - 1, local.z - 1));
 
-            let s = fade(local);
+            let s = ${fade}(local);
             
             let n = 1.55 * mix(
                 mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
@@ -90,17 +92,17 @@ export function perlin3DShader(): string {
     `
 }
 
-export function perlin4DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> gradients: array<vec4f>;
+export function perlin4DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_gradient = `${noise}_gradient`
+    const fade = `${noise}_fade`
 
-        fn get_gradient(x: i32, y: i32, z: i32, w: i32) -> vec4f {
-            let hash = hash_table[hash_table[hash_table[hash_table[x] + y] + z] + w];
-            return gradients[hash];
+    return /* wgsl */ `
+        fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32) -> vec4f {
+            let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
+            return ${features}[hash];
         }
 
-        fn fade(t: vec4f) -> vec4f {
+        fn ${fade}(t: vec4f) -> vec4f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
@@ -109,23 +111,23 @@ export function perlin4DShader(): string {
             let p0 = vec4i(floor_pos) & vec4i(255, 255, 255, 255);
             let p1 = (p0 + 1i) & vec4i(255, 255, 255, 255);
             
-            let grad_0000 = get_gradient(p0.x, p0.y, p0.z, p0.w);
-            let grad_1000 = get_gradient(p1.x, p0.y, p0.z, p0.w);
-            let grad_0100 = get_gradient(p0.x, p1.y, p0.z, p0.w);
-            let grad_1100 = get_gradient(p1.x, p1.y, p0.z, p0.w);
-            let grad_0010 = get_gradient(p0.x, p0.y, p1.z, p0.w);
-            let grad_1010 = get_gradient(p1.x, p0.y, p1.z, p0.w);
-            let grad_0110 = get_gradient(p0.x, p1.y, p1.z, p0.w);
-            let grad_1110 = get_gradient(p1.x, p1.y, p1.z, p0.w);
+            let grad_0000 = ${get_gradient}(p0.x, p0.y, p0.z, p0.w);
+            let grad_1000 = ${get_gradient}(p1.x, p0.y, p0.z, p0.w);
+            let grad_0100 = ${get_gradient}(p0.x, p1.y, p0.z, p0.w);
+            let grad_1100 = ${get_gradient}(p1.x, p1.y, p0.z, p0.w);
+            let grad_0010 = ${get_gradient}(p0.x, p0.y, p1.z, p0.w);
+            let grad_1010 = ${get_gradient}(p1.x, p0.y, p1.z, p0.w);
+            let grad_0110 = ${get_gradient}(p0.x, p1.y, p1.z, p0.w);
+            let grad_1110 = ${get_gradient}(p1.x, p1.y, p1.z, p0.w);
 
-            let grad_0001 = get_gradient(p0.x, p0.y, p0.z, p1.w);
-            let grad_1001 = get_gradient(p1.x, p0.y, p0.z, p1.w);
-            let grad_0101 = get_gradient(p0.x, p1.y, p0.z, p1.w);
-            let grad_1101 = get_gradient(p1.x, p1.y, p0.z, p1.w);
-            let grad_0011 = get_gradient(p0.x, p0.y, p1.z, p1.w);
-            let grad_1011 = get_gradient(p1.x, p0.y, p1.z, p1.w);
-            let grad_0111 = get_gradient(p0.x, p1.y, p1.z, p1.w);
-            let grad_1111 = get_gradient(p1.x, p1.y, p1.z, p1.w);
+            let grad_0001 = ${get_gradient}(p0.x, p0.y, p0.z, p1.w);
+            let grad_1001 = ${get_gradient}(p1.x, p0.y, p0.z, p1.w);
+            let grad_0101 = ${get_gradient}(p0.x, p1.y, p0.z, p1.w);
+            let grad_1101 = ${get_gradient}(p1.x, p1.y, p0.z, p1.w);
+            let grad_0011 = ${get_gradient}(p0.x, p0.y, p1.z, p1.w);
+            let grad_1011 = ${get_gradient}(p1.x, p0.y, p1.z, p1.w);
+            let grad_0111 = ${get_gradient}(p0.x, p1.y, p1.z, p1.w);
+            let grad_1111 = ${get_gradient}(p1.x, p1.y, p1.z, p1.w);
             
             let local = global_pos - floor_pos;
             let minus = local - 1;
@@ -148,7 +150,7 @@ export function perlin4DShader(): string {
             let o = dot(grad_0111, vec4f(local.x, minus.y, minus.z, minus.w));
             let p = dot(grad_1111, vec4f(minus.x, minus.y, minus.z, minus.w));
 
-            let s = fade(local);
+            let s = ${fade}(local);
             
             let result = 1.57 * mix(
                 mix(

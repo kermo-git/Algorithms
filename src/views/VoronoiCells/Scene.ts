@@ -1,4 +1,4 @@
-import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
+import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
 import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
@@ -32,7 +32,7 @@ export default class VoronoiScene {
     static_bind_group!: GPUBindGroup
     color_bind_group!: GPUBindGroup
 
-    async init(data: UniformData, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+    async init(data: UniformData, canvas: HTMLCanvasElement) {
         this.engine = new Engine()
         await this.engine.init(canvas)
 
@@ -41,7 +41,7 @@ export default class VoronoiScene {
 
         const shader_code = `${createShader(this.setup, color_format)}`
 
-        const { module, issues } = await this.engine.compileShader(shader_code)
+        const { module } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
@@ -134,8 +134,6 @@ export default class VoronoiScene {
         this.engine.initObserver(canvas, () => {
             this.render()
         })
-
-        return issues
     }
 
     render(): void {

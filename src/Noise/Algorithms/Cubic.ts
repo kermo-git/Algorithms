@@ -1,26 +1,28 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-export function cubic2DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> values: array<f32>;
+import { type NoiseShaderNames } from '../ShaderUtils'
 
-        fn get_value(x: i32, y: i32) -> f32 {
-            let hash = hash_table[hash_table[x] + y];
-            return values[hash];
+export function cubic2DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_value = `${noise}_value`
+    const interpolate = `${noise}_interpolate`
+
+    const NORM_MIN = -0.3
+    const NORM_MAX = 1.3
+    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+
+    return /* wgsl */ `
+        fn ${get_value}(x: i32, y: i32) -> f32 {
+            let hash = ${hash_table}[${hash_table}[x] + y];
+            return ${features}[hash];
         }
 
-        fn interpolate(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
+        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
             let p = d - c - (a - b);
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        const NORM_MIN = -0.3;
-        const NORM_MAX = 1.3;
-        const NORM_DIFF = NORM_MAX - NORM_MIN;
-
-        fn noise(global_pos: vec2f) -> f32 {
+        fn ${noise}(global_pos: vec2f) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
@@ -37,47 +39,47 @@ export function cubic2DShader(): string {
             for (var i = 0; i < 4; i++) {
                 let yi = (floor_y - 1 + i) & 255;
 
-                interpolated_x[i] = interpolate(
-                    get_value(x0, yi),
-                    get_value(x1, yi),
-                    get_value(x2, yi),
-                    get_value(x3, yi),
+                interpolated_x[i] = ${interpolate}(
+                    ${get_value}(x0, yi),
+                    ${get_value}(x1, yi),
+                    ${get_value}(x2, yi),
+                    ${get_value}(x3, yi),
                     local_pos.x
                 );
             }
 
-            let n = interpolate(
+            let n = ${interpolate}(
                 interpolated_x[0],
                 interpolated_x[1],
                 interpolated_x[2],
                 interpolated_x[3],
                 local_pos.y
             );
-            return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
+            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
         }
     `
 }
 
-export function cubic3DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> values: array<f32>;
+export function cubic3DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_value = `${noise}_value`
+    const interpolate = `${noise}_interpolate`
 
-        fn get_value(x: i32, y: i32, z: i32) -> f32 {
-            let hash = hash_table[hash_table[hash_table[x] + y] + z];
-            return values[hash];
+    const NORM_MIN = -0.3
+    const NORM_MAX = 1.3
+    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+
+    return /* wgsl */ `
+        fn ${get_value}(x: i32, y: i32, z: i32) -> f32 {
+            let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
+            return ${features}[hash];
         }
 
-        fn interpolate(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
+        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
             let p = d - c - (a - b);
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        const NORM_MIN = -0.3;
-        const NORM_MAX = 1.3;
-        const NORM_DIFF = NORM_MAX - NORM_MIN;
-
-        fn noise(global_pos: vec3f) -> f32 {
+        fn ${noise}(global_pos: vec3f) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
@@ -99,16 +101,16 @@ export function cubic3DShader(): string {
                 for (var j = 0; j < 4; j++) {
                     let yj = (floor_y - 1 + j) & 255;
 
-                    interpolated_x[j] = interpolate(
-                        get_value(x0, yj, zi),
-                        get_value(x1, yj, zi),
-                        get_value(x2, yj, zi),
-                        get_value(x3, yj, zi),
+                    interpolated_x[j] = ${interpolate}(
+                        ${get_value}(x0, yj, zi),
+                        ${get_value}(x1, yj, zi),
+                        ${get_value}(x2, yj, zi),
+                        ${get_value}(x3, yj, zi),
                         local_pos.x
                     );
                 }
 
-                interpolated_y[i] = interpolate(
+                interpolated_y[i] = ${interpolate}(
                     interpolated_x[0],
                     interpolated_x[1],
                     interpolated_x[2],
@@ -117,38 +119,38 @@ export function cubic3DShader(): string {
                 );
             }
 
-            let n = interpolate(
+            let n = ${interpolate}(
                 interpolated_y[0],
                 interpolated_y[1],
                 interpolated_y[2],
                 interpolated_y[3],
                 local_pos.z
             );
-            return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
+            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
         }
     `
 }
 
-export function cubic4DShader(): string {
-    return /* wgsl */ `
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> values: array<f32>;
+export function cubic4DShader({ hash_table, features, noise }: NoiseShaderNames): string {
+    const get_value = `${noise}_value`
+    const interpolate = `${noise}_interpolate`
 
-        fn get_value(x: i32, y: i32, z: i32, w: i32) -> f32 {
-            let hash = hash_table[hash_table[hash_table[hash_table[x] + y] + z] + w];
-            return values[hash];
+    const NORM_MIN = -0.3
+    const NORM_MAX = 1.3
+    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+
+    return /* wgsl */ `
+        fn ${get_value}(x: i32, y: i32, z: i32, w: i32) -> f32 {
+            let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
+            return ${features}[hash];
         }
 
-        fn interpolate(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
+        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
             let p = d - c - (a - b);
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        const NORM_MIN = -0.3;
-        const NORM_MAX = 1.3;
-        const NORM_DIFF = NORM_MAX - NORM_MIN;
-
-        fn noise(global_pos: vec4f) -> f32 {
+        fn ${noise}(global_pos: vec4f) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
@@ -175,16 +177,16 @@ export function cubic4DShader(): string {
                     for (var k = 0; k < 4; k++) {
                         let yk = (floor_y - 1 + k) & 255;
 
-                        interpolated_x[k] = interpolate(
-                            get_value(x0, yk, zj, wi),
-                            get_value(x1, yk, zj, wi),
-                            get_value(x2, yk, zj, wi),
-                            get_value(x3, yk, zj, wi),
+                        interpolated_x[k] = ${interpolate}(
+                            ${get_value}(x0, yk, zj, wi),
+                            ${get_value}(x1, yk, zj, wi),
+                            ${get_value}(x2, yk, zj, wi),
+                            ${get_value}(x3, yk, zj, wi),
                             local_pos.x
                         );
                     }
 
-                    interpolated_y[j] = interpolate(
+                    interpolated_y[j] = ${interpolate}(
                         interpolated_x[0],
                         interpolated_x[1],
                         interpolated_x[2],
@@ -193,7 +195,7 @@ export function cubic4DShader(): string {
                     );
                 }
 
-                interpolated_z[i] = interpolate(
+                interpolated_z[i] = ${interpolate}(
                     interpolated_y[0],
                     interpolated_y[1],
                     interpolated_y[2],
@@ -202,14 +204,14 @@ export function cubic4DShader(): string {
                 );
             }
 
-            let n = interpolate(
+            let n = ${interpolate}(
                 interpolated_z[0],
                 interpolated_z[1],
                 interpolated_z[2],
                 interpolated_z[3],
                 local_pos.w
             );
-            return clamp((n - NORM_MIN) / NORM_DIFF, 0, 1);
+            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
         }
     `
 }

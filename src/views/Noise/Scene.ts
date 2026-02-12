@@ -1,9 +1,9 @@
-import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
+import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
 import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
 import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
 
-import createShader, { type Setup, type NoiseUniforms } from './Shader'
+import createNoiseShader, { type Setup, type NoiseUniforms } from './Shader'
 
 export default class NoiseScene {
     setup: Setup
@@ -30,17 +30,17 @@ export default class NoiseScene {
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
-    async init(data: NoiseUniforms, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+    async init(data: NoiseUniforms, canvas: HTMLCanvasElement) {
         this.engine = new Engine()
         await this.engine.init(canvas)
 
         const { device, color_format } = this.engine
         const { algorithm, dimension, transform } = this.setup
 
-        const shader_code = createShader(this.setup, color_format)
+        const shader_code = createNoiseShader(this.setup, color_format)
         const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
 
-        const { module, issues } = await this.engine.compileShader(shader_code)
+        const { module } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
@@ -129,8 +129,6 @@ export default class NoiseScene {
         this.engine.initObserver(canvas, () => {
             this.render()
         })
-
-        return issues
     }
 
     render(): void {
