@@ -65,15 +65,19 @@ The result of these basic noises can be tweaked in a few different ways:
 
 I already have an implementation, but it's currently unused.
 
-### Global erosion simulator
+### Erosion
 
-Implement erosion simulation on top of noise-generated terrain. The algorithm simulates soil material falling down the slopes and depositing in areas of lower elevation. Since any part of the terrain can be influenced by any other part of the terrain, this type of algorithm is better suited for fixed size worlds.
+Generate natural looking terrain that has been shaped by water erosion.
+
+#### Global erosion simulator
+
+These types of algorithms simulate water eroding soil material, carrying the sediment down the slopes and depositing the sediment in areas of lower elevation. They do it over multiple time steps, not in one go. Since sediment from any part of the terrain can be move to any other part, these algorithms are better suited for fixed size worlds.
 
 - This [paper](https://inria.hal.science/inria-00402079/document) describes a GPU-compatible algorithm for hydraulic erosion.
 - This [paper](https://old.cescg.org/CESCG-2011/papers/TUBudapest-Jako-Balazs.pdf) decribes an improvement to previous paper by integrating thermal erosion.
 - This [post](https://math.stackexchange.com/questions/1044044/local-tilt-angle-based-on-height-field) explains what "local tilt angle" means, useful for understanding both papers.
 
-### Local erosion simulator
+#### Local erosion simulator
 
 Implement an algorithm that simulates erosion in a locally computed manner, so that it's suitable for infinite procedurally generated worlds.
 
@@ -84,6 +88,11 @@ Implement an algorithm that simulates erosion in a locally computed manner, so t
 
 Procedural generation of 3D cave systems. Maybe also implement a voxel engine to render the caves.
 
+#### Voxel-based methods
 - [A Voxel-based Octree Construction Approach for Procedural Cave Generation](https://www.researchgate.net/publication/266043303_A_Voxel-based_Octree_Construction_Approach_for_Procedural_Cave_Generation)
+- [Cellular automata for real-time generation of infinite cave levels](https://dl.acm.org/doi/10.1145/1814256.1814266)
+- [Cellular Automata Method for Generating Random Cave-Like Levels](https://www.roguebasin.com/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels)
+
+#### Other methods
 - [Procedural Generation of 3D Caves for Games on the GPU](https://www.researchgate.net/publication/277707378_Procedural_Generation_of_3D_Caves_for_Games_on_the_GPU)
 - [Procedural generation of 3D karst caves with speleothems](https://www.sciencedirect.com/science/article/pii/S0097849321002132?utm_source=chatgpt.com)
