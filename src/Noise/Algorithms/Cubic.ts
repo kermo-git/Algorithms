@@ -1,17 +1,19 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-import { type NoiseShaderNames } from '../ShaderUtils'
+import { randomValues } from '../SeedData'
+import type { NoiseShaderNames, NoiseAlgorithm } from '../Types'
 
-export function cubic2DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_value = `${noise}_value`
-    const interpolate = `${noise}_interpolate`
+export const Cubic2D: NoiseAlgorithm = {
+    feature_type: 'f32',
+    generateFeatures: randomValues,
 
-    const NORM_MIN = -0.3
-    const NORM_MAX = 1.3
-    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+    pos_type: 'vec2f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_value = `${noise}_value`
+        const interpolate = `${noise}_interpolate`
 
-    return /* wgsl */ `
+        return /* wgsl */ `
         fn ${get_value}(x: i32, y: i32) -> f32 {
             let hash = ${hash_table}[${hash_table}[x] + y];
             return ${features}[hash];
@@ -55,20 +57,27 @@ export function cubic2DShader({ hash_table, features, noise }: NoiseShaderNames)
                 interpolated_x[3],
                 local_pos.y
             );
-            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
+
+            const NORM_MIN = -0.3;
+            const NORM_MAX = 1.3;
+            const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
+
+            return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
         }
     `
+    },
 }
 
-export function cubic3DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_value = `${noise}_value`
-    const interpolate = `${noise}_interpolate`
+export const Cubic3D: NoiseAlgorithm = {
+    feature_type: 'f32',
+    generateFeatures: randomValues,
 
-    const NORM_MIN = -0.3
-    const NORM_MAX = 1.3
-    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+    pos_type: 'vec3f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_value = `${noise}_value`
+        const interpolate = `${noise}_interpolate`
 
-    return /* wgsl */ `
+        return /* wgsl */ `
         fn ${get_value}(x: i32, y: i32, z: i32) -> f32 {
             let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
             return ${features}[hash];
@@ -126,20 +135,27 @@ export function cubic3DShader({ hash_table, features, noise }: NoiseShaderNames)
                 interpolated_y[3],
                 local_pos.z
             );
-            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
+
+            const NORM_MIN = -0.3;
+            const NORM_MAX = 1.3;
+            const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
+
+            return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
         }
     `
+    },
 }
 
-export function cubic4DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_value = `${noise}_value`
-    const interpolate = `${noise}_interpolate`
+export const Cubic4D: NoiseAlgorithm = {
+    feature_type: 'f32',
+    generateFeatures: randomValues,
 
-    const NORM_MIN = -0.3
-    const NORM_MAX = 1.3
-    const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN)
+    pos_type: 'vec4f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_value = `${noise}_value`
+        const interpolate = `${noise}_interpolate`
 
-    return /* wgsl */ `
+        return /* wgsl */ `
         fn ${get_value}(x: i32, y: i32, z: i32, w: i32) -> f32 {
             let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
             return ${features}[hash];
@@ -211,7 +227,13 @@ export function cubic4DShader({ hash_table, features, noise }: NoiseShaderNames)
                 interpolated_z[3],
                 local_pos.w
             );
-            return clamp((n - ${NORM_MIN}) * ${NORM_DIFF}, 0, 1);
+
+            const NORM_MIN = -0.3;
+            const NORM_MAX = 1.3;
+            const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
+
+            return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
         }
     `
+    },
 }

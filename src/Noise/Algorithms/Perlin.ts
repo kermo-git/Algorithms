@@ -1,10 +1,16 @@
-import { type NoiseShaderNames } from '../ShaderUtils'
+import { type NoiseAlgorithm, type NoiseShaderNames } from '../Types'
+import { unitVectors2D, unitVectors3D, unitVectors4D } from '../SeedData'
 
-export function perlin2DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_gradient = `${noise}_gradient`
-    const fade = `${noise}_fade`
+export const Perlin2D: NoiseAlgorithm = {
+    feature_type: 'vec2f',
+    generateFeatures: unitVectors2D,
 
-    return /* wgsl */ `
+    pos_type: 'vec2f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_gradient = `${noise}_gradient`
+        const fade = `${noise}_fade`
+
+        return /* wgsl */ `
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
         const norm_factor = 1 / sqrt(2);
         
@@ -39,13 +45,19 @@ export function perlin2DShader({ hash_table, features, noise }: NoiseShaderNames
             return clamp(norm_factor * n + 0.5, 0, 1);
         }
     `
+    },
 }
 
-export function perlin3DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_gradient = `${noise}_gradient`
-    const fade = `${noise}_fade`
+export const Perlin3D: NoiseAlgorithm = {
+    feature_type: 'vec3f',
+    generateFeatures: unitVectors3D,
 
-    return /* wgsl */ `
+    pos_type: 'vec3f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_gradient = `${noise}_gradient`
+        const fade = `${noise}_fade`
+
+        return /* wgsl */ `
         fn ${get_gradient}(x: i32, y: i32, z: i32) -> vec3f {
             let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
             return ${features}[hash];
@@ -90,13 +102,19 @@ export function perlin3DShader({ hash_table, features, noise }: NoiseShaderNames
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
+    },
 }
 
-export function perlin4DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const get_gradient = `${noise}_gradient`
-    const fade = `${noise}_fade`
+export const Perlin4D: NoiseAlgorithm = {
+    feature_type: 'vec4f',
+    generateFeatures: unitVectors4D,
 
-    return /* wgsl */ `
+    pos_type: 'vec4f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const get_gradient = `${noise}_gradient`
+        const fade = `${noise}_fade`
+
+        return /* wgsl */ `
         fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32) -> vec4f {
             let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
             return ${features}[hash];
@@ -168,4 +186,5 @@ export function perlin4DShader({ hash_table, features, noise }: NoiseShaderNames
             return clamp(result, -1, 1) * 0.5 + 0.5;
         }
     `
+    },
 }

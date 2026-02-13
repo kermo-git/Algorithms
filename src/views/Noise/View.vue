@@ -5,18 +5,24 @@ import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
-
-import { defaultColorPoints } from '@/Noise/Buffers'
-import type { DomainTransform, NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
-
-import ColorPanel from './ColorPanel.vue'
-import NoiseScene from './Scene'
-import type { NoiseUniforms } from './Shader'
 import VBox from '@/components/VBox.vue'
+import ColorPanel from './ColorPanel.vue'
+
+import { defaultColorPoints } from '@/Noise/SeedData'
+import type { NoiseAlgorithm } from '@/Noise/Types'
+
+import NoiseScene from './Scene'
+import type { DomainTransform, NoiseUniforms } from './Shader'
+import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
+import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
+import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
+import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
+import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
+import { Worley2nd2D, Worley2nd3D, Worley2nd4D } from '@/Noise/Algorithms/Worley2nd'
 
 const color_points = ref(defaultColorPoints)
-const algorithm = ref<NoiseAlgorithm>('Perlin')
-const dimension = ref<NoiseDimension>('2D')
+const algorithm = ref<string>('Simplex')
+const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
 const grid_size = ref(16)
 const n_main_octaves = ref(1)
@@ -40,10 +46,68 @@ function getNoiseParams(): NoiseUniforms {
     }
 }
 
+function createNoiseAlgorithm(name: string, dimension: string) {
+    switch (name) {
+        case 'Simplex':
+            switch (dimension) {
+                case '2D':
+                    return Simplex2D
+                case '3D':
+                    return Simplex3D
+                default:
+                    return Simplex4D
+            }
+        case 'Perlin':
+            switch (dimension) {
+                case '2D':
+                    return Perlin2D
+                case '3D':
+                    return Perlin3D
+                default:
+                    return Perlin4D
+            }
+        case 'Cubic':
+            switch (dimension) {
+                case '2D':
+                    return Cubic2D
+                case '3D':
+                    return Cubic3D
+                default:
+                    return Cubic4D
+            }
+        case 'Value':
+            switch (dimension) {
+                case '2D':
+                    return Value2D
+                case '3D':
+                    return Value3D
+                default:
+                    return Value4D
+            }
+        case 'Worley':
+            switch (dimension) {
+                case '2D':
+                    return Worley2D
+                case '3D':
+                    return Worley3D
+                default:
+                    return Worley4D
+            }
+        default:
+            switch (dimension) {
+                case '2D':
+                    return Worley2nd2D
+                case '3D':
+                    return Worley2nd3D
+                default:
+                    return Worley2nd4D
+            }
+    }
+}
+
 const scene = shallowRef(
     new NoiseScene({
-        algorithm: algorithm.value,
-        dimension: dimension.value,
+        algorithm: createNoiseAlgorithm(algorithm.value, dimension.value),
         transform: domain_transform.value,
     }),
 )
@@ -101,8 +165,7 @@ watch(
     ([new_algorithm, new_dimension, new_domain_transform]) => {
         scene.value.cleanup()
         scene.value = new NoiseScene({
-            algorithm: new_algorithm,
-            dimension: new_dimension,
+            algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
             transform: new_domain_transform,
         })
 
@@ -118,9 +181,9 @@ onBeforeUnmount(() => {
 
 const available_transforms = computed(() =>
     dimension.value === '2D'
-        ? ['None', 'Warp', 'Warp 2X']
+        ? ['None', 'Warp']
         : dimension.value === '3D'
-          ? ['None', 'Rotate', 'Warp', 'Warp 2X']
+          ? ['None', 'Rotate', 'Warp']
           : ['None', 'Rotate'],
 )
 </script>
@@ -137,8 +200,8 @@ const available_transforms = computed(() =>
                     text="Noise algorithm"
                     name="algorithm"
                     :options="[
-                        'Perlin',
                         'Simplex',
+                        'Perlin',
                         'Cubic',
                         'Value',
                         'Worley',

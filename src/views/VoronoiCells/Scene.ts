@@ -1,7 +1,6 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
-import { generateHashTable, shaderRandomPoints2D } from '@/Noise/Buffers'
-import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
+import { hashTable, randomPoints2D } from '@/Noise/SeedData'
 import { type Setup, createShader, type UniformData } from './Shader'
 
 export default class VoronoiScene {
@@ -23,7 +22,7 @@ export default class VoronoiScene {
     n_colors: number = 0
 
     noise_scale!: GPUBuffer
-    noise_random_elements!: GPUBuffer
+    noise_features!: GPUBuffer
     noise_n_octaves!: GPUBuffer
     noise_persistence!: GPUBuffer
     noise_warp_strength!: GPUBuffer
@@ -37,7 +36,7 @@ export default class VoronoiScene {
         await this.engine.init(canvas)
 
         const { device, color_format } = this.engine
-        const { warp_algorithm, warp_dimension } = this.setup
+        const { warp_algorithm } = this.setup
 
         const shader_code = `${createShader(this.setup, color_format)}`
 
@@ -49,9 +48,9 @@ export default class VoronoiScene {
                 module: module,
             },
         })
-        this.hash_table = this.engine.createStorageBuffer(generateHashTable(256))
+        this.hash_table = this.engine.createStorageBuffer(hashTable(256))
         this.voronoi_n_columns = this.engine.createFloatUniform(data.voronoi_n_columns || 16)
-        this.voronoi_points = this.engine.createStorageBuffer(shaderRandomPoints2D(256))
+        this.voronoi_points = this.engine.createStorageBuffer(randomPoints2D(256))
 
         let bind_group_entries: GPUBindGroupEntry[] = [
             {
@@ -59,53 +58,49 @@ export default class VoronoiScene {
                 resource: { buffer: this.hash_table },
             },
             {
-                binding: 2,
+                binding: 1,
                 resource: { buffer: this.voronoi_n_columns },
             },
             {
-                binding: 3,
+                binding: 2,
                 resource: { buffer: this.voronoi_points },
             },
         ]
 
-        if (warp_algorithm && warp_dimension) {
-            const random_elements = getNoiseShaderRandomElements(
-                warp_algorithm,
-                warp_dimension,
-                256,
-            )
+        if (warp_algorithm) {
+            const random_elements = warp_algorithm.generateFeatures(256)
             this.noise_scale = this.engine.createFloatUniform(data.noise_scale || 1)
-            this.noise_random_elements = this.engine.createStorageBuffer(random_elements)
+            this.noise_features = this.engine.createStorageBuffer(random_elements)
             this.noise_n_octaves = this.engine.createIntUniform(data.noise_n_octaves || 1)
             this.noise_persistence = this.engine.createFloatUniform(data.noise_persistence || 0.5)
             this.noise_warp_strength = this.engine.createFloatUniform(data.noise_warp_strength || 1)
 
             bind_group_entries = bind_group_entries.concat([
                 {
-                    binding: 1,
-                    resource: { buffer: this.noise_random_elements },
+                    binding: 3,
+                    resource: { buffer: this.noise_features },
                 },
                 {
-                    binding: 5,
+                    binding: 4,
                     resource: { buffer: this.noise_scale },
                 },
                 {
-                    binding: 6,
+                    binding: 5,
                     resource: { buffer: this.noise_n_octaves },
                 },
                 {
-                    binding: 7,
+                    binding: 6,
                     resource: { buffer: this.noise_persistence },
                 },
                 {
-                    binding: 8,
+                    binding: 7,
                     resource: { buffer: this.noise_warp_strength },
                 },
             ])
-            if (warp_dimension === '3D') {
+            if (warp_algorithm.pos_type === 'vec3f') {
                 this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
                 bind_group_entries.push({
-                    binding: 9,
+                    binding: 8,
                     resource: { buffer: this.noise_z },
                 })
             }
@@ -227,7 +222,7 @@ export default class VoronoiScene {
         this.voronoi_color_grid?.destroy()
         this.voronoi_colors?.destroy()
 
-        this.noise_random_elements?.destroy()
+        this.noise_features?.destroy()
         this.noise_scale?.destroy()
         this.noise_n_octaves?.destroy()
         this.noise_persistence?.destroy()

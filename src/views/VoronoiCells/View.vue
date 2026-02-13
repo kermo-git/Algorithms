@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
-import { shaderColorArray } from '@/utils/Colors'
-import Engine from '@/WebGPU/Engine'
-import { type NoiseAlgorithm } from '@/Noise/Types'
-
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPanel from '@/components/ColorPalette.vue'
-
-import VoronoiScene from './Scene'
-import { type DistanceMeasure, type UniformData } from './Shader'
 import VBox from '@/components/VBox.vue'
+
+import { shaderColorArray } from '@/utils/Colors'
+import Engine from '@/WebGPU/Engine'
+import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
+import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
+import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
+import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
+
+import { type DistanceMeasure, type UniformData } from './Shader'
+import VoronoiScene from './Scene'
 
 const active_tab = ref('Configuration')
 
@@ -21,7 +24,7 @@ const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const voronoi_colors = ref(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB'])
 const voronoi_n_columns = ref(16)
 
-const noise_algorithm = ref<NoiseAlgorithm | 'None'>('None')
+const noise_algorithm = ref<string>('None')
 const noise_dimension = ref<'2D' | '3D'>('2D')
 const noise_scale = ref(1)
 const noise_n_octaves = ref(1)
@@ -53,6 +56,21 @@ async function initScene(canvas: HTMLCanvasElement) {
     await scene.value.init(init_params, canvas)
 }
 
+function createNoiseAlgorithm(name: string, dimension: string) {
+    switch (name) {
+        case 'Simplex':
+            return dimension === '2D' ? Simplex2D : Simplex3D
+        case 'Perlin':
+            return dimension === '2D' ? Perlin2D : Perlin3D
+        case 'Value':
+            return dimension === '2D' ? Value2D : Value3D
+        case 'Value':
+            return dimension === '2D' ? Worley2D : Worley3D
+        default:
+            return undefined
+    }
+}
+
 watch(
     [voronoi_distance, noise_algorithm, noise_dimension],
     ([new_measure, new_algorithm, new_dimension]) => {
@@ -61,8 +79,7 @@ watch(
 
         scene.value = new VoronoiScene({
             distance_measure: new_measure,
-            warp_algorithm: new_algorithm === 'None' ? undefined : new_algorithm,
-            warp_dimension: new_dimension,
+            warp_algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
         })
         if (canvasRef.value) {
             initScene(canvasRef.value)

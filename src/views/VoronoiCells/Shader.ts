@@ -1,12 +1,6 @@
+import { findGridPosShader, octaveNoiseShader, randVec } from '@/Noise/ShaderUtils'
+import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
-import type { NoiseAlgorithm, NoiseDimension } from '@/Noise/Types'
-import {
-    findGridPosShader,
-    noiseFunctionShader,
-    octaveNoiseShader,
-    randVec,
-    shaderVecType,
-} from '@/Noise/ShaderUtils'
 
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
 export type DistanceMeasure = 'Euclidean' | 'Manhattan'
@@ -14,7 +8,6 @@ export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 export interface Setup {
     distance_measure: DistanceMeasure
     warp_algorithm?: NoiseAlgorithm
-    warp_dimension?: NoiseDimension
 }
 
 export interface UniformData {
@@ -28,42 +21,54 @@ export interface UniformData {
 }
 
 export function createShader(
-    { distance_measure, warp_algorithm, warp_dimension }: Setup,
+    { distance_measure, warp_algorithm }: Setup,
     color_format: GPUTextureFormat,
 ) {
-    const has_noise = warp_algorithm !== undefined && warp_dimension !== undefined
+    const has_noise = warp_algorithm !== undefined
 
     let conditional_declarations = ''
     let voronoi_pos_code = ''
 
     if (has_noise) {
-        const only_3D = warp_dimension === '3D' ? '' : '//'
-        const pos_type = shaderVecType(warp_dimension)
+        const pos_type = warp_algorithm.pos_type
+        const only_3D = pos_type === 'vec3f' ? '' : '//'
 
         conditional_declarations = /* wgsl */ `
-            ${noiseFunctionShader(warp_algorithm, warp_dimension)}
+            ${warp_algorithm.createShader({
+                hash_table: 'hash_table',
+                features: 'noise_features',
+                noise: 'noise',
+            })}
             
-            @group(1) @binding(5) var<uniform> noise_scale: f32;
-            @group(1) @binding(6) var<uniform> noise_n_octaves: u32;
-            @group(1) @binding(7) var<uniform> noise_persistence: f32;
-            @group(1) @binding(8) var<uniform> noise_warp_strength: f32;
-            ${only_3D} @group(1) @binding(9) var<uniform> noise_z: f32;
+            @group(1) @binding(3) var<storage> noise_features: ${warp_algorithm.feature_type};
+            @group(1) @binding(4) var<uniform> noise_scale: f32;
+            @group(1) @binding(5) var<uniform> noise_n_octaves: u32;
+            @group(1) @binding(6) var<uniform> noise_persistence: f32;
+            @group(1) @binding(7) var<uniform> noise_warp_strength: f32;
+            ${only_3D} @group(1) @binding(8) var<uniform> noise_z: f32;
 
-            ${octaveNoiseShader(warp_dimension)}
+            ${octaveNoiseShader({
+                func_name: 'octave_noise',
+                noise_name: 'noise',
+                pos_type: warp_algorithm.pos_type,
+            })}
 
             fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {
-                let warp_x = noise_pos + ${randVec(warp_dimension)};
-                let warp_y = noise_pos + ${randVec(warp_dimension)};
-
-                let warp_vec = vec2f(
-                    octave_noise(warp_x, noise_n_octaves, noise_persistence),
-                    octave_noise(warp_y, noise_n_octaves, noise_persistence)
+                const PI = radians(180.0);
+                
+                let theta_pos = pos + ${randVec(pos_type)};
+                let theta_noise = octave_noise(theta_pos, n_octaves, persistence);
+                let phi = 2 * PI * theta_noise;
+    
+                let direction = vec2f(
+                    cos(phi),
+                    sin(phi)
                 );
-                return voronoi_pos + noise_warp_strength * warp_vec;
+                return voronoi_pos + noise_warp_strength * direction;
             }
         `
 
-        if (warp_dimension === '2D') {
+        if (pos_type === 'vec2f') {
             voronoi_pos_code = /* wgsl */ `
                 let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
                 let noise_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
@@ -97,8 +102,9 @@ export function createShader(
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
-        @group(1) @binding(2) var<uniform> voronoi_n_columns: f32;
-        @group(1) @binding(3) var<storage> voronoi_points: array<vec2f>;
+        @group(1) @binding(0) var<storage> hash_table: array<i32>;
+        @group(1) @binding(1) var<uniform> voronoi_n_columns: f32;
+        @group(1) @binding(2) var<storage> voronoi_points: array<vec2f>;
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
         
         ${findGridPosShader}

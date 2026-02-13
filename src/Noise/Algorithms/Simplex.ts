@@ -1,6 +1,7 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import type { NoiseShaderNames } from '../ShaderUtils'
+import { unitVectors2D, unitVectors3D, unitVectors4D } from '../SeedData'
+import type { NoiseAlgorithm, NoiseShaderNames } from '../Types'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions
@@ -10,15 +11,20 @@ function get_unskew_constant(n_dimensions: number) {
     return (1 - 1 / Math.sqrt(n_dimensions + 1)) / n_dimensions
 }
 
-export function simplex2DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const influence = `${noise}_influence`
-    const skew = `${noise}_skew`
-    const unskew = `${noise}_unskew`
+export const Simplex2D: NoiseAlgorithm = {
+    feature_type: 'vec2f',
+    generateFeatures: unitVectors2D,
 
-    const SKEW_CONST = get_skew_constant(2)
-    const UNSKEW_CONST = get_unskew_constant(2)
+    pos_type: 'vec2f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const influence = `${noise}_influence`
+        const skew = `${noise}_skew`
+        const unskew = `${noise}_unskew`
 
-    return /* wgsl */ `
+        const SKEW_CONST = get_skew_constant(2)
+        const UNSKEW_CONST = get_unskew_constant(2)
+
+        return /* wgsl */ `
         fn ${influence}(skew_c: vec2i, c_pos: vec2f) -> f32 {
             let t = 0.5 - dot(c_pos, c_pos);
 
@@ -68,17 +74,23 @@ export function simplex2DShader({ hash_table, features, noise }: NoiseShaderName
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
+    },
 }
 
-export function simplex3DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const influence = `${noise}_influence`
-    const skew = `${noise}_skew`
-    const unskew = `${noise}_unskew`
+export const Simplex3D: NoiseAlgorithm = {
+    feature_type: 'vec3f',
+    generateFeatures: unitVectors3D,
 
-    const SKEW_CONST = get_skew_constant(3)
-    const UNSKEW_CONST = get_unskew_constant(3)
+    pos_type: 'vec3f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const influence = `${noise}_influence`
+        const skew = `${noise}_skew`
+        const unskew = `${noise}_unskew`
 
-    return /* wgsl */ `
+        const SKEW_CONST = get_skew_constant(3)
+        const UNSKEW_CONST = get_unskew_constant(3)
+
+        return /* wgsl */ `
         fn ${influence}(skew_c: vec3i, c_pos: vec3f) -> f32 {
             let t = 0.6 - dot(c_pos, c_pos);
 
@@ -155,17 +167,23 @@ export function simplex3DShader({ hash_table, features, noise }: NoiseShaderName
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
+    },
 }
 
-export function simplex4DShader({ hash_table, features, noise }: NoiseShaderNames): string {
-    const influence = `${noise}_influence`
-    const skew = `${noise}_skew`
-    const unskew = `${noise}_unskew`
+export const Simplex4D: NoiseAlgorithm = {
+    feature_type: 'vec4f',
+    generateFeatures: unitVectors4D,
 
-    const SKEW_CONST = get_skew_constant(4)
-    const UNSKEW_CONST = get_unskew_constant(4)
+    pos_type: 'vec4f',
+    createShader({ hash_table, features, noise }: NoiseShaderNames) {
+        const influence = `${noise}_influence`
+        const skew = `${noise}_skew`
+        const unskew = `${noise}_unskew`
 
-    return /* wgsl */ `
+        const SKEW_CONST = get_skew_constant(4)
+        const UNSKEW_CONST = get_unskew_constant(4)
+
+        return /* wgsl */ `
         fn ${influence}(skew_c: vec4i, c_pos: vec4f) -> f32 {
             let t = 0.6 - dot(c_pos, c_pos);
 
@@ -373,4 +391,5 @@ export function simplex4DShader({ hash_table, features, noise }: NoiseShaderName
             return clamp(n, -1, 1) * 0.5 + 0.5;
         }
     `
+    },
 }

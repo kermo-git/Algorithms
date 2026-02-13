@@ -1,4 +1,4 @@
-export function generateHashTable(n: number = 256) {
+export function hashTable(n: number = 256) {
     const hash_table = new Int32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
@@ -16,7 +16,11 @@ export function generateHashTable(n: number = 256) {
     return hash_table
 }
 
-export function shaderRandomPoints2D(n: number = 256) {
+export function randomValues(n: number = 256) {
+    return new Float32Array(n).map(Math.random)
+}
+
+export function randomPoints2D(n: number = 256) {
     const array = new Float32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
@@ -27,7 +31,7 @@ export function shaderRandomPoints2D(n: number = 256) {
     return array
 }
 
-export function shaderRandomPoints3D(n: number = 256) {
+export function randomPoints3D(n: number = 256) {
     const array = new Float32Array(4 * n)
 
     for (let i = 0; i < n; i++) {
@@ -39,7 +43,7 @@ export function shaderRandomPoints3D(n: number = 256) {
     return array
 }
 
-export function shaderRandomPoints4D(n: number = 256) {
+export function randomPoints4D(n: number = 256) {
     const array = new Float32Array(4 * n)
 
     for (let i = 0; i < n; i++) {
@@ -52,7 +56,7 @@ export function shaderRandomPoints4D(n: number = 256) {
     return array
 }
 
-export function shaderUnitVectors2D(n: number = 256) {
+export function unitVectors2D(n: number = 256) {
     const array = new Float32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
@@ -67,7 +71,7 @@ export function shaderUnitVectors2D(n: number = 256) {
     return array
 }
 
-export function shaderUnitVectors3D(n: number = 256) {
+export function unitVectors3D(n: number = 256) {
     const array = new Float32Array(4 * n)
 
     for (let i = 0; i < n; i++) {
@@ -91,7 +95,7 @@ export function shaderUnitVectors3D(n: number = 256) {
     return array
 }
 
-export function shaderUnitVectors4D(n: number = 256) {
+export function unitVectors4D(n: number = 256) {
     const array = new Float32Array(4 * n)
 
     for (let i = 0; i < n; i++) {

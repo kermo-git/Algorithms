@@ -1,7 +1,6 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
-import { defaultColorPoints, generateHashTable } from '@/Noise/Buffers'
-import { getNoiseShaderRandomElements } from '@/Noise/ShaderUtils'
+import { defaultColorPoints, hashTable } from '@/Noise/SeedData'
 
 import createNoiseShader, { type Setup, type NoiseUniforms } from './Shader'
 
@@ -35,10 +34,10 @@ export default class NoiseScene {
         await this.engine.init(canvas)
 
         const { device, color_format } = this.engine
-        const { algorithm, dimension, transform } = this.setup
+        const { algorithm, transform } = this.setup
 
         const shader_code = createNoiseShader(this.setup, color_format)
-        const random_elements = getNoiseShaderRandomElements(algorithm, dimension, 256)
+        const random_elements = algorithm.generateFeatures(256)
 
         const { module } = await this.engine.compileShader(shader_code)
 
@@ -48,7 +47,7 @@ export default class NoiseScene {
                 module: module,
             },
         })
-        this.hash_table = this.engine.createStorageBuffer(generateHashTable(256))
+        this.hash_table = this.engine.createStorageBuffer(hashTable(256))
         this.random_elements = this.engine.createStorageBuffer(random_elements)
         this.n_grid_columns = this.engine.createFloatUniform(data.n_grid_columns || 16)
         this.n_main_octaves = this.engine.createIntUniform(data.n_main_octaves || 1)
@@ -77,13 +76,13 @@ export default class NoiseScene {
             },
         ]
 
-        if (dimension !== '2D') {
+        if (algorithm.pos_type !== 'vec2f') {
             this.z_coord = this.engine.createFloatUniform(data.z_coord || 0)
             bind_group_entries.push({
                 binding: 5,
                 resource: { buffer: this.z_coord },
             })
-            if (dimension === '4D') {
+            if (algorithm.pos_type === 'vec4f') {
                 this.w_coord = this.engine.createFloatUniform(data.w_coord || 0)
                 bind_group_entries.push({
                     binding: 6,

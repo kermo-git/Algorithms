@@ -1,7 +1,7 @@
 import type { NoiseAlgorithm, NoiseShaderNames } from '../Types'
 import { randomPoints2D, randomPoints3D, randomPoints4D } from '../SeedData'
 
-export const Worley2D: NoiseAlgorithm = {
+export const Worley2nd2D: NoiseAlgorithm = {
     feature_type: 'vec2f',
     generateFeatures: randomPoints2D,
 
@@ -11,6 +11,7 @@ export const Worley2D: NoiseAlgorithm = {
             fn ${noise}(global_pos: vec2f) -> f32 {
                 let grid_pos = vec2i(floor(global_pos));
                 var min_dist_sqr = 10.0;
+                var min_2nd_dist_sqr = 10.0;
 
                 for (var offset_x = -1; offset_x < 2; offset_x++) {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
@@ -22,16 +23,21 @@ export const Worley2D: NoiseAlgorithm = {
                         let dist = vec2f(neighbor) + ${features}[hash] - global_pos;
                         let dist_sqr = dist.x * dist.x + dist.y * dist.y;
                         
-                        min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                        if (dist_sqr < min_dist_sqr) {
+                            min_2nd_dist_sqr = min_dist_sqr;
+                            min_dist_sqr = dist_sqr;
+                        } else if (dist_sqr < min_2nd_dist_sqr) {
+                            min_2nd_dist_sqr = dist_sqr;
+                        }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr) * 1.05, 0, 1);
+                return clamp((sqrt(min_2nd_dist_sqr) - 0.07) * 0.79, 0, 1);
             }
         `
     },
 }
 
-export const Worley3D: NoiseAlgorithm = {
+export const Worley2nd3D: NoiseAlgorithm = {
     feature_type: 'vec3f',
     generateFeatures: randomPoints3D,
 
@@ -41,6 +47,7 @@ export const Worley3D: NoiseAlgorithm = {
             fn ${noise}(global_pos: vec3f) -> f32 {
                 let grid_pos = vec3i(floor(global_pos));
                 var min_dist_sqr = 10.0;
+                var min_2nd_dist_sqr = 10.0;
 
                 for (var offset_x = -1; offset_x < 2; offset_x++) {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
@@ -55,17 +62,22 @@ export const Worley3D: NoiseAlgorithm = {
                             let dist = vec3f(neighbor) + ${features}[hash] - global_pos;
                             let dist_sqr = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
                             
-                            min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                            if (dist_sqr < min_dist_sqr) {
+                                min_2nd_dist_sqr = min_dist_sqr;
+                                min_dist_sqr = dist_sqr;
+                            } else if (dist_sqr < min_2nd_dist_sqr) {
+                                min_2nd_dist_sqr = dist_sqr;
+                            }
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr) * 0.92, 0, 1);
+                return clamp((sqrt(min_2nd_dist_sqr) - 0.1) * 0.92, 0, 1);
             }
         `
     },
 }
 
-export const Worley4D: NoiseAlgorithm = {
+export const Worley2nd4D: NoiseAlgorithm = {
     feature_type: 'vec4f',
     generateFeatures: randomPoints4D,
 
@@ -75,6 +87,7 @@ export const Worley4D: NoiseAlgorithm = {
             fn ${noise}(global_pos: vec4f) -> f32 {
                 let grid_pos = vec4i(floor(global_pos));
                 var min_dist_sqr = 10.0;
+                var min_2nd_dist_sqr = 10.0;
 
                 for (var offset_x = -1; offset_x < 2; offset_x++) {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
@@ -92,12 +105,17 @@ export const Worley4D: NoiseAlgorithm = {
                                 let dist = vec4f(neighbor) + ${features}[hash] - global_pos;
                                 let dist_sqr = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z + dist.w * dist.w;
                                 
-                                min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                                if (dist_sqr < min_dist_sqr) {
+                                    min_2nd_dist_sqr = min_dist_sqr;
+                                    min_dist_sqr = dist_sqr;
+                                } else if (dist_sqr < min_2nd_dist_sqr) {
+                                    min_2nd_dist_sqr = dist_sqr;
+                                }
                             }
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr) * 0.95, 0, 1);
+                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.97, 0, 1);
             }
         `
     },
