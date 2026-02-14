@@ -30,7 +30,7 @@ export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTran
             var max_noise_value: f32 = 1;
 
             var frequency: f32 = 2;
-            var amplitude: f32 = 0.5;
+            var amplitude: f32 = persistence;
 
             for (var i = 1u; i < n_octaves; i++) {
                 noise_value += amplitude * ${noise_name}(noise_pos * frequency);

@@ -92,8 +92,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
                 ${rotate4DShader}
             `
         }
-    }
-    if (transform === 'Warp') {
+    } else if (transform === 'Warp') {
         if (algorithm.pos_type === 'vec2f') {
             noise_functions = `
                 ${noise_functions}

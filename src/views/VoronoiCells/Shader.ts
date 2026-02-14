@@ -1,4 +1,4 @@
-import { findGridPosShader, octaveNoiseShader, randVec } from '@/Noise/ShaderUtils'
+import { findGridPosShader, octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
 
@@ -26,21 +26,21 @@ export function createShader(
 ) {
     const has_noise = warp_algorithm !== undefined
 
-    let conditional_declarations = ''
+    let noise_declarations = ''
     let voronoi_pos_code = ''
 
     if (has_noise) {
         const pos_type = warp_algorithm.pos_type
         const only_3D = pos_type === 'vec3f' ? '' : '//'
 
-        conditional_declarations = /* wgsl */ `
+        noise_declarations = /* wgsl */ `
             ${warp_algorithm.createShader({
                 hash_table: 'hash_table',
                 features: 'noise_features',
                 noise: 'noise',
             })}
             
-            @group(1) @binding(3) var<storage> noise_features: ${warp_algorithm.feature_type};
+            @group(1) @binding(3) var<storage> noise_features: array<${warp_algorithm.feature_type}>;
             @group(1) @binding(4) var<uniform> noise_scale: f32;
             @group(1) @binding(5) var<uniform> noise_n_octaves: u32;
             @group(1) @binding(6) var<uniform> noise_persistence: f32;
@@ -56,8 +56,7 @@ export function createShader(
             fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {
                 const PI = radians(180.0);
                 
-                let theta_pos = pos + ${randVec(pos_type)};
-                let theta_noise = octave_noise(theta_pos, n_octaves, persistence);
+                let theta_noise = octave_noise(noise_pos, noise_n_octaves, noise_persistence);
                 let phi = 2 * PI * theta_noise;
     
                 let direction = vec2f(
@@ -83,7 +82,6 @@ export function createShader(
             `
         }
     } else {
-        conditional_declarations = /* wgsl */ `@group(1) @binding(0) var<storage> hash_table: array<i32>;`
         voronoi_pos_code = /* wgsl */ `
             let voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
         `
@@ -109,7 +107,7 @@ export function createShader(
         
         ${findGridPosShader}
 
-        ${conditional_declarations}
+        ${noise_declarations}
 
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(@builtin(global_invocation_id) gid: vec3u) {

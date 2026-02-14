@@ -105,10 +105,15 @@ export default class Engine {
             const lines = trimmed_code.split('\n')
 
             for (const message of info.messages) {
-                const error_line = lines[message.lineNum - 1].trim()
+                const issue_line = lines[message.lineNum - 1].trim()
+                const issue_text = `${message.type}: ${message.message}`
+
+                console.error(issue_text)
+                console.error(issue_line)
+
                 issues.push({
-                    message: `${message.type}: ${message.message}`,
-                    codeLine: error_line,
+                    message: issue_text,
+                    codeLine: issue_line,
                 })
             }
         }

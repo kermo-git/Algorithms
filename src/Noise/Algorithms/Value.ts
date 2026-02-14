@@ -49,16 +49,16 @@ export const Value3D: NoiseAlgorithm = {
         const fade = `${noise}_fade`
 
         return /* wgsl */ `
-            fn ${get_value}[x: i32, y: i32, z: i32) -> f32 {
+            fn ${get_value}(x: i32, y: i32, z: i32) -> f32 {
                 let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
                 return ${features}[hash];
             }
 
-            fn ${fade}[t: vec3f) -> vec3f {
+            fn ${fade}(t: vec3f) -> vec3f {
                 return t * t * t * (t * (t * 6 - 15) + 10);
             }
 
-            fn ${noise}global_pos: vec3f) -> f32 {
+            fn ${noise}(global_pos: vec3f) -> f32 {
                 let floor_pos = floor(global_pos);
                 let p0 = vec3i(floor_pos) & vec3i(255, 255, 255);
                 let p1 = (p0 + 1i) & vec3i(255, 255, 255);
@@ -95,16 +95,16 @@ export const Value4D: NoiseAlgorithm = {
         const fade = `${noise}_fade`
 
         return /* wgsl */ `
-            fn ${get_value}[x: i32, y: i32, z: i32, w: i32) -> f32 {
+            fn ${get_value}(x: i32, y: i32, z: i32, w: i32) -> f32 {
                 let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
                 return ${features}[hash];
             }
 
-            fn ${fade}[t: vec4f) -> vec4f {
+            fn ${fade}(t: vec4f) -> vec4f {
                 return t * t * t * (t * (t * 6 - 15) + 10);
             }
 
-            fn ${noise}global_pos: vec4f) -> f32 {
+            fn ${noise}(global_pos: vec4f) -> f32 {
                 let floor_pos = floor(global_pos);
                 let p0 = vec4i(floor_pos) & vec4i(255, 255, 255, 255);
                 let p1 = (p0 + 1i) & vec4i(255, 255, 255, 255);
