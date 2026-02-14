@@ -52,9 +52,9 @@ export function warp2DPosShader({ func_name, noise_name }: NoiseTransformNames) 
         fn ${func_name}(pos: vec2f, n_octaves: u32, persistence: f32, strength: f32) -> vec2f {
             const PI = radians(180.0);
 
-            let theta_pos = pos + ${randVec('vec2f')};
-            let theta_noise = ${noise_name}(theta_pos, n_octaves, persistence);
-            let phi = 2 * PI * theta_noise;
+            let noise_pos = pos + ${randVec('vec2f')};
+            let noise_value = ${noise_name}(noise_pos, n_octaves, persistence);
+            let phi = 2 * PI * noise_value;
 
             let direction = vec2f(
                 cos(phi),

@@ -52,7 +52,14 @@ export default class VoronoiScene {
         this.voronoi_n_columns = this.engine.createFloatUniform(data.voronoi_n_columns || 16)
         this.voronoi_points = this.engine.createStorageBuffer(randomPoints2D(256))
 
-        let bind_group_entries: GPUBindGroupEntry[] = [
+        const noise_feature_data = warp_algorithm.generateFeatures(256)
+        this.noise_scale = this.engine.createFloatUniform(data.noise_scale || 1)
+        this.noise_features = this.engine.createStorageBuffer(noise_feature_data)
+        this.noise_n_octaves = this.engine.createIntUniform(data.noise_n_octaves || 1)
+        this.noise_persistence = this.engine.createFloatUniform(data.noise_persistence || 0.5)
+        this.noise_warp_strength = this.engine.createFloatUniform(data.noise_warp_strength || 0)
+
+        const bind_group_entries: GPUBindGroupEntry[] = [
             {
                 binding: 0,
                 resource: { buffer: this.hash_table },
@@ -65,45 +72,33 @@ export default class VoronoiScene {
                 binding: 2,
                 resource: { buffer: this.voronoi_points },
             },
+            {
+                binding: 3,
+                resource: { buffer: this.noise_features },
+            },
+            {
+                binding: 4,
+                resource: { buffer: this.noise_scale },
+            },
+            {
+                binding: 5,
+                resource: { buffer: this.noise_n_octaves },
+            },
+            {
+                binding: 6,
+                resource: { buffer: this.noise_persistence },
+            },
+            {
+                binding: 7,
+                resource: { buffer: this.noise_warp_strength },
+            },
         ]
-
-        if (warp_algorithm) {
-            const random_elements = warp_algorithm.generateFeatures(256)
-            this.noise_scale = this.engine.createFloatUniform(data.noise_scale || 1)
-            this.noise_features = this.engine.createStorageBuffer(random_elements)
-            this.noise_n_octaves = this.engine.createIntUniform(data.noise_n_octaves || 1)
-            this.noise_persistence = this.engine.createFloatUniform(data.noise_persistence || 0.5)
-            this.noise_warp_strength = this.engine.createFloatUniform(data.noise_warp_strength || 1)
-
-            bind_group_entries = bind_group_entries.concat([
-                {
-                    binding: 3,
-                    resource: { buffer: this.noise_features },
-                },
-                {
-                    binding: 4,
-                    resource: { buffer: this.noise_scale },
-                },
-                {
-                    binding: 5,
-                    resource: { buffer: this.noise_n_octaves },
-                },
-                {
-                    binding: 6,
-                    resource: { buffer: this.noise_persistence },
-                },
-                {
-                    binding: 7,
-                    resource: { buffer: this.noise_warp_strength },
-                },
-            ])
-            if (warp_algorithm.pos_type === 'vec3f') {
-                this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
-                bind_group_entries.push({
-                    binding: 8,
-                    resource: { buffer: this.noise_z },
-                })
-            }
+        if (warp_algorithm.pos_type === 'vec3f') {
+            this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
+            bind_group_entries.push({
+                binding: 8,
+                resource: { buffer: this.noise_z },
+            })
         }
 
         this.static_bind_group = device.createBindGroup({
