@@ -26,7 +26,7 @@ This section is inspired from websites like this:
 - [Discover Automata](https://discover-automata.vercel.app)
 - [1D Cellular Automata and the Edge Of Chaos](https://math.hws.edu/eck/js/edge-of-chaos/CA.html)
 
-### 2D discrete cellular Automata
+### 2D cellular Automata
 
 This page lets you implement things like this:
 
@@ -35,7 +35,7 @@ This page lets you implement things like this:
 - [A rose-producing cyclic cellular automaton](https://english.rejbrand.se/rejbrand/article.asp?ItemIndex=432)
 - [Miscellaneous cellular automata](https://english.rejbrand.se/rejbrand/mathart_other_ca.asp) (scroll to the bottom of that page to read more about the examples)
 
-### 2D neural cellular Automata
+### Neural cellular Automata
 
 Watch this video: [What are neural cellular automata?](https://www.youtube.com/watch?v=3H79ZcBuw4M)
 
@@ -89,10 +89,12 @@ Implement an algorithm that simulates erosion in a locally computed manner, so t
 Procedural generation of 3D cave systems. Maybe also implement a voxel engine to render the caves.
 
 #### Voxel-based methods
+
 - [A Voxel-based Octree Construction Approach for Procedural Cave Generation](https://www.researchgate.net/publication/266043303_A_Voxel-based_Octree_Construction_Approach_for_Procedural_Cave_Generation)
 - [Cellular automata for real-time generation of infinite cave levels](https://dl.acm.org/doi/10.1145/1814256.1814266)
 - [Cellular Automata Method for Generating Random Cave-Like Levels](https://www.roguebasin.com/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels)
 
 #### Other methods
+
 - [Procedural Generation of 3D Caves for Games on the GPU](https://www.researchgate.net/publication/277707378_Procedural_Generation_of_3D_Caves_for_Games_on_the_GPU)
 - [Procedural generation of 3D karst caves with speleothems](https://www.sciencedirect.com/science/article/pii/S0097849321002132?utm_source=chatgpt.com)

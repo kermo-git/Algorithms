@@ -141,16 +141,18 @@ export default class Engine {
         return this.createBuffer(data, size, GPUBufferUsage.UNIFORM)
     }
 
-    createStorageBuffer(data: BufferData, size: number = 0): GPUBuffer {
+    createStorageBuffer(data: BufferData | null, size: number = 0): GPUBuffer {
         return this.createBuffer(data, size, GPUBufferUsage.STORAGE)
     }
 
-    createBuffer(data: BufferData, size: number = 0, usage: GPUFlagsConstant): GPUBuffer {
+    createBuffer(data: BufferData | null, size: number = 0, usage: GPUFlagsConstant): GPUBuffer {
         const buffer = this.device.createBuffer({
-            size: size || data.byteLength,
+            size: size || data?.byteLength || 0,
             usage: usage | GPUBufferUsage.COPY_DST,
         })
-        this.device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+        if (data) {
+            this.device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+        }
         return buffer
     }
 

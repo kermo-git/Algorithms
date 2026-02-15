@@ -5,8 +5,9 @@ import {
     rotate3DShader,
     rotate4DShader,
     octaveNoiseShader,
-    warp3DPosShader,
-    warp2DPosShader,
+    randVec,
+    unitVector2DShader,
+    unitVector3DShader,
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 
@@ -28,35 +29,38 @@ export interface NoiseUniforms {
     color_points?: FloatArray
 }
 
-export function warp2DShader() {
+function warp2DShader() {
     return /* wgsl */ `
-        ${warp2DPosShader({
-            func_name: 'warp_pos',
-            noise_name: 'octave_noise',
-            pos_type: 'vec2f',
-        })}
+        ${unitVector2DShader}
 
         fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
-            let final_pos = warp_pos(noise_pos, n_warp_octaves, persistence, warp_strength);
+            
+            let warp_noise_pos = noise_pos + ${randVec('vec2f')};
+            let warp_noise_value = octave_noise(warp_noise_pos, n_warp_octaves, persistence);
+
+            let final_pos = noise_pos + warp_strength * unit_vector_2d(warp_noise_value);
             return octave_noise(final_pos, n_main_octaves, persistence);
         }
     `
 }
 
-export function warp3DShader() {
+function warp3DShader() {
     return /* wgsl */ `
-        ${warp3DPosShader({
-            func_name: 'warp_pos',
-            noise_name: 'octave_noise',
-            pos_type: 'vec3f',
-        })}
+        ${unitVector3DShader}
 
         fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
-            let final_pos = warp_pos(noise_pos, n_warp_octaves, persistence, warp_strength);
+
+            let phi_pos = noise_pos + ${randVec('vec3f')};
+            let theta_pos = noise_pos + ${randVec('vec3f')};
+
+            let phi_noise = octave_noise(phi_pos, warp_strength, persistence);
+            let theta_noise = octave_noise(theta_pos, warp_strength, persistence);
+            
+            let final_pos = noise_pos + warp_strength * unit_vector_3d(phi_noise, theta_noise);
             return octave_noise(final_pos, n_main_octaves, persistence);
         }
     `
@@ -76,10 +80,9 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
         })}
     `
     let noise_expr = ''
-    let pos_expr = 'noise_pos'
 
     if (transform === 'Rotate') {
-        pos_expr = 'rotate(noise_pos)'
+        noise_expr = 'noise(rotate(noise_pos))'
 
         if (algorithm.pos_type === 'vec3f') {
             noise_functions = `
@@ -105,11 +108,11 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
             `
         }
         noise_expr = `warp_noise(
-            ${pos_expr}, warp_strength, n_warp_octaves, 
+            noise_pos, warp_strength, n_warp_octaves, 
             n_main_octaves, persistence
         )`
     } else {
-        noise_expr = `octave_noise(${pos_expr}, n_main_octaves, persistence)`
+        noise_expr = `octave_noise(noise_pos, n_main_octaves, persistence)`
     }
     return {
         noise_functions,

@@ -45,50 +45,30 @@ export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTran
     `
 }
 
-// https://iquilezles.org/articles/warp/
+export const unitVector2DShader = /* wgsl */ `
+    fn unit_vector_2d(noise_value: f32) -> vec2f {
+        const full_circle = 2 * radians(180.0);
+        let phi = full_circle * noise_value;
+        return vec2f(cos(phi), sin(phi));
+    }
+`
 
-export function warp2DPosShader({ func_name, noise_name }: NoiseTransformNames) {
-    return /* wgsl */ `
-        fn ${func_name}(pos: vec2f, n_octaves: u32, persistence: f32, strength: f32) -> vec2f {
-            const PI = radians(180.0);
+export const unitVector3DShader = /* wgsl */ `
+    fn unit_vector_3d(phi_noise: f32, theta_noise: f32) -> vec3f {
+        const PI = radians(180.0);
+        const full_circle = 2 * PI;
 
-            let noise_pos = pos + ${randVec('vec2f')};
-            let noise_value = ${noise_name}(noise_pos, n_octaves, persistence);
-            let phi = 2 * PI * noise_value;
+        let phi = full_circle * phi_noise;
+        let theta = PI * theta_noise;
+        let sin_theta = sin(theta);
 
-            let direction = vec2f(
-                cos(phi),
-                sin(phi)
-            );
-            return pos + strength * direction;
-        }
-    `
-}
-
-export function warp3DPosShader({ func_name, noise_name }: NoiseTransformNames) {
-    return /* wgsl */ `
-        fn ${func_name}(pos: vec3f, n_octaves: u32, persistence: f32, strength: f32) -> vec3f {
-            const PI = radians(180.0);
-
-            let phi_pos = pos + ${randVec('vec3f')};
-            let theta_pos = pos + ${randVec('vec3f')};
-
-            let phi_noise = ${noise_name}(phi_pos, n_octaves, persistence);
-            let theta_noise = ${noise_name}(theta_pos, n_octaves, persistence);
-            
-            let phi = 2 * PI * phi_noise;
-            let theta = PI * theta_noise;
-
-            let sin_theta = sin(theta);
-            let direction = vec3f(
-                sin_theta * cos(phi),
-                sin_theta * sin(phi),
-                cos(theta)
-            );
-            return pos + strength * direction;
-        }
-    `
-}
+        return vec3f(
+            sin_theta * cos(phi),
+            sin_theta * sin(phi),
+            cos(theta)
+        );
+    }
+`
 
 // https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html
 
