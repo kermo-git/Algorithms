@@ -10,43 +10,70 @@ import {
     unitVectors3D,
 } from '@/Noise/SeedData'
 
-import createNoiseShader, { type Setup } from './Shader'
+import { type Setup, calculateNoiseShader, flatDisplayShader } from './Shader'
+import {
+    createCanvasBindGroupLayout,
+    createNoiseBindGroupLayout,
+    createOutputBindGroupLayout,
+} from './Layout'
 
 export default class NoiseScene {
     engine!: Engine
-    pipeline!: GPUComputePipeline
 
+    noise_pipeline!: GPUComputePipeline
+    flat_display_pipeline!: GPUComputePipeline
+    terrain_display_pipeline!: GPUComputePipeline
+    erosion_pipeline!: GPUComputePipeline
+
+    noise_bind_group!: GPUBindGroup
     n_grid_columns!: GPUBuffer
     z_coord!: GPUBuffer
-
     hash_table!: GPUBuffer
     rand_values!: GPUBuffer
     rand_points_2d!: GPUBuffer
     rand_points_3d!: GPUBuffer
     unit_vectors_2d!: GPUBuffer
     unit_vectors_3d!: GPUBuffer
-    output_buffer!: GPUBuffer
 
-    static_bind_group!: GPUBindGroup
+    buffer_A!: GPUBuffer
+    buffer_B!: GPUBuffer
+    bind_group_AB!: GPUBindGroup
+    bind_group_BA!: GPUBindGroup
 
-    n_colors = 0
-    color_points!: GPUBuffer
-    color_bind_group!: GPUBindGroup
+    canvas_layout!: GPUBindGroupLayout
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         this.engine = new Engine()
         await this.engine.init(canvas)
         const { device, color_format } = this.engine
 
-        const shader_code = createNoiseShader(setup.custom_noise_shader, color_format)
-        const { module } = await this.engine.compileShader(shader_code)
+        const noise_layout = createNoiseBindGroupLayout(device)
+        const output_layout = createOutputBindGroupLayout(device)
+        this.canvas_layout = createCanvasBindGroupLayout(device, color_format)
 
-        this.pipeline = device.createComputePipeline({
-            layout: 'auto',
+        const noise_shader = await this.engine.compileShader(
+            calculateNoiseShader(setup.custom_noise_shader),
+        )
+        this.noise_pipeline = device.createComputePipeline({
+            layout: device.createPipelineLayout({
+                bindGroupLayouts: [noise_layout, output_layout],
+            }),
             compute: {
-                module: module,
+                module: noise_shader.module,
             },
         })
+
+        const flat_display_shader = await this.engine.compileShader(flatDisplayShader(color_format))
+
+        this.flat_display_pipeline = device.createComputePipeline({
+            layout: device.createPipelineLayout({
+                bindGroupLayouts: [output_layout, this.canvas_layout],
+            }),
+            compute: {
+                module: flat_display_shader.module,
+            },
+        })
+
         this.n_grid_columns = this.engine.createFloatUniform(setup.n_grid_columns || 16)
         this.z_coord = this.engine.createFloatUniform(setup.z_coord || 0)
         this.hash_table = this.engine.createStorageBuffer(hashTable(256))
@@ -56,11 +83,8 @@ export default class NoiseScene {
         this.unit_vectors_2d = this.engine.createStorageBuffer(unitVectors2D(256))
         this.unit_vectors_3d = this.engine.createStorageBuffer(unitVectors3D(256))
 
-        const n_bytes = canvas.width * canvas.height * 4
-        this.output_buffer = this.engine.createStorageBuffer(null, n_bytes)
-
-        this.static_bind_group = device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(1),
+        this.noise_bind_group = device.createBindGroup({
+            layout: noise_layout,
             entries: [
                 {
                     binding: 0,
@@ -94,40 +118,46 @@ export default class NoiseScene {
                     binding: 7,
                     resource: { buffer: this.unit_vectors_3d },
                 },
-                {
-                    binding: 8,
-                    resource: { buffer: this.output_buffer },
-                },
             ],
         })
 
-        const color_points_data = setup.color_points || defaultColorPoints
-        this.n_colors = color_points_data.length / 4
-        this.color_points = this.engine.createStorageBuffer(color_points_data, 256)
+        const n_bytes = canvas.width * canvas.height * 4
+        this.buffer_A = this.engine.createStorageBuffer(null, n_bytes)
+        this.buffer_B = this.engine.createStorageBuffer(null, n_bytes)
 
-        this.color_bind_group = device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(2),
+        this.bind_group_AB = device.createBindGroup({
+            layout: output_layout,
             entries: [
                 {
                     binding: 0,
-                    resource: {
-                        buffer: this.color_points,
-                        size: color_points_data.byteLength,
-                    },
+                    resource: { buffer: this.buffer_A },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.buffer_B },
                 },
             ],
         })
-        this.engine.initObserver(canvas, () => {
-            this.render()
+
+        this.bind_group_BA = device.createBindGroup({
+            layout: output_layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.buffer_B },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.buffer_A },
+                },
+            ],
         })
     }
 
-    render(): void {
+    renderNoise(): void {
         const texture = this.engine.getTexture()
-        const encoder = this.engine.beginPass()
-
         const canvas_bind_group = this.engine.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
+            layout: this.canvas_layout,
             entries: [
                 {
                     binding: 0,
@@ -135,46 +165,35 @@ export default class NoiseScene {
                 },
             ],
         })
-        encoder.setPipeline(this.pipeline)
-        encoder.setBindGroup(0, canvas_bind_group)
-        encoder.setBindGroup(1, this.static_bind_group)
-        encoder.setBindGroup(2, this.color_bind_group)
-        this.engine.encodeDraw(encoder, texture)
-        encoder.end()
 
-        this.engine.endPass(encoder)
+        const device = this.engine.device
+        const cmd_encoder = device.createCommandEncoder()
+        let pass_encoder = cmd_encoder.beginComputePass()
+
+        pass_encoder.setPipeline(this.noise_pipeline)
+        pass_encoder.setBindGroup(0, this.noise_bind_group)
+        pass_encoder.setBindGroup(1, this.bind_group_AB)
+        this.engine.encodeDraw(pass_encoder, texture)
+        pass_encoder.end()
+
+        pass_encoder = cmd_encoder.beginComputePass()
+        pass_encoder.setPipeline(this.flat_display_pipeline)
+        pass_encoder.setBindGroup(0, this.bind_group_BA)
+        pass_encoder.setBindGroup(0, canvas_bind_group)
+
+        pass_encoder.end()
+
+        device.queue.submit([cmd_encoder.finish()])
     }
 
     updateNGridColumns(value: number) {
         this.engine.updateFloatUniform(this.n_grid_columns, value)
-        this.render()
+        this.renderNoise()
     }
 
     updateZCoord(value: number) {
         this.engine.updateFloatUniform(this.z_coord, value)
-        this.render()
-    }
-
-    updateColorPoints(data: FloatArray) {
-        this.engine.updateBuffer(this.color_points, data)
-        const new_n_colors = data.length / 4
-
-        if (new_n_colors != this.n_colors) {
-            this.n_colors = new_n_colors
-            this.color_bind_group = this.engine.device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(2),
-                entries: [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: this.color_points,
-                            size: data.byteLength,
-                        },
-                    },
-                ],
-            })
-        }
-        this.render()
+        this.renderNoise()
     }
 
     cleanup() {
@@ -182,6 +201,5 @@ export default class NoiseScene {
         this.hash_table?.destroy()
         this.n_grid_columns?.destroy()
         this.z_coord?.destroy()
-        this.color_points?.destroy()
     }
 }

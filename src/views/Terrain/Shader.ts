@@ -21,10 +21,7 @@ export interface Setup {
     color_points: FloatArray
 }
 
-export default function createNoiseShader(
-    custom_noise_shader: string,
-    color_format: GPUTextureFormat,
-): string {
+export function calculateNoiseShader(custom_noise_shader: string): string {
     function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string, features: string) {
         return `
             ${algorithm.createShader({
@@ -41,8 +38,6 @@ export default function createNoiseShader(
         `
     }
     return /* wgsl */ `
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-
         @group(1) @binding(0) var<uniform> n_grid_columns: f32;
         @group(1) @binding(1) var<uniform> z_coordinate: f32;
 
@@ -58,6 +53,8 @@ export default function createNoiseShader(
 
         ${unitVectors2D}
         ${unitVectors3D}
+
+        ${rotate3DShader}
 
         ${createNoiseFunctions(Value2D, 'value_2d', 'rand_values')}
         ${createNoiseFunctions(Value3D, 'value_3d', 'rand_values')}
@@ -98,6 +95,29 @@ export default function createNoiseShader(
             let noise_value = noise(noise_pos);
 
             output_buffer[texture_pos.y * n_grid_cols + texture_pos.x] = noise_value;
+        }
+    `
+}
+
+export function flatDisplayShader(color_format: GPUTextureFormat): string {
+    return /* wgsl */ `
+        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(1) @binding(8) var<storage, read> noise_buffer: array<f32>;
+        @group(2) @binding(0) var<storage> color_points: array<vec4f>;
+
+        ${interpolateColorShader}
+        
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+        fn main(
+            @builtin(global_invocation_id) gid: vec3u
+        ) {
+            let texture_pos = gid.xy;
+            let texture_dims = textureDimensions(texture);
+
+            if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
+                return;
+            }
+            let noise_value = output_buffer[texture_pos.y * n_grid_cols + texture_pos.x];
             let color = interpolate_color(noise_value);
             textureStore(texture, texture_pos, color);
         }
