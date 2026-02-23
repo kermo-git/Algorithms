@@ -1,9 +1,10 @@
-import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
+import { WG_DIM } from '@/WebGPU/Engine'
 import {
-    interpolateColorShader,
     findGridPosShader,
     rotate3DShader,
     octaveNoiseShader,
+    unitVector2DShader,
+    unitVector3DShader,
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
@@ -12,7 +13,6 @@ import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
-import { unitVectors2D, unitVectors3D } from '@/Noise/SeedData'
 import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
 
 function noiseFunctionShader() {
@@ -37,14 +37,14 @@ function noiseFunctionShader() {
     return /* wgsl */ `
         @group(${ng}) @binding(0) var<uniform> n_grid_columns: f32;
         @group(${ng}) @binding(1) var<storage> hash_table: array<i32>;
-        @group(${ng}) @binding(2) var<storage> rand_values: array<i32>;
+        @group(${ng}) @binding(2) var<storage> rand_values: array<f32>;
         @group(${ng}) @binding(3) var<storage> rand_points_2d: array<vec2f>;
         @group(${ng}) @binding(4) var<storage> rand_points_3d: array<vec3f>;
         @group(${ng}) @binding(5) var<storage> unit_vectors_2d: array<vec2f>;
-        @group(${ng}) @binding(6) var<storage> unit_vectors_3d: array<vec2f>;
+        @group(${ng}) @binding(6) var<storage> unit_vectors_3d: array<vec3f>;
 
-        ${unitVectors2D}
-        ${unitVectors3D}
+        ${unitVector2DShader}
+        ${unitVector3DShader}
         ${rotate3DShader}
 
         ${createNoiseFunctions(Value2D, 'value_2d', 'rand_values')}
@@ -90,7 +90,7 @@ export const terrainUnitShader = /* wgsl */ `
 
 export function startElevationShader(setup: Setup): string {
     return /* wgsl */ `
-        ${noiseFunctionShader}
+        ${noiseFunctionShader()}
 
         ${terrainUnitShader}
         @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
@@ -118,7 +118,7 @@ export function startElevationShader(setup: Setup): string {
 
 export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
-        ${noiseFunctionShader}
+        ${noiseFunctionShader()}
 
         @group(${CANVAS_GROUP}) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
@@ -139,10 +139,10 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
                 return;
             }
             let grid_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
-            let pixel_index = pixel_pos.y * n_grid_cols + pixel_pos.x;
+            let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
             let elevation = prev_terrain[pixel_index].elevation;
 
-            let color = color(vec3f(grid_pos, elevation));
+            let color = terrain_color(vec3f(grid_pos, elevation));
             textureStore(texture, pixel_pos, color);
         }
     `

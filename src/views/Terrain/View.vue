@@ -10,6 +10,8 @@ import PanelButton from '@/components/PanelButton.vue'
 import { mdiPlay } from '@mdi/js'
 import HBox from '@/components/HBox.vue'
 
+const active_tab = ref('Start elevation')
+
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
@@ -60,21 +62,28 @@ function runColor() {
 </script>
 
 <template>
-    <SidePanelCanvas :tab-captions="['Base elevation', 'Erosion']" @canvas-ready="canvasReady">
-        <VBox>
-            <HBox>
-                <p>Terrain elevation before erosion</p>
-                <PanelButton text="Run" :mdi-path="mdiPlay" @click="runTerrainElevation" />
-            </HBox>
-        </VBox>
-        <CodeEditor ref="start_elevation_editor" :code="start_elevation_shader" />
+    <SidePanelCanvas
+        :tab-captions="['Start elevation', 'Erosion']"
+        v-model="active_tab"
+        @canvas-ready="canvasReady"
+    >
+        <template v-if="active_tab = 'Start elevation'">
+            <VBox>
+                <HBox>
+                    <p>Terrain elevation before erosion</p>
+                    <PanelButton text="Run" :mdi-path="mdiPlay" @click="runTerrainElevation" />
+                </HBox>
+            </VBox>
+            <CodeEditor ref="start_elevation_editor" :code="start_elevation_shader" />
 
-        <VBox>
-            <HBox>
-                <p>Terrain color</p>
-                <PanelButton text="Run" :mdi-path="mdiPlay" @click="runColor" />
-            </HBox>
-        </VBox>
-        <CodeEditor ref="color_editor" :code="start_elevation_shader" />
+            <VBox>
+                <HBox>
+                    <p>Terrain color</p>
+                    <PanelButton text="Run" :mdi-path="mdiPlay" @click="runColor" />
+                </HBox>
+            </VBox>
+            <CodeEditor ref="color_editor" :code="color_shader" />
+        </template>
+        <template v-else></template>
     </SidePanelCanvas>
 </template>

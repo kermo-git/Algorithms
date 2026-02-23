@@ -58,13 +58,13 @@ export default class TerrainScene {
         this.n_workgroups_x = Math.ceil(this.setup.n_pixels_x / WG_DIM)
         this.n_workgroups_y = Math.ceil(this.setup.n_pixels_y / WG_DIM)
 
-        this.engine = new Engine()
-        await this.engine.init(canvas)
-        const { device, color_format } = this.engine
+        const engine = new Engine()
+        this.engine = engine
+        await engine.init(canvas)
 
-        this.canvas_layout = createCanvasLayout(device, color_format)
-        this.noise_layout = createNoiseLayout(device)
-        this.terrain_layout = createTerrainLayout(device)
+        this.canvas_layout = createCanvasLayout(engine.device, engine.color_format)
+        this.noise_layout = createNoiseLayout(engine.device)
+        this.terrain_layout = createTerrainLayout(engine.device)
 
         await this.updateStartElevationShader(setup.start_elevation_shader)
         await this.updateColorShader(setup.color_shader)
@@ -77,7 +77,7 @@ export default class TerrainScene {
         this.unit_vectors_2d = this.engine.createStorageBuffer(unitVectors2D(256))
         this.unit_vectors_3d = this.engine.createStorageBuffer(unitVectors3D(256))
 
-        this.noise_group = device.createBindGroup({
+        this.noise_group = engine.device.createBindGroup({
             layout: this.noise_layout,
             entries: [
                 {
@@ -115,7 +115,7 @@ export default class TerrainScene {
         this.terrain_A = this.engine.createStorageBuffer(null, n_bytes)
         this.terrain_B = this.engine.createStorageBuffer(null, n_bytes)
 
-        this.terrain_group_AB = device.createBindGroup({
+        this.terrain_group_AB = engine.device.createBindGroup({
             layout: this.terrain_layout,
             entries: [
                 {
@@ -129,7 +129,7 @@ export default class TerrainScene {
             ],
         })
 
-        this.terrain_group_BA = device.createBindGroup({
+        this.terrain_group_BA = engine.device.createBindGroup({
             layout: this.terrain_layout,
             entries: [
                 {
@@ -151,13 +151,14 @@ export default class TerrainScene {
     }
 
     async updateStartElevationShader(code: string) {
-        const { device, compileShader } = this.engine
-        this.setup.color_shader = code
+        this.setup.start_elevation_shader = code
 
-        const start_elevation_shader = await compileShader(startElevationShader(this.setup))
+        const start_elevation_shader = await this.engine.compileShader(
+            startElevationShader(this.setup),
+        )
 
-        this.noise_pipeline = device.createComputePipeline({
-            layout: device.createPipelineLayout({
+        this.noise_pipeline = this.engine.device.createComputePipeline({
+            layout: this.engine.device.createPipelineLayout({
                 bindGroupLayouts: [this.noise_layout, this.terrain_layout],
             }),
             compute: {
@@ -167,13 +168,14 @@ export default class TerrainScene {
     }
 
     async updateColorShader(code: string) {
-        const { device, color_format, compileShader } = this.engine
         this.setup.color_shader = code
 
-        const flat_display_shader = await compileShader(flatDisplayShader(this.setup, color_format))
+        const flat_display_shader = await this.engine.compileShader(
+            flatDisplayShader(this.setup, this.engine.color_format),
+        )
 
-        this.flat_display_pipeline = device.createComputePipeline({
-            layout: device.createPipelineLayout({
+        this.flat_display_pipeline = this.engine.device.createComputePipeline({
+            layout: this.engine.device.createPipelineLayout({
                 bindGroupLayouts: [this.canvas_layout, this.noise_layout, this.terrain_layout],
             }),
             compute: {
@@ -234,7 +236,7 @@ export default class TerrainScene {
     }
 
     cleanup() {
-        this.engine.cleanup()
+        this.engine?.cleanup()
         this.hash_table?.destroy()
         this.n_grid_columns?.destroy()
         this.hash_table?.destroy()
