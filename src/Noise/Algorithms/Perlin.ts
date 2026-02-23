@@ -1,37 +1,36 @@
-import { type NoiseAlgorithm, type NoiseShaderNames } from '../Types'
-import { unitVectors2D, unitVectors3D, unitVectors4D } from '../SeedData'
+import { type NoiseAlgorithm, type Config } from '../Types'
 
 export const Perlin2D: NoiseAlgorithm = {
-    feature_type: 'vec2f',
-    generateFeatures: unitVectors2D,
-
     pos_type: 'vec2f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_gradient = `${noise}_gradient`
-        const fade = `${noise}_fade`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_gradient = `${name}_gradient`
+        const fade = `${name}_fade`
 
         return /* wgsl */ `
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
         const norm_factor = 1 / sqrt(2);
         
-        fn ${get_gradient}(x: i32, y: i32) -> vec2f {
-            let hash = ${hash_table}[${hash_table}[x] + y];
-            return ${features}[hash];
+        fn ${get_gradient}(x: i32, y: i32, offset: i32) -> vec2f {
+            let hash = hash_table[offset + hash_table[offset + x] + y];
+            return noise_features[hash].unit_vector_2d;
         }
 
         fn ${fade}(t: vec2f) -> vec2f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn ${noise}(global_pos: vec2f) -> f32 {
+        fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
+            const HASH_MASK = vec2i(${hash_table_size - 1});
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+
             let floor_pos = floor(global_pos);
-            let p0 = vec2i(floor_pos) & vec2i(255, 255);
-            let p1 = (p0 + 1i) & vec2i(255, 255);
+            let p0 = vec2i(floor_pos) & HASH_MASK;
+            let p1 = (p0 + 1i) & HASH_MASK;
             
-            let grad_00 = ${get_gradient}(p0.x, p0.y);
-            let grad_10 = ${get_gradient}(p1.x, p0.y);
-            let grad_01 = ${get_gradient}(p0.x, p1.y);
-            let grad_11 = ${get_gradient}(p1.x, p1.y);
+            let grad_00 = ${get_gradient}(p0.x, p0.y, hash_offset);
+            let grad_10 = ${get_gradient}(p1.x, p0.y, hash_offset);
+            let grad_01 = ${get_gradient}(p0.x, p1.y, hash_offset);
+            let grad_11 = ${get_gradient}(p1.x, p1.y, hash_offset);
             
             let local = global_pos - floor_pos;
 
@@ -49,37 +48,39 @@ export const Perlin2D: NoiseAlgorithm = {
 }
 
 export const Perlin3D: NoiseAlgorithm = {
-    feature_type: 'vec3f',
-    generateFeatures: unitVectors3D,
-
     pos_type: 'vec3f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_gradient = `${noise}_gradient`
-        const fade = `${noise}_fade`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_gradient = `${name}_gradient`
+        const fade = `${name}_fade`
 
         return /* wgsl */ `
-        fn ${get_gradient}(x: i32, y: i32, z: i32) -> vec3f {
-            let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
-            return ${features}[hash];
+        fn ${get_gradient}(x: i32, y: i32, z: i32, offset: i32) -> vec3f {
+            let hash_x = hash_table[offset + x];
+            let hash_y = hash_table[offset + hash_x + y];
+            let hash_z = hash_table[offset + hash_y + z];
+            return noise_features[hash_z].unit_vector_3d;
         }
 
         fn ${fade}(t: vec3f) -> vec3f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn ${noise}(global_pos: vec3f) -> f32 {
-            let floor_pos = floor(global_pos);
-            let p0 = vec3i(floor_pos) & vec3i(255, 255, 255);
-            let p1 = (p0 + 1i) & vec3i(255, 255, 255);
+        fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
+            const HASH_MASK = vec3i(${hash_table_size - 1});
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
             
-            let grad_000 = ${get_gradient}(p0.x, p0.y, p0.z);
-            let grad_100 = ${get_gradient}(p1.x, p0.y, p0.z);
-            let grad_010 = ${get_gradient}(p0.x, p1.y, p0.z);
-            let grad_110 = ${get_gradient}(p1.x, p1.y, p0.z);
-            let grad_001 = ${get_gradient}(p0.x, p0.y, p1.z);
-            let grad_101 = ${get_gradient}(p1.x, p0.y, p1.z);
-            let grad_011 = ${get_gradient}(p0.x, p1.y, p1.z);
-            let grad_111 = ${get_gradient}(p1.x, p1.y, p1.z);
+            let floor_pos = floor(global_pos);
+            let p0 = vec3i(floor_pos) & HASH_MASK;
+            let p1 = (p0 + 1i) & HASH_MASK;
+            
+            let grad_000 = ${get_gradient}(p0.x, p0.y, p0.z, hash_offset);
+            let grad_100 = ${get_gradient}(p1.x, p0.y, p0.z, hash_offset);
+            let grad_010 = ${get_gradient}(p0.x, p1.y, p0.z, hash_offset);
+            let grad_110 = ${get_gradient}(p1.x, p1.y, p0.z, hash_offset);
+            let grad_001 = ${get_gradient}(p0.x, p0.y, p1.z, hash_offset);
+            let grad_101 = ${get_gradient}(p1.x, p0.y, p1.z, hash_offset);
+            let grad_011 = ${get_gradient}(p0.x, p1.y, p1.z, hash_offset);
+            let grad_111 = ${get_gradient}(p1.x, p1.y, p1.z, hash_offset);
             
             let local = global_pos - floor_pos;
 
@@ -106,46 +107,49 @@ export const Perlin3D: NoiseAlgorithm = {
 }
 
 export const Perlin4D: NoiseAlgorithm = {
-    feature_type: 'vec4f',
-    generateFeatures: unitVectors4D,
-
     pos_type: 'vec4f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_gradient = `${noise}_gradient`
-        const fade = `${noise}_fade`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_gradient = `${name}_gradient`
+        const fade = `${name}_fade`
 
         return /* wgsl */ `
-        fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32) -> vec4f {
-            let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
-            return ${features}[hash];
+        fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> vec4f {
+            let hash_x = hash_table[offset + x];
+            let hash_y = hash_table[offset + hash_x + y];
+            let hash_z = hash_table[offset + hash_y + z];
+            let hash_w = hash_table[offset + hash_z + w];
+            return noise_features[hash_w].unit_vector_4d;
         }
 
         fn ${fade}(t: vec4f) -> vec4f {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
-        fn noise(global_pos: vec4f) -> f32 {
-            let floor_pos = floor(global_pos);
-            let p0 = vec4i(floor_pos) & vec4i(255, 255, 255, 255);
-            let p1 = (p0 + 1i) & vec4i(255, 255, 255, 255);
+        fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
+            const HASH_MASK = vec4i(${hash_table_size - 1});
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
             
-            let grad_0000 = ${get_gradient}(p0.x, p0.y, p0.z, p0.w);
-            let grad_1000 = ${get_gradient}(p1.x, p0.y, p0.z, p0.w);
-            let grad_0100 = ${get_gradient}(p0.x, p1.y, p0.z, p0.w);
-            let grad_1100 = ${get_gradient}(p1.x, p1.y, p0.z, p0.w);
-            let grad_0010 = ${get_gradient}(p0.x, p0.y, p1.z, p0.w);
-            let grad_1010 = ${get_gradient}(p1.x, p0.y, p1.z, p0.w);
-            let grad_0110 = ${get_gradient}(p0.x, p1.y, p1.z, p0.w);
-            let grad_1110 = ${get_gradient}(p1.x, p1.y, p1.z, p0.w);
+            let floor_pos = floor(global_pos);
+            let p0 = vec4i(floor_pos) & HASH_MASK;
+            let p1 = (p0 + 1i) & HASH_MASK;
+            
+            let grad_0000 = ${get_gradient}(p0.x, p0.y, p0.z, p0.w, hash_offset);
+            let grad_1000 = ${get_gradient}(p1.x, p0.y, p0.z, p0.w, hash_offset);
+            let grad_0100 = ${get_gradient}(p0.x, p1.y, p0.z, p0.w, hash_offset);
+            let grad_1100 = ${get_gradient}(p1.x, p1.y, p0.z, p0.w, hash_offset);
+            let grad_0010 = ${get_gradient}(p0.x, p0.y, p1.z, p0.w, hash_offset);
+            let grad_1010 = ${get_gradient}(p1.x, p0.y, p1.z, p0.w, hash_offset);
+            let grad_0110 = ${get_gradient}(p0.x, p1.y, p1.z, p0.w, hash_offset);
+            let grad_1110 = ${get_gradient}(p1.x, p1.y, p1.z, p0.w, hash_offset);
 
-            let grad_0001 = ${get_gradient}(p0.x, p0.y, p0.z, p1.w);
-            let grad_1001 = ${get_gradient}(p1.x, p0.y, p0.z, p1.w);
-            let grad_0101 = ${get_gradient}(p0.x, p1.y, p0.z, p1.w);
-            let grad_1101 = ${get_gradient}(p1.x, p1.y, p0.z, p1.w);
-            let grad_0011 = ${get_gradient}(p0.x, p0.y, p1.z, p1.w);
-            let grad_1011 = ${get_gradient}(p1.x, p0.y, p1.z, p1.w);
-            let grad_0111 = ${get_gradient}(p0.x, p1.y, p1.z, p1.w);
-            let grad_1111 = ${get_gradient}(p1.x, p1.y, p1.z, p1.w);
+            let grad_0001 = ${get_gradient}(p0.x, p0.y, p0.z, p1.w, hash_offset);
+            let grad_1001 = ${get_gradient}(p1.x, p0.y, p0.z, p1.w, hash_offset);
+            let grad_0101 = ${get_gradient}(p0.x, p1.y, p0.z, p1.w, hash_offset);
+            let grad_1101 = ${get_gradient}(p1.x, p1.y, p0.z, p1.w, hash_offset);
+            let grad_0011 = ${get_gradient}(p0.x, p0.y, p1.z, p1.w, hash_offset);
+            let grad_1011 = ${get_gradient}(p1.x, p0.y, p1.z, p1.w, hash_offset);
+            let grad_0111 = ${get_gradient}(p0.x, p1.y, p1.z, p1.w, hash_offset);
+            let grad_1111 = ${get_gradient}(p1.x, p1.y, p1.z, p1.w, hash_offset);
             
             let local = global_pos - floor_pos;
             let minus = local - 1;

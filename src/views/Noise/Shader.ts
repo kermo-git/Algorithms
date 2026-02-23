@@ -10,6 +10,7 @@ import {
     unitVector3DShader,
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
+import { noiseSeedUnitShader } from '@/Noise/SeedData'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 
@@ -36,12 +37,10 @@ function warp2DShader() {
         fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
-            
-            let warp_noise_pos = noise_pos + ${randVec('vec2f')};
-            let warp_noise_value = octave_noise(warp_noise_pos, n_warp_octaves, persistence);
 
+            let warp_noise_value = octave_noise(noise_pos, 0, n_warp_octaves, persistence);
             let final_pos = noise_pos + warp_strength * unit_vector_2d(warp_noise_value);
-            return octave_noise(final_pos, n_main_octaves, persistence);
+            return octave_noise(final_pos, 1, n_main_octaves, persistence);
         }
     `
 }
@@ -54,14 +53,11 @@ function warp3DShader() {
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
 
-            let phi_pos = noise_pos + ${randVec('vec3f')};
-            let theta_pos = noise_pos + ${randVec('vec3f')};
-
-            let phi_noise = octave_noise(phi_pos, warp_strength, persistence);
-            let theta_noise = octave_noise(theta_pos, warp_strength, persistence);
+            let phi_noise = octave_noise(noise_pos, 0, n_warp_octaves, persistence);
+            let theta_noise = octave_noise(noise_pos, 1, n_warp_octaves, persistence);
             
             let final_pos = noise_pos + warp_strength * unit_vector_3d(phi_noise, theta_noise);
-            return octave_noise(final_pos, n_main_octaves, persistence);
+            return octave_noise(final_pos, 2, n_main_octaves, persistence);
         }
     `
 }
@@ -69,9 +65,9 @@ function warp3DShader() {
 function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_functions = `
         ${algorithm.createShader({
-            hash_table: 'hash_table',
-            features: 'features',
-            noise: 'noise',
+            name: 'noise',
+            hash_table_size: 256,
+            n_channels: 8,
         })}
         ${octaveNoiseShader({
             func_name: 'octave_noise',
@@ -82,7 +78,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_expr = ''
 
     if (transform === 'Rotate') {
-        noise_expr = 'noise(rotate(noise_pos))'
+        noise_expr = 'octave_noise(rotate(noise_pos), 0, n_main_octaves, persistence)'
 
         if (algorithm.pos_type === 'vec3f') {
             noise_functions = `
@@ -112,7 +108,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
             n_main_octaves, persistence
         )`
     } else {
-        noise_expr = `octave_noise(noise_pos, n_main_octaves, persistence)`
+        noise_expr = `octave_noise(noise_pos, 0, n_main_octaves, persistence)`
     }
     return {
         noise_functions,
@@ -148,15 +144,12 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
     const { noise_functions, noise_expr } = createNoiseFunctions(setup)
 
     return /* wgsl */ `
-        // Define the noise function here:
-        // fn noise(pos: vec2f) -> f32 { ... } (2D noise)
-        // fn noise(pos: vec3f) -> f32 { ... } (3D noise)
-        // fn noise(pos: vec4f) -> f32 { ... } (4D noise)
-
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
+        ${noiseSeedUnitShader}
+
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> features: array<${algorithm.feature_type}>;
+        @group(1) @binding(1) var<storage> noise_features: array<NoiseFeature>;
         @group(1) @binding(2) var<uniform> n_grid_columns: f32;
         @group(1) @binding(3) var<uniform> n_main_octaves: u32;
         @group(1) @binding(4) var<uniform> persistence: f32;

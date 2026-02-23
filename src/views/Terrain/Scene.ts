@@ -1,23 +1,15 @@
-import Engine, { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
-
-import {
-    hashTable,
-    randomPoints2D,
-    randomPoints3D,
-    randomValues,
-    unitVectors2D,
-    unitVectors3D,
-} from '@/Noise/SeedData'
+import Engine, { WG_DIM } from '@/WebGPU/Engine'
 
 import { type Setup, startElevationShader, flatDisplayShader } from './Shader'
 import {
+    NOISE_GROUP,
+    TERRAIN_GROUP,
     CANVAS_GROUP,
     createCanvasLayout,
     createNoiseLayout,
     createTerrainLayout,
-    NOISE_GROUP,
-    TERRAIN_GROUP,
 } from './Layout'
+import { generateHashChannels, generateNoiseFeatures } from '@/Noise/SeedData'
 
 export default class TerrainScene {
     setup!: Setup
@@ -35,11 +27,7 @@ export default class TerrainScene {
     noise_group!: GPUBindGroup
     n_grid_columns!: GPUBuffer
     hash_table!: GPUBuffer
-    rand_values!: GPUBuffer
-    rand_points_2d!: GPUBuffer
-    rand_points_3d!: GPUBuffer
-    unit_vectors_2d!: GPUBuffer
-    unit_vectors_3d!: GPUBuffer
+    noise_features!: GPUBuffer
 
     terrain_A!: GPUBuffer
     terrain_B!: GPUBuffer
@@ -69,13 +57,9 @@ export default class TerrainScene {
         await this.updateStartElevationShader(setup.start_elevation_shader)
         await this.updateColorShader(setup.color_shader)
 
-        this.n_grid_columns = this.engine.createFloatUniform(setup.n_grid_cells_x || 16)
-        this.hash_table = this.engine.createStorageBuffer(hashTable(256))
-        this.rand_values = this.engine.createStorageBuffer(randomValues(256))
-        this.rand_points_2d = this.engine.createStorageBuffer(randomPoints2D(256))
-        this.rand_points_3d = this.engine.createStorageBuffer(randomPoints3D(256))
-        this.unit_vectors_2d = this.engine.createStorageBuffer(unitVectors2D(256))
-        this.unit_vectors_3d = this.engine.createStorageBuffer(unitVectors3D(256))
+        this.n_grid_columns = engine.createFloatUniform(setup.n_grid_cells_x || 16)
+        this.hash_table = engine.createStorageBuffer(generateHashChannels(256, 8))
+        this.noise_features = engine.createStorageBuffer(generateNoiseFeatures(256))
 
         this.noise_group = engine.device.createBindGroup({
             layout: this.noise_layout,
@@ -90,23 +74,7 @@ export default class TerrainScene {
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.rand_values },
-                },
-                {
-                    binding: 3,
-                    resource: { buffer: this.rand_points_2d },
-                },
-                {
-                    binding: 4,
-                    resource: { buffer: this.rand_points_3d },
-                },
-                {
-                    binding: 5,
-                    resource: { buffer: this.unit_vectors_2d },
-                },
-                {
-                    binding: 6,
-                    resource: { buffer: this.unit_vectors_3d },
+                    resource: { buffer: this.noise_features },
                 },
             ],
         })
@@ -176,7 +144,7 @@ export default class TerrainScene {
 
         this.flat_display_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
-                bindGroupLayouts: [this.canvas_layout, this.noise_layout, this.terrain_layout],
+                bindGroupLayouts: [this.noise_layout, this.terrain_layout, this.canvas_layout],
             }),
             compute: {
                 module: flat_display_shader.module,
@@ -211,9 +179,9 @@ export default class TerrainScene {
 
         const pass_encoder = encoder.beginComputePass()
         pass_encoder.setPipeline(this.noise_pipeline)
-        pass_encoder.setBindGroup(CANVAS_GROUP, canvas_group)
         pass_encoder.setBindGroup(NOISE_GROUP, this.noise_group)
         pass_encoder.setBindGroup(TERRAIN_GROUP, terrain_group)
+        pass_encoder.setBindGroup(CANVAS_GROUP, canvas_group)
 
         this.draw(pass_encoder)
         pass_encoder.end()
@@ -240,11 +208,7 @@ export default class TerrainScene {
         this.hash_table?.destroy()
         this.n_grid_columns?.destroy()
         this.hash_table?.destroy()
-        this.rand_values?.destroy()
-        this.rand_points_2d?.destroy()
-        this.rand_points_3d?.destroy()
-        this.unit_vectors_2d?.destroy()
-        this.unit_vectors_3d?.destroy()
+        this.noise_features?.destroy()
         this.terrain_A?.destroy()
         this.terrain_B?.destroy()
     }

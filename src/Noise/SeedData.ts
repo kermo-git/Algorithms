@@ -1,4 +1,23 @@
-export function hashTable(n: number = 256) {
+import type { PowerOfTwo } from './Types'
+
+export const noiseSeedUnitShader = /* wgsl */ `
+    struct NoiseFeature {
+        rand_point: vec4f,
+        unit_vector_2d: vec2f,
+        unit_vector_3d: vec3f,
+        unit_vector_4d: vec4f
+    }
+`
+
+export function generateHashChannels(n: PowerOfTwo = 256, n_channels: PowerOfTwo = 8) {
+    const data = new Int32Array(n_channels * 2 * n)
+    for (let c = 0; c < n_channels; c++) {
+        data.set(generateHashTable(n), c * n)
+    }
+    return data
+}
+
+export function generateHashTable(n: PowerOfTwo = 256) {
     const hash_table = new Int32Array(2 * n)
 
     for (let i = 0; i < n; i++) {
@@ -16,65 +35,30 @@ export function hashTable(n: number = 256) {
     return hash_table
 }
 
-export function randomValues(n: number = 256) {
-    return new Float32Array(n).map(Math.random)
-}
+export function generateNoiseFeatures(n: PowerOfTwo = 256) {
+    const ARRAY_STRIDE = 64
+    const data = new ArrayBuffer(ARRAY_STRIDE * n)
 
-export function randomPoints2D(n: number = 256) {
-    const array = new Float32Array(2 * n)
-
-    for (let i = 0; i < n; i++) {
-        const offset = 2 * i
-        array[offset] = Math.random()
-        array[offset + 1] = Math.random()
+    function generatePoint(i: number) {
+        const view = new Float32Array(data, ARRAY_STRIDE * i, 4)
+        view.set([Math.random(), Math.random(), Math.random(), Math.random()])
     }
-    return array
-}
 
-export function randomPoints3D(n: number = 256) {
-    const array = new Float32Array(4 * n)
+    function generateUnitVector2D(i: number) {
+        const offset = ARRAY_STRIDE * i + 16
+        const view = new Float32Array(data, offset, 2)
 
-    for (let i = 0; i < n; i++) {
-        const offset = 4 * i
-        array[offset] = Math.random()
-        array[offset + 1] = Math.random()
-        array[offset + 2] = Math.random()
-    }
-    return array
-}
-
-export function randomPoints4D(n: number = 256) {
-    const array = new Float32Array(4 * n)
-
-    for (let i = 0; i < n; i++) {
-        const offset = 4 * i
-        array[offset] = Math.random()
-        array[offset + 1] = Math.random()
-        array[offset + 2] = Math.random()
-        array[offset + 3] = Math.random()
-    }
-    return array
-}
-
-export function unitVectors2D(n: number = 256) {
-    const array = new Float32Array(2 * n)
-
-    for (let i = 0; i < n; i++) {
         const phi = (2 * Math.PI * i) / n
         const x = Math.cos(phi)
         const y = Math.sin(phi)
 
-        const offset = 2 * i
-        array[offset] = x
-        array[offset + 1] = y
+        view.set([x, y])
     }
-    return array
-}
 
-export function unitVectors3D(n: number = 256) {
-    const array = new Float32Array(4 * n)
+    function generateUnitVector3D(i: number) {
+        const offset = ARRAY_STRIDE * i + 32
+        const view = new Float32Array(data, offset, 3)
 
-    for (let i = 0; i < n; i++) {
         const phi = 2 * Math.PI * Math.random()
         const theta = Math.PI * Math.random()
 
@@ -87,43 +71,35 @@ export function unitVectors3D(n: number = 256) {
         const y = sin_theta * sin_phi
         const z = cos_theta
 
-        const offset = 4 * i
-        array[offset] = x
-        array[offset + 1] = y
-        array[offset + 2] = z
+        view.set([x, y, z])
     }
-    return array
-}
 
-export function unitVectors4D(n: number = 256) {
-    const array = new Float32Array(4 * n)
+    function generateUnitVector4D(i: number) {
+        const offset = ARRAY_STRIDE * i + 48
+        const view = new Float32Array(data, offset, 4)
 
-    for (let i = 0; i < n; i++) {
         const theta_1 = Math.PI * Math.random()
         const theta_2 = Math.PI * Math.random()
         const phi = 2 * Math.PI * Math.random()
 
         const sin_theta_1 = Math.sin(theta_1)
-        const cos_theta_1 = Math.cos(theta_1)
-
         const sin_theta_2 = Math.sin(theta_2)
-        const cos_theta_2 = Math.cos(theta_2)
 
-        const sin_phi = Math.sin(phi)
-        const cos_phi = Math.cos(phi)
+        const x = Math.cos(theta_1)
+        const y = sin_theta_1 * Math.cos(theta_2)
+        const z = sin_theta_1 * sin_theta_2 * Math.cos(phi)
+        const w = sin_theta_1 * sin_theta_2 * Math.sin(phi)
 
-        const x = cos_theta_1
-        const y = sin_theta_1 * cos_theta_2
-        const z = sin_theta_1 * sin_theta_2 * cos_phi
-        const w = sin_theta_1 * sin_theta_2 * sin_phi
-
-        const offset = 4 * i
-        array[offset] = x
-        array[offset + 1] = y
-        array[offset + 2] = z
-        array[offset + 3] = w
+        view.set([x, y, z, w])
     }
-    return array
+
+    for (let i = 0; i < n; i++) {
+        generatePoint(i)
+        generateUnitVector2D(i)
+        generateUnitVector3D(i)
+        generateUnitVector4D(i)
+    }
+    return new Uint8Array(data)
 }
 
 export const defaultColorPoints = new Float32Array([0, 0, 0, 0, 1, 1, 1, 1])

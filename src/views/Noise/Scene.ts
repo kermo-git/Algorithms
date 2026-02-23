@@ -1,6 +1,6 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
-import { defaultColorPoints, hashTable } from '@/Noise/SeedData'
+import { defaultColorPoints, generateHashChannels, generateNoiseFeatures } from '@/Noise/SeedData'
 
 import createNoiseShader, { type Setup, type NoiseUniforms } from './Shader'
 
@@ -15,7 +15,7 @@ export default class NoiseScene {
     pipeline!: GPUComputePipeline
 
     hash_table!: GPUBuffer
-    random_elements!: GPUBuffer
+    noise_features!: GPUBuffer
     n_grid_columns!: GPUBuffer
     n_main_octaves!: GPUBuffer
     persistence!: GPUBuffer
@@ -37,7 +37,6 @@ export default class NoiseScene {
         const { algorithm, transform } = this.setup
 
         const shader_code = createNoiseShader(this.setup, color_format)
-        const random_elements = algorithm.generateFeatures(256)
 
         const { module } = await this.engine.compileShader(shader_code)
 
@@ -47,8 +46,8 @@ export default class NoiseScene {
                 module: module,
             },
         })
-        this.hash_table = this.engine.createStorageBuffer(hashTable(256))
-        this.random_elements = this.engine.createStorageBuffer(random_elements)
+        this.hash_table = this.engine.createStorageBuffer(generateHashChannels(256, 8))
+        this.noise_features = this.engine.createStorageBuffer(generateNoiseFeatures(256))
         this.n_grid_columns = this.engine.createFloatUniform(data.n_grid_columns || 16)
         this.n_main_octaves = this.engine.createIntUniform(data.n_main_octaves || 1)
         this.persistence = this.engine.createFloatUniform(data.persistence || 0.5)
@@ -60,7 +59,7 @@ export default class NoiseScene {
             },
             {
                 binding: 1,
-                resource: { buffer: this.random_elements },
+                resource: { buffer: this.noise_features },
             },
             {
                 binding: 2,
@@ -213,7 +212,7 @@ export default class NoiseScene {
     cleanup() {
         this.engine.cleanup()
         this.hash_table?.destroy()
-        this.random_elements?.destroy()
+        this.noise_features?.destroy()
         this.n_grid_columns?.destroy()
         this.n_main_octaves?.destroy()
         this.persistence?.destroy()

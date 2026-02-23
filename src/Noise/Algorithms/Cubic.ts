@@ -1,22 +1,18 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-import { randomValues } from '../SeedData'
-import type { NoiseShaderNames, NoiseAlgorithm } from '../Types'
+import type { Config, NoiseAlgorithm } from '../Types'
 
 export const Cubic2D: NoiseAlgorithm = {
-    feature_type: 'f32',
-    generateFeatures: randomValues,
-
     pos_type: 'vec2f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_value = `${noise}_value`
-        const interpolate = `${noise}_interpolate`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_value = `${name}_value`
+        const interpolate = `${name}_interpolate`
 
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32) -> f32 {
-            let hash = ${hash_table}[${hash_table}[x] + y];
-            return ${features}[hash];
+        fn ${get_value}(x: i32, y: i32, offset: i32) -> f32 {
+            let hash = hash_table[offset + hash_table[offset + x] + y];
+            return noise_features[hash].rand_point.x;
         }
 
         fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
@@ -24,28 +20,31 @@ export const Cubic2D: NoiseAlgorithm = {
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        fn ${noise}(global_pos: vec2f) -> f32 {
+        fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
             let floor_x = i32(floor_pos.x);
             let floor_y = i32(floor_pos.y);
 
-            let x0 = (floor_x - 1) & 255;
-            let x1 = floor_x & 255;
-            let x2 = (floor_x + 1) & 255;
-            let x3 = (floor_x + 2) & 255;
+            const HASH_MASK = ${hash_table_size - 1};
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+
+            let x0 = (floor_x - 1) & HASH_MASK;
+            let x1 = floor_x & HASH_MASK;
+            let x2 = (floor_x + 1) & HASH_MASK;
+            let x3 = (floor_x + 2) & HASH_MASK;
             
             var interpolated_x = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0; i < 4; i++) {
-                let yi = (floor_y - 1 + i) & 255;
+                let yi = (floor_y - 1 + i) & HASH_MASK;
 
                 interpolated_x[i] = ${interpolate}(
-                    ${get_value}(x0, yi),
-                    ${get_value}(x1, yi),
-                    ${get_value}(x2, yi),
-                    ${get_value}(x3, yi),
+                    ${get_value}(x0, yi, hash_offset),
+                    ${get_value}(x1, yi, hash_offset),
+                    ${get_value}(x2, yi, hash_offset),
+                    ${get_value}(x3, yi, hash_offset),
                     local_pos.x
                 );
             }
@@ -69,18 +68,17 @@ export const Cubic2D: NoiseAlgorithm = {
 }
 
 export const Cubic3D: NoiseAlgorithm = {
-    feature_type: 'f32',
-    generateFeatures: randomValues,
-
     pos_type: 'vec3f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_value = `${noise}_value`
-        const interpolate = `${noise}_interpolate`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_value = `${name}_value`
+        const interpolate = `${name}_interpolate`
 
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32, z: i32) -> f32 {
-            let hash = ${hash_table}[${hash_table}[${hash_table}[x] + y] + z];
-            return ${features}[hash];
+        fn ${get_value}(x: i32, y: i32, z: i32, offset: i32) -> f32 {
+            let hash_x = hash_table[offset + x];
+            let hash_y = hash_table[offset + hash_x + y];
+            let hash_z = hash_table[offset + hash_y + z];
+            return noise_features[hash_z].rand_point.x;
         }
 
         fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
@@ -88,7 +86,7 @@ export const Cubic3D: NoiseAlgorithm = {
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        fn ${noise}(global_pos: vec3f) -> f32 {
+        fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
@@ -96,25 +94,28 @@ export const Cubic3D: NoiseAlgorithm = {
             let floor_y = i32(floor_pos.y);
             let floor_z = i32(floor_pos.z);
 
-            let x0 = (floor_x - 1) & 255;
-            let x1 = floor_x & 255;
-            let x2 = (floor_x + 1) & 255;
-            let x3 = (floor_x + 2) & 255;
+            const HASH_MASK = ${hash_table_size - 1};
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+
+            let x0 = (floor_x - 1) & HASH_MASK;
+            let x1 = floor_x & HASH_MASK;
+            let x2 = (floor_x + 1) & HASH_MASK;
+            let x3 = (floor_x + 2) & HASH_MASK;
 
             var interpolated_y = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0; i < 4; i++) {
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                let zi = (floor_z - 1 + i) & 255;
+                let zi = (floor_z - 1 + i) & HASH_MASK;
                 
                 for (var j = 0; j < 4; j++) {
-                    let yj = (floor_y - 1 + j) & 255;
+                    let yj = (floor_y - 1 + j) & HASH_MASK;
 
                     interpolated_x[j] = ${interpolate}(
-                        ${get_value}(x0, yj, zi),
-                        ${get_value}(x1, yj, zi),
-                        ${get_value}(x2, yj, zi),
-                        ${get_value}(x3, yj, zi),
+                        ${get_value}(x0, yj, zi, hash_offset),
+                        ${get_value}(x1, yj, zi, hash_offset),
+                        ${get_value}(x2, yj, zi, hash_offset),
+                        ${get_value}(x3, yj, zi, hash_offset),
                         local_pos.x
                     );
                 }
@@ -147,18 +148,18 @@ export const Cubic3D: NoiseAlgorithm = {
 }
 
 export const Cubic4D: NoiseAlgorithm = {
-    feature_type: 'f32',
-    generateFeatures: randomValues,
-
     pos_type: 'vec4f',
-    createShader({ hash_table, features, noise }: NoiseShaderNames) {
-        const get_value = `${noise}_value`
-        const interpolate = `${noise}_interpolate`
+    createShader({ name, hash_table_size, n_channels }: Config) {
+        const get_value = `${name}_value`
+        const interpolate = `${name}_interpolate`
 
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32, z: i32, w: i32) -> f32 {
-            let hash = ${hash_table}[${hash_table}[${hash_table}[${hash_table}[x] + y] + z] + w];
-            return ${features}[hash];
+        fn ${get_value}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> f32 {
+            let hash_x = hash_table[offset + x];
+            let hash_y = hash_table[offset + hash_x + y];
+            let hash_z = hash_table[offset + hash_y + z];
+            let hash_w = hash_table[offset + hash_z + w];
+            return noise_features[hash_w].rand_point.x;
         }
 
         fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
@@ -166,7 +167,7 @@ export const Cubic4D: NoiseAlgorithm = {
             return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
         }
 
-        fn ${noise}(global_pos: vec4f) -> f32 {
+        fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
             let floor_pos = floor(global_pos);
             let local_pos = global_pos - floor_pos;
 
@@ -175,29 +176,32 @@ export const Cubic4D: NoiseAlgorithm = {
             let floor_z = i32(floor_pos.z);
             let floor_w = i32(floor_pos.w);
 
-            let x0 = (floor_x - 1) & 255;
-            let x1 = floor_x & 255;
-            let x2 = (floor_x + 1) & 255;
-            let x3 = (floor_x + 2) & 255;
+            const HASH_MASK = ${hash_table_size - 1};
+            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+
+            let x0 = (floor_x - 1) & HASH_MASK;
+            let x1 = floor_x & HASH_MASK;
+            let x2 = (floor_x + 1) & HASH_MASK;
+            let x3 = (floor_x + 2) & HASH_MASK;
 
             var interpolated_z = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0; i < 4; i++) {
                 var interpolated_y = array<f32, 4>(0, 0, 0, 0);
-                let wi = (floor_w - 1 + i) & 255;
+                let wi = (floor_w - 1 + i) & HASH_MASK;
 
                 for (var j = 0; j < 4; j++) {
                     var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                    let zj = (floor_z - 1 + j) & 255;
+                    let zj = (floor_z - 1 + j) & HASH_MASK;
                     
                     for (var k = 0; k < 4; k++) {
-                        let yk = (floor_y - 1 + k) & 255;
+                        let yk = (floor_y - 1 + k) & HASH_MASK;
 
                         interpolated_x[k] = ${interpolate}(
-                            ${get_value}(x0, yk, zj, wi),
-                            ${get_value}(x1, yk, zj, wi),
-                            ${get_value}(x2, yk, zj, wi),
-                            ${get_value}(x3, yk, zj, wi),
+                            ${get_value}(x0, yk, zj, wi, hash_offset),
+                            ${get_value}(x1, yk, zj, wi, hash_offset),
+                            ${get_value}(x2, yk, zj, wi, hash_offset),
+                            ${get_value}(x3, yk, zj, wi, hash_offset),
                             local_pos.x
                         );
                     }

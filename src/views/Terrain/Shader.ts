@@ -14,14 +14,15 @@ import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
 import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
+import { noiseSeedUnitShader } from '@/Noise/SeedData'
 
-function noiseFunctionShader() {
-    function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string, features: string) {
+function noiseFunctionShader(group: number) {
+    function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string) {
         return `
             ${algorithm.createShader({
-                hash_table: 'hash_table',
-                features: features,
-                noise: name,
+                name: name,
+                hash_table_size: 256,
+                n_channels: 8,
             })}
 
             ${octaveNoiseShader({
@@ -32,38 +33,34 @@ function noiseFunctionShader() {
         `
     }
 
-    const ng = NOISE_GROUP
-
     return /* wgsl */ `
-        @group(${ng}) @binding(0) var<uniform> n_grid_columns: f32;
-        @group(${ng}) @binding(1) var<storage> hash_table: array<i32>;
-        @group(${ng}) @binding(2) var<storage> rand_values: array<f32>;
-        @group(${ng}) @binding(3) var<storage> rand_points_2d: array<vec2f>;
-        @group(${ng}) @binding(4) var<storage> rand_points_3d: array<vec3f>;
-        @group(${ng}) @binding(5) var<storage> unit_vectors_2d: array<vec2f>;
-        @group(${ng}) @binding(6) var<storage> unit_vectors_3d: array<vec3f>;
+        ${noiseSeedUnitShader}
+
+        @group(${group}) @binding(0) var<uniform> n_grid_columns: f32;
+        @group(${group}) @binding(1) var<storage> hash_table: array<i32>;
+        @group(${group}) @binding(2) var<storage> noise_features: array<NoiseFeature>;
 
         ${unitVector2DShader}
         ${unitVector3DShader}
         ${rotate3DShader}
 
-        ${createNoiseFunctions(Value2D, 'value_2d', 'rand_values')}
-        ${createNoiseFunctions(Value3D, 'value_3d', 'rand_values')}
+        ${createNoiseFunctions(Value2D, 'value_2d')}
+        ${createNoiseFunctions(Value3D, 'value_3d')}
 
-        ${createNoiseFunctions(Cubic2D, 'cubic_2d', 'rand_values')}
-        ${createNoiseFunctions(Cubic3D, 'cubic_3d', 'rand_values')}
+        ${createNoiseFunctions(Cubic2D, 'cubic_2d')}
+        ${createNoiseFunctions(Cubic3D, 'cubic_3d')}
 
-        ${createNoiseFunctions(Perlin2D, 'perlin_2d', 'unit_vectors_2d')}
-        ${createNoiseFunctions(Perlin3D, 'perlin_3d', 'unit_vectors_3d')}
+        ${createNoiseFunctions(Perlin2D, 'perlin_2d')}
+        ${createNoiseFunctions(Perlin3D, 'perlin_3d')}
 
-        ${createNoiseFunctions(Simplex2D, 'simplex_2d', 'unit_vectors_2d')}
-        ${createNoiseFunctions(Simplex3D, 'simplex_3d', 'unit_vectors_3d')}
+        ${createNoiseFunctions(Simplex2D, 'simplex_2d')}
+        ${createNoiseFunctions(Simplex3D, 'simplex_3d')}
 
-        ${createNoiseFunctions(Worley2D, 'worley_2d', 'rand_points_2d')}
-        ${createNoiseFunctions(Worley3D, 'worley_3d', 'rand_points_3d')}
+        ${createNoiseFunctions(Worley2D, 'worley_2d')}
+        ${createNoiseFunctions(Worley3D, 'worley_3d')}
 
-        ${createNoiseFunctions(Worley2nd2D, 'worley_2nd_2d', 'rand_points_2d')}
-        ${createNoiseFunctions(Worley2nd3D, 'worley_2nd_3d', 'rand_points_3d')}
+        ${createNoiseFunctions(Worley2nd2D, 'worley_2nd_2d')}
+        ${createNoiseFunctions(Worley2nd3D, 'worley_2nd_3d')}
 
         ${findGridPosShader}
     `
@@ -90,7 +87,7 @@ export const terrainUnitShader = /* wgsl */ `
 
 export function startElevationShader(setup: Setup): string {
     return /* wgsl */ `
-        ${noiseFunctionShader()}
+        ${noiseFunctionShader(NOISE_GROUP)}
 
         ${terrainUnitShader}
         @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
@@ -118,15 +115,16 @@ export function startElevationShader(setup: Setup): string {
 
 export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
-        ${noiseFunctionShader()}
-
-        @group(${CANVAS_GROUP}) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-
+        ${noiseFunctionShader(NOISE_GROUP)}
+        
         ${terrainUnitShader}
+
         @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
         @group(${TERRAIN_GROUP}) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+        @group(${CANVAS_GROUP}) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
         ${setup.color_shader}
+
         const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})

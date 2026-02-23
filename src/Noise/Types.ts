@@ -2,19 +2,17 @@ import type { FloatArray } from '@/WebGPU/Engine'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 export type FeatureType = 'f32' | VecType
+export type PowerOfTwo = 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512
 
-export interface NoiseShaderNames {
-    hash_table: string
-    features: string
-    noise: string
+export interface Config {
+    name: string
+    hash_table_size: PowerOfTwo
+    n_channels: PowerOfTwo
 }
 
 export interface NoiseAlgorithm {
-    feature_type: FeatureType
-    generateFeatures(n: number): FloatArray
-
     pos_type: VecType
-    createShader(names: NoiseShaderNames): string
+    createShader(config: Config): string
 }
 
 export interface NoiseTransformNames {

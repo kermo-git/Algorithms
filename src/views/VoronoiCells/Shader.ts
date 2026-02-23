@@ -1,3 +1,4 @@
+import { noiseSeedUnitShader } from '@/Noise/SeedData'
 import { findGridPosShader, octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
@@ -50,23 +51,24 @@ export function createShader(
         
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<uniform> voronoi_n_columns: f32;
-        @group(1) @binding(2) var<storage> voronoi_points: array<vec2f>;
 
-        @group(1) @binding(3) var<storage> noise_features: array<${warp_algorithm.feature_type}>;
-        @group(1) @binding(4) var<uniform> noise_scale: f32;
-        @group(1) @binding(5) var<uniform> noise_n_octaves: u32;
-        @group(1) @binding(6) var<uniform> noise_persistence: f32;
-        @group(1) @binding(7) var<uniform> noise_warp_strength: f32;
-        ${only_3D} @group(1) @binding(8) var<uniform> noise_z: f32;
+        ${noiseSeedUnitShader}
+
+        @group(1) @binding(2) var<storage> noise_features: array<NoiseFeature>;
+        @group(1) @binding(3) var<uniform> noise_scale: f32;
+        @group(1) @binding(4) var<uniform> noise_n_octaves: u32;
+        @group(1) @binding(5) var<uniform> noise_persistence: f32;
+        @group(1) @binding(6) var<uniform> noise_warp_strength: f32;
+        ${only_3D} @group(1) @binding(7) var<uniform> noise_z: f32;
 
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
         
         ${findGridPosShader}
 
         ${warp_algorithm.createShader({
-            hash_table: 'hash_table',
-            features: 'noise_features',
-            noise: 'noise',
+            name: 'noise',
+            hash_table_size: 256,
+            n_channels: 8,
         })}
         
         ${octaveNoiseShader({
@@ -78,7 +80,7 @@ export function createShader(
         fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {
             const PI = radians(180.0);
             
-            let noise_value = octave_noise(noise_pos, noise_n_octaves, noise_persistence);
+            let noise_value = octave_noise(noise_pos, 1, noise_n_octaves, noise_persistence);
             let phi = 2 * PI * noise_value;
 
             let direction = vec2f(cos(phi), sin(phi));
@@ -105,11 +107,14 @@ export function createShader(
             for (var offset_x = -1; offset_x < 2; offset_x++) {
                 for (var offset_y = -1; offset_y < 2; offset_y++) {
                     let neighbor = grid_pos + vec2i(offset_x, offset_y);
+                    let neighbor_m = min_dist_cell & vec2i(255, 255);
 
                     let hash = hash_table[
-                        hash_table[neighbor.x & 255] + (neighbor.y & 255)
+                        hash_table[neighbor_m.x] + neighbor_m
                     ];
-                    let dist_vec = vec2f(neighbor) + voronoi_points[hash] - voronoi_pos;
+                    let point = noise_features[hash].rand_point.xy;
+
+                    let dist_vec = vec2f(neighbor) + point - voronoi_pos;
                     let dist = ${dist_expr};
 
                     if dist < min_dist {
@@ -118,8 +123,8 @@ export function createShader(
                     }
                 }
             }
-            let masked_cell = min_dist_cell & vec2i(255, 255);
-            let hash = hash_table[hash_table[masked_cell.x] + masked_cell.y];
+            let cell_m = min_dist_cell & vec2i(255, 255);
+            let hash = hash_table[hash_table[cell_m.x] + cell_m.y];
             let index = u32(hash) % arrayLength(&voronoi_colors);
             let color = voronoi_colors[index];
 

@@ -1,4 +1,4 @@
-export const NOISE_GROUP = 1
+export const NOISE_GROUP = 0
 
 export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
@@ -18,35 +18,7 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
                 },
             },
             {
-                binding: 2, // rand_values
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'read-only-storage',
-                },
-            },
-            {
-                binding: 3, // rand_points_2d
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'read-only-storage',
-                },
-            },
-            {
-                binding: 4, // rand_points_3d
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'read-only-storage',
-                },
-            },
-            {
-                binding: 5, // unit_vectors_2d
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'read-only-storage',
-                },
-            },
-            {
-                binding: 6, // unit_vectors_3d
+                binding: 2, // noise_features
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
@@ -56,7 +28,7 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     })
 }
 
-export const TERRAIN_GROUP = 2
+export const TERRAIN_GROUP = 1
 
 export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
@@ -79,7 +51,7 @@ export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
     })
 }
 
-export const CANVAS_GROUP = 0
+export const CANVAS_GROUP = 2
 
 export function createCanvasLayout(device: GPUDevice, color_format: GPUTextureFormat) {
     return device.createBindGroupLayout({

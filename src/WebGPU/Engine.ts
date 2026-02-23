@@ -3,7 +3,7 @@ export const WG_DIM = 8
 export type FloatArray = Float32Array<ArrayBuffer>
 export type IntArray = Int32Array<ArrayBuffer>
 export type UIntArray = Uint32Array<ArrayBuffer>
-type BufferData = IntArray | UIntArray | FloatArray
+type BufferData = IntArray | UIntArray | FloatArray | Uint8Array<ArrayBuffer>
 
 export interface ShaderIssue {
     message: string
