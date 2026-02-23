@@ -1,4 +1,6 @@
-export function createNoiseBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
+export const NOISE_GROUP = 1
+
+export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
             {
@@ -9,49 +11,42 @@ export function createNoiseBindGroupLayout(device: GPUDevice): GPUBindGroupLayou
                 },
             },
             {
-                binding: 1, // z_coord
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'uniform',
-                },
-            },
-            {
-                binding: 2, // hash_table
+                binding: 1, // hash_table
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 3, // rand_values
+                binding: 2, // rand_values
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 4, // rand_points_2d
+                binding: 3, // rand_points_2d
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 5, // rand_points_3d
+                binding: 4, // rand_points_3d
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 6, // unit_vectors_2d
+                binding: 5, // unit_vectors_2d
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 7, // unit_vectors_3d
+                binding: 6, // unit_vectors_3d
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
@@ -61,18 +56,20 @@ export function createNoiseBindGroupLayout(device: GPUDevice): GPUBindGroupLayou
     })
 }
 
-export function createOutputBindGroupLayout(device: GPUDevice): GPUBindGroupLayout {
+export const TERRAIN_GROUP = 2
+
+export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
             {
-                binding: 0, // buffer A/B
+                binding: 0, // terrain A/B
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 1, // buffer A/B
+                binding: 1, // terrain A/B
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'storage',
@@ -82,7 +79,9 @@ export function createOutputBindGroupLayout(device: GPUDevice): GPUBindGroupLayo
     })
 }
 
-export function createCanvasBindGroupLayout(device: GPUDevice, color_format: GPUTextureFormat) {
+export const CANVAS_GROUP = 0
+
+export function createCanvasLayout(device: GPUDevice, color_format: GPUTextureFormat) {
     return device.createBindGroupLayout({
         entries: [
             {
