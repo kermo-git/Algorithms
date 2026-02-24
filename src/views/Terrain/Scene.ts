@@ -178,7 +178,7 @@ export default class TerrainScene {
         })
 
         const pass_encoder = encoder.beginComputePass()
-        pass_encoder.setPipeline(this.noise_pipeline)
+        pass_encoder.setPipeline(this.flat_display_pipeline)
         pass_encoder.setBindGroup(NOISE_GROUP, this.noise_group)
         pass_encoder.setBindGroup(TERRAIN_GROUP, terrain_group)
         pass_encoder.setBindGroup(CANVAS_GROUP, canvas_group)
