@@ -1,4 +1,4 @@
-import { noiseSeedUnitShader } from '@/Noise/SeedData'
+import { noiseFeatureShader } from '@/Noise/SeedData'
 import { findGridPosShader, octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
@@ -52,7 +52,7 @@ export function createShader(
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<uniform> voronoi_n_columns: f32;
 
-        ${noiseSeedUnitShader}
+        ${noiseFeatureShader}
 
         @group(1) @binding(2) var<storage> noise_features: array<NoiseFeature>;
         @group(1) @binding(3) var<uniform> noise_scale: f32;

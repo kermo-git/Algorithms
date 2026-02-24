@@ -14,7 +14,7 @@ import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
 import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
-import { noiseSeedUnitShader } from '@/Noise/SeedData'
+import { noiseFeatureShader } from '@/Noise/SeedData'
 
 function noiseFunctionShader(group: number) {
     function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string) {
@@ -34,7 +34,7 @@ function noiseFunctionShader(group: number) {
     }
 
     return /* wgsl */ `
-        ${noiseSeedUnitShader}
+        ${noiseFeatureShader}
 
         @group(${group}) @binding(0) var<uniform> n_grid_columns: f32;
         @group(${group}) @binding(1) var<storage> hash_table: array<i32>;

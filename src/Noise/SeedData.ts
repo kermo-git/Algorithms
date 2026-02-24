@@ -1,6 +1,6 @@
 import type { PowerOfTwo } from './Types'
 
-export const noiseSeedUnitShader = /* wgsl */ `
+export const noiseFeatureShader = /* wgsl */ `
     struct NoiseFeature {
         rand_point: vec4f,
         unit_vector_2d: vec2f,

@@ -10,7 +10,7 @@ import {
     unitVector3DShader,
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
-import { noiseSeedUnitShader } from '@/Noise/SeedData'
+import { noiseFeatureShader } from '@/Noise/SeedData'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 
@@ -146,7 +146,7 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
-        ${noiseSeedUnitShader}
+        ${noiseFeatureShader}
 
         @group(1) @binding(0) var<storage> hash_table: array<i32>;
         @group(1) @binding(1) var<storage> noise_features: array<NoiseFeature>;
