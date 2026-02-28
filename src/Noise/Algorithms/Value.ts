@@ -1,10 +1,17 @@
 import type { NoiseAlgorithm, Config } from '../Types'
+import { fade_2d, fade_3d, fade_4d } from './Common'
 
 export const Value2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_2d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_value = `${name}_value`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
         fn ${get_value}(x: i32, y: i32, offset: i32) -> f32 {
@@ -12,13 +19,9 @@ export const Value2D: NoiseAlgorithm = {
             return noise_features[hash].rand_point.x;
         }
 
-        fn ${fade}(t: vec2f) -> vec2f {
-            return t * t * t * (t * (t * 6 - 15) + 10);
-        }
-
-        fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
+        fn ${name}(global_pos: vec2f, channel: u32) -> f32 {
             const HASH_MASK = vec2i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
 
             let floor_pos = floor(global_pos);
             let p0 = vec2i(floor_pos) & HASH_MASK;
@@ -30,7 +33,7 @@ export const Value2D: NoiseAlgorithm = {
             let d = ${get_value}(p1.x, p1.y, hash_offset);
             
             let local_pos = global_pos - floor_pos;
-            let s = ${fade}(local_pos);
+            let s = fade_2d(local_pos);
 
             return mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
         }
@@ -40,9 +43,15 @@ export const Value2D: NoiseAlgorithm = {
 
 export const Value3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_3d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_value = `${name}_value`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
             fn ${get_value}(x: i32, y: i32, z: i32, offset: i32) -> f32 {
@@ -52,13 +61,9 @@ export const Value3D: NoiseAlgorithm = {
                 return noise_features[hash_z].rand_point.x;
             }
 
-            fn ${fade}(t: vec3f) -> vec3f {
-                return t * t * t * (t * (t * 6 - 15) + 10);
-            }
-
-            fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
+            fn ${name}(global_pos: vec3f, channel: u32) -> f32 {
                 const HASH_MASK = vec3i(${hash_table_size - 1});
-                let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
 
                 let floor_pos = floor(global_pos);
                 let p0 = vec3i(floor_pos) & HASH_MASK;
@@ -74,7 +79,7 @@ export const Value3D: NoiseAlgorithm = {
                 let h = ${get_value}(p1.x, p1.y, p1.z, hash_offset);
                 
                 let local_pos = global_pos - floor_pos;
-                let s = ${fade}(local_pos);
+                let s = fade_3d(local_pos);
                 
                 return mix(
                     mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
@@ -88,6 +93,13 @@ export const Value3D: NoiseAlgorithm = {
 
 export const Value4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_4d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_value = `${name}_value`
         const fade = `${name}_fade`
@@ -101,13 +113,9 @@ export const Value4D: NoiseAlgorithm = {
                 return noise_features[hash_w].rand_point.x;
             }
 
-            fn ${fade}(t: vec4f) -> vec4f {
-                return t * t * t * (t * (t * 6 - 15) + 10);
-            }
-
-            fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
+            fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
                 const HASH_MASK = vec4i(${hash_table_size - 1});
-                let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
                 
                 let floor_pos = floor(global_pos);
                 let p0 = vec4i(floor_pos) & HASH_MASK;
@@ -132,7 +140,7 @@ export const Value4D: NoiseAlgorithm = {
                 let p = ${get_value}(p1.x, p1.y, p1.z, p1.w, hash_offset);
                 
                 let local_pos = global_pos - floor_pos;
-                let s = ${fade}(local_pos);
+                let s = fade_4d(local_pos);
                 
                 return mix(
                     mix(

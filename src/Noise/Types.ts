@@ -12,6 +12,7 @@ export interface Config {
 
 export interface NoiseAlgorithm {
     pos_type: VecType
+    createShaderDependencies(): string
     createShader(config: Config): string
 }
 

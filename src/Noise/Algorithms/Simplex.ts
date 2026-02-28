@@ -12,6 +12,11 @@ function get_unskew_constant(n_dimensions: number) {
 
 export const Simplex2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const influence = `${name}_influence`
         const skew = `${name}_skew`
@@ -44,7 +49,7 @@ export const Simplex2D: NoiseAlgorithm = {
             return v - (v.x + v.y) * ${UNSKEW_CONST};
         }
 
-        fn ${name}(pos: vec2f, channel: i32) -> f32 {
+        fn ${name}(pos: vec2f, channel: u32) -> f32 {
             let f_skew_c0 = floor(${skew}(pos));
             let c0_pos = pos - ${unskew}(f_skew_c0);
 
@@ -65,7 +70,7 @@ export const Simplex2D: NoiseAlgorithm = {
             let skew_c1 = skew_c0 + skew_c0_c1;
             let skew_c2 = skew_c0 + skew_c0_c2;
 
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
             let i0 = ${influence}(skew_c0, c0_pos, hash_offset);
             let i1 = ${influence}(skew_c1, c1_pos, hash_offset);
             let i2 = ${influence}(skew_c2, c2_pos, hash_offset);
@@ -79,6 +84,11 @@ export const Simplex2D: NoiseAlgorithm = {
 
 export const Simplex3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const influence = `${name}_influence`
         const skew = `${name}_skew`
@@ -112,7 +122,7 @@ export const Simplex3D: NoiseAlgorithm = {
             return v - (v.x + v.y + v.z) * ${UNSKEW_CONST};
         }
 
-        fn ${name}(pos: vec3f, channel: i32) -> f32 {
+        fn ${name}(pos: vec3f, channel: u32) -> f32 {
             let f_skew_c0 = floor(${skew}(pos));
 
             let c0 = ${unskew}(f_skew_c0);
@@ -158,7 +168,7 @@ export const Simplex3D: NoiseAlgorithm = {
             let skew_c2 = skew_c0 + skew_c0_c2;
             let skew_c3 = skew_c0 + skew_c0_c3;
 
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
             let i0 = ${influence}(skew_c0, c0_pos, hash_offset);
             let i1 = ${influence}(skew_c1, c1_pos, hash_offset);
             let i2 = ${influence}(skew_c2, c2_pos, hash_offset);
@@ -173,6 +183,11 @@ export const Simplex3D: NoiseAlgorithm = {
 
 export const Simplex4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const influence = `${name}_influence`
         const skew = `${name}_skew`
@@ -210,7 +225,7 @@ export const Simplex4D: NoiseAlgorithm = {
         const skew_c0_c4 = vec4i(1, 1, 1, 1);
         const c0_c4 = vec4f(1, 1, 1, 1) - 4 * ${UNSKEW_CONST};
 
-        fn ${name}(pos: vec4f, channel: i32) -> f32 {
+        fn ${name}(pos: vec4f, channel: u32) -> f32 {
             let skew_pos = ${skew}(pos);
             let f_skew_c0 = floor(skew_pos);
 
@@ -379,7 +394,7 @@ export const Simplex4D: NoiseAlgorithm = {
             let skew_c3 = skew_c0 + skew_c0_c3;
             let skew_c4 = skew_c0 + skew_c0_c4;
 
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
             let i0 = ${influence}(skew_c0, c0_pos, hash_offset);
             let i1 = ${influence}(skew_c1, c1_pos, hash_offset);
             let i2 = ${influence}(skew_c2, c2_pos, hash_offset);

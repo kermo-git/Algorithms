@@ -2,11 +2,16 @@ import type { NoiseAlgorithm, Config } from '../Types'
 
 export const Worley2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config): string {
         return /* wgsl */ `
-            fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
+            fn ${name}(global_pos: vec2f, channel: u32) -> f32 {
                 const HASH_MASK = vec2i(${hash_table_size - 1});
-                let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
 
                 let grid_pos = vec2i(floor(global_pos));
                 var min_dist_sqr = 10.0;
@@ -34,11 +39,16 @@ export const Worley2D: NoiseAlgorithm = {
 
 export const Worley3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config): string {
         return /* wgsl */ `
-            fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
+            fn ${name}(global_pos: vec3f, channel: u32) -> f32 {
                 const HASH_MASK = vec3i(${hash_table_size - 1});
-                let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
                 
                 let grid_pos = vec3i(floor(global_pos));
                 var min_dist_sqr = 10.0;
@@ -69,11 +79,16 @@ export const Worley3D: NoiseAlgorithm = {
 
 export const Worley4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
+
+    createShaderDependencies: function (): string {
+        return ''
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config): string {
         return /* wgsl */ `
-            fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
+            fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
                 const HASH_MASK = vec4i(${hash_table_size - 1});
-                let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
 
                 let grid_pos = vec4i(floor(global_pos));
                 var min_dist_sqr = 10.0;

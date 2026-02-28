@@ -15,6 +15,7 @@ import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
 import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
 import { noiseFeatureShader } from '@/Noise/SeedData'
+import { allFunctions } from '@/Noise/Algorithms/Common'
 
 function noiseFunctionShader(group: number) {
     function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string) {
@@ -43,6 +44,7 @@ function noiseFunctionShader(group: number) {
         ${unitVector2DShader}
         ${unitVector3DShader}
         ${rotate3DShader}
+        ${allFunctions}
 
         ${createNoiseFunctions(Value2D, 'value_2d')}
         ${createNoiseFunctions(Value3D, 'value_3d')}

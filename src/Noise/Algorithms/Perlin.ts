@@ -1,10 +1,17 @@
 import { type NoiseAlgorithm, type Config } from '../Types'
+import { fade_2d, fade_3d, fade_4d } from './Common'
 
 export const Perlin2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_2d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_gradient = `${name}_gradient`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
@@ -15,13 +22,9 @@ export const Perlin2D: NoiseAlgorithm = {
             return noise_features[hash].unit_vector_2d;
         }
 
-        fn ${fade}(t: vec2f) -> vec2f {
-            return t * t * t * (t * (t * 6 - 15) + 10);
-        }
-
-        fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
+        fn ${name}(global_pos: vec2f, channel: u32) -> f32 {
             const HASH_MASK = vec2i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
 
             let floor_pos = floor(global_pos);
             let p0 = vec2i(floor_pos) & HASH_MASK;
@@ -39,7 +42,7 @@ export const Perlin2D: NoiseAlgorithm = {
             let c = dot(grad_01, vec2f(local.x, local.y - 1));
             let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
 
-            let s = ${fade}(local);
+            let s = fade_2d(local);
             let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
             return clamp(norm_factor * n + 0.5, 0, 1);
         }
@@ -49,9 +52,15 @@ export const Perlin2D: NoiseAlgorithm = {
 
 export const Perlin3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_3d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_gradient = `${name}_gradient`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
         fn ${get_gradient}(x: i32, y: i32, z: i32, offset: i32) -> vec3f {
@@ -61,13 +70,9 @@ export const Perlin3D: NoiseAlgorithm = {
             return noise_features[hash_z].unit_vector_3d;
         }
 
-        fn ${fade}(t: vec3f) -> vec3f {
-            return t * t * t * (t * (t * 6 - 15) + 10);
-        }
-
-        fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
+        fn ${name}(global_pos: vec3f, channel: u32) -> f32 {
             const HASH_MASK = vec3i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
             
             let floor_pos = floor(global_pos);
             let p0 = vec3i(floor_pos) & HASH_MASK;
@@ -93,7 +98,7 @@ export const Perlin3D: NoiseAlgorithm = {
             let g = dot(grad_011, vec3f(local.x, local.y - 1, local.z - 1));
             let h = dot(grad_111, vec3f(local.x - 1, local.y - 1, local.z - 1));
 
-            let s = ${fade}(local);
+            let s = fade_3d(local);
             
             let n = 1.55 * mix(
                 mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
@@ -108,9 +113,15 @@ export const Perlin3D: NoiseAlgorithm = {
 
 export const Perlin4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
+
+    createShaderDependencies: function (): string {
+        return `
+            ${fade_4d}
+        `
+    },
+
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_gradient = `${name}_gradient`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
         fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> vec4f {
@@ -121,13 +132,9 @@ export const Perlin4D: NoiseAlgorithm = {
             return noise_features[hash_w].unit_vector_4d;
         }
 
-        fn ${fade}(t: vec4f) -> vec4f {
-            return t * t * t * (t * (t * 6 - 15) + 10);
-        }
-
-        fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
+        fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
             const HASH_MASK = vec4i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
             
             let floor_pos = floor(global_pos);
             let p0 = vec4i(floor_pos) & HASH_MASK;
@@ -172,7 +179,7 @@ export const Perlin4D: NoiseAlgorithm = {
             let o = dot(grad_0111, vec4f(local.x, minus.y, minus.z, minus.w));
             let p = dot(grad_1111, vec4f(minus.x, minus.y, minus.z, minus.w));
 
-            let s = ${fade}(local);
+            let s = fade_4d(local);
             
             let result = 1.57 * mix(
                 mix(

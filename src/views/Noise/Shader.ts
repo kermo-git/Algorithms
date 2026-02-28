@@ -64,6 +64,8 @@ function warp3DShader() {
 
 function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_functions = `
+        ${algorithm.createShaderDependencies()}
+        
         ${algorithm.createShader({
             name: 'noise',
             hash_table_size: 256,

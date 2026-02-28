@@ -2,125 +2,104 @@
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
 import type { Config, NoiseAlgorithm } from '../Types'
+import { cubic_interpolation, pcd2d_1f, pcd3d_1f, pcd4d_1f } from './Common'
 
 export const Cubic2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_value = `${name}_value`
-        const interpolate = `${name}_interpolate`
 
+    createShaderDependencies: function (): string {
+        return `
+            ${pcd2d_1f}
+            ${cubic_interpolation}
+        `
+    },
+
+    createShader({ name }: Config) {
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32, offset: i32) -> f32 {
-            let hash = hash_table[offset + hash_table[offset + x] + y];
-            return noise_features[hash].rand_point.x;
-        }
+            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+                let floor_pos = floor(pos);
+                let local_pos = pos - floor_pos;
+                
+                let x1 = u32(i32(floor_pos.x));
+                let y1 = u32(i32(floor_pos.y));
 
-        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
-            let p = d - c - (a - b);
-            return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
-        }
+                let x0 = x1 - 1;
+                let x2 = x1 + 1;
+                let x3 = x1 + 2;
+                
+                var interpolated_x = array<f32, 4>(0, 0, 0, 0);
 
-        fn ${name}(global_pos: vec2f, channel: i32) -> f32 {
-            let floor_pos = floor(global_pos);
-            let local_pos = global_pos - floor_pos;
+                for (var i = 0u; i < 4u; i++) {
+                    let yi = y1 - 1 + i;
 
-            let floor_x = i32(floor_pos.x);
-            let floor_y = i32(floor_pos.y);
+                    interpolated_x[i] = cubic_interpolation(
+                        pcd2d_1f(vec2u(x0, yi), channel),
+                        pcd2d_1f(vec2u(x1, yi), channel),
+                        pcd2d_1f(vec2u(x2, yi), channel),
+                        pcd2d_1f(vec2u(x3, yi), channel),
+                        local_pos.x
+                    );
+                }
 
-            const HASH_MASK = ${hash_table_size - 1};
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
-
-            let x0 = (floor_x - 1) & HASH_MASK;
-            let x1 = floor_x & HASH_MASK;
-            let x2 = (floor_x + 1) & HASH_MASK;
-            let x3 = (floor_x + 2) & HASH_MASK;
-            
-            var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-
-            for (var i = 0; i < 4; i++) {
-                let yi = (floor_y - 1 + i) & HASH_MASK;
-
-                interpolated_x[i] = ${interpolate}(
-                    ${get_value}(x0, yi, hash_offset),
-                    ${get_value}(x1, yi, hash_offset),
-                    ${get_value}(x2, yi, hash_offset),
-                    ${get_value}(x3, yi, hash_offset),
-                    local_pos.x
+                let n = cubic_interpolation(
+                    interpolated_x[0],
+                    interpolated_x[1],
+                    interpolated_x[2],
+                    interpolated_x[3],
+                    local_pos.y
                 );
+
+                const NORM_MIN = -0.3;
+                const NORM_MAX = 1.3;
+                const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
+
+                return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
             }
-
-            let n = ${interpolate}(
-                interpolated_x[0],
-                interpolated_x[1],
-                interpolated_x[2],
-                interpolated_x[3],
-                local_pos.y
-            );
-
-            const NORM_MIN = -0.3;
-            const NORM_MAX = 1.3;
-            const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
-
-            return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
-        }
-    `
+        `
     },
 }
 
 export const Cubic3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_value = `${name}_value`
-        const interpolate = `${name}_interpolate`
 
+    createShaderDependencies: function (): string {
+        return `
+            ${pcd3d_1f}
+            ${cubic_interpolation}
+        `
+    },
+
+    createShader({ name }: Config) {
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32, z: i32, offset: i32) -> f32 {
-            let hash_x = hash_table[offset + x];
-            let hash_y = hash_table[offset + hash_x + y];
-            let hash_z = hash_table[offset + hash_y + z];
-            return noise_features[hash_z].rand_point.x;
-        }
+        fn ${name}(pos: vec3f, channel: u32) -> f32 {
+            let floor_pos = floor(pos);
+            let local_pos = pos - floor_pos;
 
-        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
-            let p = d - c - (a - b);
-            return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
-        }
+            let c = vec3u(vec3i(floor_pos));
 
-        fn ${name}(global_pos: vec3f, channel: i32) -> f32 {
-            let floor_pos = floor(global_pos);
-            let local_pos = global_pos - floor_pos;
-
-            let floor_x = i32(floor_pos.x);
-            let floor_y = i32(floor_pos.y);
-            let floor_z = i32(floor_pos.z);
-
-            const HASH_MASK = ${hash_table_size - 1};
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
-
-            let x0 = (floor_x - 1) & HASH_MASK;
-            let x1 = floor_x & HASH_MASK;
-            let x2 = (floor_x + 1) & HASH_MASK;
-            let x3 = (floor_x + 2) & HASH_MASK;
+            let x0 = c.x - 1;
+            let x2 = c.x + 1;
+            let x3 = c.x + 2;
 
             var interpolated_y = array<f32, 4>(0, 0, 0, 0);
 
-            for (var i = 0; i < 4; i++) {
+            for (var i = 0u; i < 4u; i++) {
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                let zi = (floor_z - 1 + i) & HASH_MASK;
+                let zi = c.z - 1 + i;
                 
-                for (var j = 0; j < 4; j++) {
-                    let yj = (floor_y - 1 + j) & HASH_MASK;
+                for (var j = 0u; j < 4u; j++) {
+                    let yj = c.y - 1 + j;
 
-                    interpolated_x[j] = ${interpolate}(
-                        ${get_value}(x0, yj, zi, hash_offset),
-                        ${get_value}(x1, yj, zi, hash_offset),
-                        ${get_value}(x2, yj, zi, hash_offset),
-                        ${get_value}(x3, yj, zi, hash_offset),
+                    interpolated_x[j] = cubic_interpolation(
+                        pcd3d_1f(vec3u(x0, yj, zi), channel),
+                        pcd3d_1f(vec3u(c.x, yj, zi), channel),
+                        pcd3d_1f(vec3u(x2, yj, zi), channel),
+                        pcd3d_1f(vec3u(x3, yj, zi), channel),
                         local_pos.x
                     );
                 }
 
-                interpolated_y[i] = ${interpolate}(
+                interpolated_y[i] = cubic_interpolation(
                     interpolated_x[0],
                     interpolated_x[1],
                     interpolated_x[2],
@@ -129,7 +108,7 @@ export const Cubic3D: NoiseAlgorithm = {
                 );
             }
 
-            let n = ${interpolate}(
+            let n = cubic_interpolation(
                 interpolated_y[0],
                 interpolated_y[1],
                 interpolated_y[2],
@@ -149,95 +128,79 @@ export const Cubic3D: NoiseAlgorithm = {
 
 export const Cubic4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_value = `${name}_value`
-        const interpolate = `${name}_interpolate`
 
+    createShaderDependencies: function (): string {
+        return `
+            ${pcd4d_1f}
+            ${cubic_interpolation}
+        `
+    },
+
+    createShader({ name }: Config) {
         return /* wgsl */ `
-        fn ${get_value}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> f32 {
-            let hash_x = hash_table[offset + x];
-            let hash_y = hash_table[offset + hash_x + y];
-            let hash_z = hash_table[offset + hash_y + z];
-            let hash_w = hash_table[offset + hash_z + w];
-            return noise_features[hash_w].rand_point.x;
-        }
+            fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
+                let floor_pos = floor(global_pos);
+                let local_pos = global_pos - floor_pos;
 
-        fn ${interpolate}(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
-            let p = d - c - (a - b);
-            return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
-        }
+                let c = vec4u(vec4i(floor_pos));
+                let x0 = c.x - 1;
+                let x2 = c.x + 1;
+                let x3 = c.x + 2;
 
-        fn ${name}(global_pos: vec4f, channel: i32) -> f32 {
-            let floor_pos = floor(global_pos);
-            let local_pos = global_pos - floor_pos;
+                var interpolated_z = array<f32, 4>(0, 0, 0, 0);
 
-            let floor_x = i32(floor_pos.x);
-            let floor_y = i32(floor_pos.y);
-            let floor_z = i32(floor_pos.z);
-            let floor_w = i32(floor_pos.w);
+                for (var i = 0u; i < 4; i++) {
+                    var interpolated_y = array<f32, 4>(0, 0, 0, 0);
+                    let wi = c.w - 1 + i;
 
-            const HASH_MASK = ${hash_table_size - 1};
-            let hash_offset = ${hash_table_size} * (channel & ${n_channels - 1});
+                    for (var j = 0u; j < 4; j++) {
+                        var interpolated_x = array<f32, 4>(0, 0, 0, 0);
+                        let zj = c.z - 1 + j;
+                        
+                        for (var k = 0u; k < 4; k++) {
+                            let yk = c.y - 1 + k;
 
-            let x0 = (floor_x - 1) & HASH_MASK;
-            let x1 = floor_x & HASH_MASK;
-            let x2 = (floor_x + 1) & HASH_MASK;
-            let x3 = (floor_x + 2) & HASH_MASK;
+                            interpolated_x[k] = cubic_interpolation(
+                                pcd4d_1f(vec4u(x0, yk, zj, wi), channel),
+                                pcd4d_1f(vec4u(c.x, yk, zj, wi), channel),
+                                pcd4d_1f(vec4u(x2, yk, zj, wi), channel),
+                                pcd4d_1f(vec4u(x3, yk, zj, wi), channel),
+                                local_pos.x
+                            );
+                        }
 
-            var interpolated_z = array<f32, 4>(0, 0, 0, 0);
-
-            for (var i = 0; i < 4; i++) {
-                var interpolated_y = array<f32, 4>(0, 0, 0, 0);
-                let wi = (floor_w - 1 + i) & HASH_MASK;
-
-                for (var j = 0; j < 4; j++) {
-                    var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                    let zj = (floor_z - 1 + j) & HASH_MASK;
-                    
-                    for (var k = 0; k < 4; k++) {
-                        let yk = (floor_y - 1 + k) & HASH_MASK;
-
-                        interpolated_x[k] = ${interpolate}(
-                            ${get_value}(x0, yk, zj, wi, hash_offset),
-                            ${get_value}(x1, yk, zj, wi, hash_offset),
-                            ${get_value}(x2, yk, zj, wi, hash_offset),
-                            ${get_value}(x3, yk, zj, wi, hash_offset),
-                            local_pos.x
+                        interpolated_y[j] = cubic_interpolation(
+                            interpolated_x[0],
+                            interpolated_x[1],
+                            interpolated_x[2],
+                            interpolated_x[3],
+                            local_pos.y
                         );
                     }
 
-                    interpolated_y[j] = ${interpolate}(
-                        interpolated_x[0],
-                        interpolated_x[1],
-                        interpolated_x[2],
-                        interpolated_x[3],
-                        local_pos.y
+                    interpolated_z[i] = cubic_interpolation(
+                        interpolated_y[0],
+                        interpolated_y[1],
+                        interpolated_y[2],
+                        interpolated_y[3],
+                        local_pos.z
                     );
                 }
 
-                interpolated_z[i] = ${interpolate}(
-                    interpolated_y[0],
-                    interpolated_y[1],
-                    interpolated_y[2],
-                    interpolated_y[3],
-                    local_pos.z
+                let n = cubic_interpolation(
+                    interpolated_z[0],
+                    interpolated_z[1],
+                    interpolated_z[2],
+                    interpolated_z[3],
+                    local_pos.w
                 );
+
+                const NORM_MIN = -0.3;
+                const NORM_MAX = 1.3;
+                const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
+
+                return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
             }
-
-            let n = ${interpolate}(
-                interpolated_z[0],
-                interpolated_z[1],
-                interpolated_z[2],
-                interpolated_z[3],
-                local_pos.w
-            );
-
-            const NORM_MIN = -0.3;
-            const NORM_MAX = 1.3;
-            const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
-
-            return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
-        }
-    `
+        `
     },
 }

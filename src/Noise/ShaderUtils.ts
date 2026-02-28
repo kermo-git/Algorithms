@@ -24,7 +24,7 @@ export const findGridPosShader = /* wgsl */ `
 
 export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTransformNames) {
     return /* wgsl */ `
-        fn ${func_name}(noise_pos: ${pos_type}, channel: i32, n_octaves: u32, persistence: f32) -> f32 {
+        fn ${func_name}(noise_pos: ${pos_type}, channel: u32, n_octaves: u32, persistence: f32) -> f32 {
             var noise_value: f32 = ${noise_name}(noise_pos, channel);
             var min_noise_value: f32 = 0;
             var max_noise_value: f32 = 1;
@@ -33,7 +33,7 @@ export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTran
             var amplitude: f32 = persistence;
 
             for (var i = 1u; i < n_octaves; i++) {
-                noise_value += amplitude * ${noise_name}(noise_pos * frequency, channel + i32(i));
+                noise_value += amplitude * ${noise_name}(noise_pos * frequency, channel + i);
                 min_noise_value += amplitude * 0.4;
                 max_noise_value += amplitude * 0.6;
 
