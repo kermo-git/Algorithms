@@ -102,7 +102,6 @@ export const Value4D: NoiseAlgorithm = {
 
     createShader({ name, hash_table_size, n_channels }: Config) {
         const get_value = `${name}_value`
-        const fade = `${name}_fade`
 
         return /* wgsl */ `
             fn ${get_value}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> f32 {

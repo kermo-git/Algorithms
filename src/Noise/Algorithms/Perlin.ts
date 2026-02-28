@@ -1,201 +1,213 @@
-import { type NoiseAlgorithm, type Config } from '../Types'
-import { fade_2d, fade_3d, fade_4d } from './Common'
+import { generateUnitVectors2D, generateUnitVectors3D, generateUnitVectors4D } from '../SeedData'
+import { type NoiseAlgorithm, type Config, log2 } from '../Types'
+import {
+    fade_2d,
+    fade_3d,
+    fade_4d,
+    pcd2d_1u,
+    pcd3d_1u,
+    pcd4d_1u,
+    scramble_2d,
+    scramble_3d,
+    scramble_4d,
+} from './Common'
 
 export const Perlin2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
+    extra_data_type: 'vec2f',
+
+    generateExtraData() {
+        return generateUnitVectors2D(16)
+    },
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_2d}
+            ${pcd2d_1u}
             ${fade_2d}
         `
     },
 
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_gradient = `${name}_gradient`
+    createShader({ name, extraBufferName }: Config) {
+        const influence = `${name}_gradient`
 
         return /* wgsl */ `
-        // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-        const norm_factor = 1 / sqrt(2);
-        
-        fn ${get_gradient}(x: i32, y: i32, offset: i32) -> vec2f {
-            let hash = hash_table[offset + hash_table[offset + x] + y];
-            return noise_features[hash].unit_vector_2d;
-        }
+            fn ${influence}(grid_pos: vec2u, local_vec: vec2f) -> f32 {
+                let hash = pcd2d_1u(grid_pos) >> 28;
+                return dot(${extraBufferName}[hash], local_vec);
+            }
 
-        fn ${name}(global_pos: vec2f, channel: u32) -> f32 {
-            const HASH_MASK = vec2i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
+            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+                let floor_pos = floor(pos);
+                let u0 = pos - floor_pos;
+                let u1 = u0 - 1;
 
-            let floor_pos = floor(global_pos);
-            let p0 = vec2i(floor_pos) & HASH_MASK;
-            let p1 = (p0 + 1i) & HASH_MASK;
-            
-            let grad_00 = ${get_gradient}(p0.x, p0.y, hash_offset);
-            let grad_10 = ${get_gradient}(p1.x, p0.y, hash_offset);
-            let grad_01 = ${get_gradient}(p0.x, p1.y, hash_offset);
-            let grad_11 = ${get_gradient}(p1.x, p1.y, hash_offset);
-            
-            let local = global_pos - floor_pos;
+                let p0 = scramble_2d(vec2i(floor_pos), channel);
+                let p1 = p0 + 1u;
+                
+                let a = ${influence}(p0, u0);
+                let b = ${influence}(
+                    vec2u(p1.x, p0.y), 
+                    vec2f(u1.x, u0.y)
+                );
+                let c = ${influence}(
+                    vec2u(p0.x, p1.y),
+                    vec2f(u0.x, u1.y)
+                );
+                let d = ${influence}(p1, u1);
 
-            let a = dot(grad_00, local);
-            let b = dot(grad_10, vec2f(local.x - 1, local.y));
-            let c = dot(grad_01, vec2f(local.x, local.y - 1));
-            let d = dot(grad_11, vec2f(local.x - 1, local.y - 1));
+                let s = fade_2d(u0);
+                let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
 
-            let s = fade_2d(local);
-            let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
-            return clamp(norm_factor * n + 0.5, 0, 1);
-        }
-    `
+                // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
+                const norm_factor = 1 / sqrt(2);
+                return clamp(norm_factor * n + 0.5, 0, 1);
+            }
+        `
     },
 }
 
 export const Perlin3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
+    extra_data_type: 'vec3f',
+
+    generateExtraData() {
+        return generateUnitVectors3D(64)
+    },
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_3d}
+            ${pcd3d_1u}
             ${fade_3d}
         `
     },
 
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_gradient = `${name}_gradient`
+    createShader({ name, extraBufferName }: Config) {
+        const influence = `${name}_influence`
 
         return /* wgsl */ `
-        fn ${get_gradient}(x: i32, y: i32, z: i32, offset: i32) -> vec3f {
-            let hash_x = hash_table[offset + x];
-            let hash_y = hash_table[offset + hash_x + y];
-            let hash_z = hash_table[offset + hash_y + z];
-            return noise_features[hash_z].unit_vector_3d;
-        }
+            fn ${influence}(grid_pos: vec3u, local_vec: vec3f) -> f32 {
+                let hash = pcd3d_1u(grid_pos) >> 26;
+                return dot(${extraBufferName}[hash], local_vec);
+            }
 
-        fn ${name}(global_pos: vec3f, channel: u32) -> f32 {
-            const HASH_MASK = vec3i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
-            
-            let floor_pos = floor(global_pos);
-            let p0 = vec3i(floor_pos) & HASH_MASK;
-            let p1 = (p0 + 1i) & HASH_MASK;
-            
-            let grad_000 = ${get_gradient}(p0.x, p0.y, p0.z, hash_offset);
-            let grad_100 = ${get_gradient}(p1.x, p0.y, p0.z, hash_offset);
-            let grad_010 = ${get_gradient}(p0.x, p1.y, p0.z, hash_offset);
-            let grad_110 = ${get_gradient}(p1.x, p1.y, p0.z, hash_offset);
-            let grad_001 = ${get_gradient}(p0.x, p0.y, p1.z, hash_offset);
-            let grad_101 = ${get_gradient}(p1.x, p0.y, p1.z, hash_offset);
-            let grad_011 = ${get_gradient}(p0.x, p1.y, p1.z, hash_offset);
-            let grad_111 = ${get_gradient}(p1.x, p1.y, p1.z, hash_offset);
-            
-            let local = global_pos - floor_pos;
+            fn ${name}(pos: vec3f, channel: u32) -> f32 {
+                let floor_pos = floor(pos);
+                let u0 = global_pos - floor_pos;
+                let u1 = u0 - 1;
 
-            let a = dot(grad_000, local);
-            let b = dot(grad_100, vec3f(local.x - 1, local.yz));
-            let c = dot(grad_010, vec3f(local.x, local.y - 1, local.z));
-            let d = dot(grad_110, vec3f(local.x - 1, local.y - 1, local.z));
-            let e = dot(grad_001, vec3f(local.xy, local.z - 1));
-            let f = dot(grad_101, vec3f(local.x - 1, local.y, local.z - 1));
-            let g = dot(grad_011, vec3f(local.x, local.y - 1, local.z - 1));
-            let h = dot(grad_111, vec3f(local.x - 1, local.y - 1, local.z - 1));
+                let p0 = scramble_3d(vec2i(floor_pos), channel);
+                let p1 = p0 + 1u;
+                
+                let a = ${influence}(p0, u0);
+                let b = ${influence}(
+                    vec3u(p1.x, p0.yz), 
+                    vec3f(u1.x, u0.yz)
+                );
+                let c = ${influence}(
+                    vec3u(p0.x, p1.y, p0.z), 
+                    vec3f(u0.x, u1.y, u0.z)
+                );
+                let d = ${influence}(
+                    vec3u(p1.xy, p0.z), 
+                    vec3f(u1.xy, u0.z)
+                );
+                let e = ${influence}(
+                    vec3u(p0.xy, p1.z), 
+                    vec3f(u0.xy, u1.z)
+                );
+                let f = ${influence}(
+                    vec3u(p1.x, p0.y, p1.z), 
+                    vec3f(u1.x, u0.y, u1.z)
+                );
+                let g = ${influence}(
+                    vec3u(p0.x, p1.yz), 
+                    vec3f(u0.x, u1.yz)
+                );
+                let h = ${influence}(p1, u1);
 
-            let s = fade_3d(local);
-            
-            let n = 1.55 * mix(
-                mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
-                mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
-                s.z
-            );
-            return clamp(n, -1, 1) * 0.5 + 0.5;
-        }
-    `
+                let s = fade_3d(u0);
+                
+                let n = 1.55 * mix(
+                    mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
+                    mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
+                    s.z
+                );
+                return clamp(n, -1, 1) * 0.5 + 0.5;
+            }
+        `
     },
 }
 
 export const Perlin4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
+    extra_data_type: 'vec4f',
+
+    generateExtraData() {
+        return generateUnitVectors4D(256)
+    },
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_4d}
+            ${pcd4d_1u}
             ${fade_4d}
         `
     },
 
-    createShader({ name, hash_table_size, n_channels }: Config) {
-        const get_gradient = `${name}_gradient`
+    createShader({ name, extraBufferName }: Config) {
+        const influence = `${name}_influence`
 
         return /* wgsl */ `
-        fn ${get_gradient}(x: i32, y: i32, z: i32, w: i32, offset: i32) -> vec4f {
-            let hash_x = hash_table[offset + x];
-            let hash_y = hash_table[offset + hash_x + y];
-            let hash_z = hash_table[offset + hash_y + z];
-            let hash_w = hash_table[offset + hash_z + w];
-            return noise_features[hash_w].unit_vector_4d;
-        }
+            fn ${influence}(grid_pos: vec3u, local_vec: vec3f) -> f32 {
+                let hash = pcd4d_1u(grid_pos) >> 24;
+                return dot(${extraBufferName}[hash], local_vec);
+            }
 
-        fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
-            const HASH_MASK = vec4i(${hash_table_size - 1});
-            let hash_offset = ${hash_table_size} * (i32(channel) & ${n_channels - 1});
-            
-            let floor_pos = floor(global_pos);
-            let p0 = vec4i(floor_pos) & HASH_MASK;
-            let p1 = (p0 + 1i) & HASH_MASK;
-            
-            let grad_0000 = ${get_gradient}(p0.x, p0.y, p0.z, p0.w, hash_offset);
-            let grad_1000 = ${get_gradient}(p1.x, p0.y, p0.z, p0.w, hash_offset);
-            let grad_0100 = ${get_gradient}(p0.x, p1.y, p0.z, p0.w, hash_offset);
-            let grad_1100 = ${get_gradient}(p1.x, p1.y, p0.z, p0.w, hash_offset);
-            let grad_0010 = ${get_gradient}(p0.x, p0.y, p1.z, p0.w, hash_offset);
-            let grad_1010 = ${get_gradient}(p1.x, p0.y, p1.z, p0.w, hash_offset);
-            let grad_0110 = ${get_gradient}(p0.x, p1.y, p1.z, p0.w, hash_offset);
-            let grad_1110 = ${get_gradient}(p1.x, p1.y, p1.z, p0.w, hash_offset);
+            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+                let floor_pos = floor(pos);
+                let u0 = global_pos - floor_pos;
+                let u1 = u0 - 1;
 
-            let grad_0001 = ${get_gradient}(p0.x, p0.y, p0.z, p1.w, hash_offset);
-            let grad_1001 = ${get_gradient}(p1.x, p0.y, p0.z, p1.w, hash_offset);
-            let grad_0101 = ${get_gradient}(p0.x, p1.y, p0.z, p1.w, hash_offset);
-            let grad_1101 = ${get_gradient}(p1.x, p1.y, p0.z, p1.w, hash_offset);
-            let grad_0011 = ${get_gradient}(p0.x, p0.y, p1.z, p1.w, hash_offset);
-            let grad_1011 = ${get_gradient}(p1.x, p0.y, p1.z, p1.w, hash_offset);
-            let grad_0111 = ${get_gradient}(p0.x, p1.y, p1.z, p1.w, hash_offset);
-            let grad_1111 = ${get_gradient}(p1.x, p1.y, p1.z, p1.w, hash_offset);
-            
-            let local = global_pos - floor_pos;
-            let minus = local - 1;
+                let p0 = scramble_4d(vec4i(floor_pos), channel);
+                let p1 = p0 + 1u;
+                
+                let a = ${influence}(p0, u0);
+                let b = ${influence}(vec4u(p1.x, p0.y, p0.z, p0.w), vec4f(u1.x, u0.y, u0.z, u0.w));
+                let c = ${influence}(vec4u(p0.x, p1.y, p0.z, p0.w), vec4f(u0.x, u1.y, u0.z, u0.w));
+                let d = ${influence}(vec4u(p1.x, p1.y, p0.z, p0.w), vec4f(u1.x, u1.y, u0.z, u0.w));
+                let e = ${influence}(vec4u(p0.x, p0.y, p1.z, p0.w), vec4f(u0.x, u0.y, u1.z, u0.w));
+                let f = ${influence}(vec4u(p1.x, p0.y, p1.z, p0.w), vec4f(u1.x, u0.y, u1.z, u0.w));
+                let g = ${influence}(vec4u(p0.x, p1.y, p1.z, p0.w), vec4f(u0.x, u1.y, u1.z, u0.w));
+                let h = ${influence}(vec4u(p1.x, p1.y, p1.z, p0.w), vec4f(u1.x, u1.y, u1.z, u0.w));
 
-            let a = dot(grad_0000, local);
-            let b = dot(grad_1000, vec4f(minus.x, local.y, local.z, local.w));
-            let c = dot(grad_0100, vec4f(local.x, minus.y, local.z, local.w));
-            let d = dot(grad_1100, vec4f(minus.x, minus.y, local.z, local.w));
-            let e = dot(grad_0010, vec4f(local.x, local.y, minus.z, local.w));
-            let f = dot(grad_1010, vec4f(minus.x, local.y, minus.z, local.w));
-            let g = dot(grad_0110, vec4f(local.x, minus.y, minus.z, local.w));
-            let h = dot(grad_1110, vec4f(minus.x, minus.y, minus.z, local.w));
+                let i = ${influence}(vec4u(p0.x, p0.y, p0.z, p1.w), vec4f(u0.x, u0.y, u0.z, u1.w));
+                let j = ${influence}(vec4u(p1.x, p0.y, p0.z, p1.w), vec4f(u1.x, u0.y, u0.z, u1.w));
+                let k = ${influence}(vec4u(p0.x, p1.y, p0.z, p1.w), vec4f(u0.x, u1.y, u0.z, u1.w));
+                let l = ${influence}(vec4u(p1.x, p1.y, p0.z, p1.w), vec4f(u1.x, u1.y, u0.z, u1.w));
+                let m = ${influence}(vec4u(p0.x, p0.y, p1.z, p1.w), vec4f(u0.x, u0.y, u1.z, u1.w));
+                let n = ${influence}(vec4u(p1.x, p0.y, p1.z, p1.w), vec4f(u1.x, u0.y, u1.z, u1.w));
+                let o = ${influence}(vec4u(p0.x, p1.y, p1.z, p1.w), vec4f(u0.x, u1.y, u1.z, u1.w));
+                let p = ${influence}(p1, u1);
 
-            let i = dot(grad_0001, vec4f(local.x, local.y, local.z, minus.w));
-            let j = dot(grad_1001, vec4f(minus.x, local.y, local.z, minus.w));
-            let k = dot(grad_0101, vec4f(local.x, minus.y, local.z, minus.w));
-            let l = dot(grad_1101, vec4f(minus.x, minus.y, local.z, minus.w));
-            let m = dot(grad_0011, vec4f(local.x, local.y, minus.z, minus.w));
-            let n = dot(grad_1011, vec4f(minus.x, local.y, minus.z, minus.w));
-            let o = dot(grad_0111, vec4f(local.x, minus.y, minus.z, minus.w));
-            let p = dot(grad_1111, vec4f(minus.x, minus.y, minus.z, minus.w));
-
-            let s = fade_4d(local);
-            
-            let result = 1.57 * mix(
-                mix(
-                    mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
-                    mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
-                    s.z
-                ),
-                mix(
-                    mix(mix(i, j, s.x), mix(k, l, s.x), s.y),
-                    mix(mix(m, n, s.x), mix(o, p, s.x), s.y),
-                    s.z
-                ),
-                s.w
-            );
-            return clamp(result, -1, 1) * 0.5 + 0.5;
-        }
-    `
+                let s = fade_4d(u0);
+                
+                let result = 1.57 * mix(
+                    mix(
+                        mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
+                        mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
+                        s.z
+                    ),
+                    mix(
+                        mix(mix(i, j, s.x), mix(k, l, s.x), s.y),
+                        mix(mix(m, n, s.x), mix(o, p, s.x), s.y),
+                        s.z
+                    ),
+                    s.w
+                );
+                return clamp(result, -1, 1) * 0.5 + 0.5;
+            }
+        `
     },
 }

@@ -1,6 +1,6 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
-import { defaultColorPoints, generateHashChannels, generateNoiseFeatures } from '@/Noise/SeedData'
+import { defaultColorPoints } from '@/Noise/SeedData'
 
 import createNoiseShader, { type Setup, type NoiseUniforms } from './Shader'
 
@@ -14,8 +14,7 @@ export default class NoiseScene {
     engine!: Engine
     pipeline!: GPUComputePipeline
 
-    hash_table!: GPUBuffer
-    noise_features!: GPUBuffer
+    noise_data!: GPUBuffer
     n_grid_columns!: GPUBuffer
     n_main_octaves!: GPUBuffer
     persistence!: GPUBuffer
@@ -46,8 +45,6 @@ export default class NoiseScene {
                 module: module,
             },
         })
-        this.hash_table = this.engine.createStorageBuffer(generateHashChannels(256, 8))
-        this.noise_features = this.engine.createStorageBuffer(generateNoiseFeatures(256))
         this.n_grid_columns = this.engine.createFloatUniform(data.n_grid_columns || 16)
         this.n_main_octaves = this.engine.createIntUniform(data.n_main_octaves || 1)
         this.persistence = this.engine.createFloatUniform(data.persistence || 0.5)
@@ -55,36 +52,38 @@ export default class NoiseScene {
         const bind_group_entries = [
             {
                 binding: 0,
-                resource: { buffer: this.hash_table },
-            },
-            {
-                binding: 1,
-                resource: { buffer: this.noise_features },
-            },
-            {
-                binding: 2,
                 resource: { buffer: this.n_grid_columns },
             },
             {
-                binding: 3,
+                binding: 1,
                 resource: { buffer: this.n_main_octaves },
             },
             {
-                binding: 4,
+                binding: 2,
                 resource: { buffer: this.persistence },
             },
         ]
 
+        if (algorithm.extra_data_type) {
+            const data = algorithm.generateExtraData!()
+            this.noise_data = this.engine.createStorageBuffer(data)
+
+            bind_group_entries.push({
+                binding: 3,
+                resource: { buffer: this.noise_data },
+            })
+        }
+
         if (algorithm.pos_type !== 'vec2f') {
             this.z_coord = this.engine.createFloatUniform(data.z_coord || 0)
             bind_group_entries.push({
-                binding: 5,
+                binding: 4,
                 resource: { buffer: this.z_coord },
             })
             if (algorithm.pos_type === 'vec4f') {
                 this.w_coord = this.engine.createFloatUniform(data.w_coord || 0)
                 bind_group_entries.push({
-                    binding: 6,
+                    binding: 5,
                     resource: { buffer: this.w_coord },
                 })
             }
@@ -94,11 +93,11 @@ export default class NoiseScene {
             this.warp_strength = this.engine.createFloatUniform(data.warp_strength || 1)
 
             bind_group_entries.push({
-                binding: 7,
+                binding: 6,
                 resource: { buffer: this.n_warp_octaves },
             })
             bind_group_entries.push({
-                binding: 8,
+                binding: 7,
                 resource: { buffer: this.warp_strength },
             })
         }
@@ -211,8 +210,7 @@ export default class NoiseScene {
 
     cleanup() {
         this.engine.cleanup()
-        this.hash_table?.destroy()
-        this.noise_features?.destroy()
+        this.noise_data?.destroy()
         this.n_grid_columns?.destroy()
         this.n_main_octaves?.destroy()
         this.persistence?.destroy()

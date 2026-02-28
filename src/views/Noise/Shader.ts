@@ -38,9 +38,11 @@ function warp2DShader() {
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
 
-            let warp_noise_value = octave_noise(noise_pos, 0, n_warp_octaves, persistence);
+            const warp_channel = main_channel + 1u;
+
+            let warp_noise_value = octave_noise(noise_pos, warp_channel, n_warp_octaves, persistence);
             let final_pos = noise_pos + warp_strength * unit_vector_2d(warp_noise_value);
-            return octave_noise(final_pos, 1, n_main_octaves, persistence);
+            return octave_noise(final_pos, channel, n_main_octaves, persistence);
         }
     `
 }
@@ -53,23 +55,27 @@ function warp3DShader() {
                       n_warp_octaves: u32, n_main_octaves: u32, 
                       persistence: f32) -> f32 {
 
-            let phi_noise = octave_noise(noise_pos, 0, n_warp_octaves, persistence);
-            let theta_noise = octave_noise(noise_pos, 1, n_warp_octaves, persistence);
+            const phi_channel = main_channel + 1u;
+            const theta_channel = main_channel + 2u;
+
+            let phi_noise = octave_noise(noise_pos, phi_channel, n_warp_octaves, persistence);
+            let theta_noise = octave_noise(noise_pos, theta_channel, n_warp_octaves, persistence);
             
             let final_pos = noise_pos + warp_strength * unit_vector_3d(phi_noise, theta_noise);
-            return octave_noise(final_pos, 2, n_main_octaves, persistence);
+            return octave_noise(final_pos, main_channel, n_main_octaves, persistence);
         }
     `
 }
 
 function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_functions = `
+        const main_channel = u32(${Date.now() >> 0});
+
         ${algorithm.createShaderDependencies()}
         
         ${algorithm.createShader({
             name: 'noise',
-            hash_table_size: 256,
-            n_channels: 8,
+            extraBufferName: 'noise_data',
         })}
         ${octaveNoiseShader({
             func_name: 'octave_noise',
@@ -80,7 +86,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_expr = ''
 
     if (transform === 'Rotate') {
-        noise_expr = 'octave_noise(rotate(noise_pos), 0, n_main_octaves, persistence)'
+        noise_expr = 'octave_noise(rotate(noise_pos), main_channel, n_main_octaves, persistence)'
 
         if (algorithm.pos_type === 'vec3f') {
             noise_functions = `
@@ -110,7 +116,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
             n_main_octaves, persistence
         )`
     } else {
-        noise_expr = `octave_noise(noise_pos, 0, n_main_octaves, persistence)`
+        noise_expr = `octave_noise(noise_pos, main_channel, n_main_octaves, persistence)`
     }
     return {
         noise_functions,
@@ -139,6 +145,7 @@ function noisePosCode(algorithm: NoiseAlgorithm) {
 
 export default function createNoiseShader(setup: Setup, color_format: GPUTextureFormat): string {
     const { algorithm, transform } = setup
+    const noise_data = algorithm.extra_data_type ? '' : '//'
     const not_2D = algorithm.pos_type !== 'vec2f' ? '' : '//'
     const only_4D = algorithm.pos_type === 'vec4f' ? '' : '//'
     const only_warp = transform.startsWith('Warp') ? '' : '//'
@@ -149,17 +156,16 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
         ${noiseFeatureShader}
-
-        @group(1) @binding(0) var<storage> hash_table: array<i32>;
-        @group(1) @binding(1) var<storage> noise_features: array<NoiseFeature>;
-        @group(1) @binding(2) var<uniform> n_grid_columns: f32;
-        @group(1) @binding(3) var<uniform> n_main_octaves: u32;
-        @group(1) @binding(4) var<uniform> persistence: f32;
-
-        ${not_2D} @group(1) @binding(5) var<uniform> z_coordinate: f32;
-        ${only_4D} @group(1) @binding(6) var<uniform> w_coordinate: f32;
-        ${only_warp} @group(1) @binding(7) var<uniform> n_warp_octaves: u32;
-        ${only_warp} @group(1) @binding(8) var<uniform> warp_strength: f32;
+        
+        @group(1) @binding(0) var<uniform> n_grid_columns: f32;
+        @group(1) @binding(1) var<uniform> n_main_octaves: u32;
+        @group(1) @binding(2) var<uniform> persistence: f32;
+        
+        ${noise_data} @group(1) @binding(3) var<storage> noise_data: ${algorithm.extra_data_type};
+        ${not_2D} @group(1) @binding(4) var<uniform> z_coordinate: f32;
+        ${only_4D} @group(1) @binding(5) var<uniform> w_coordinate: f32;
+        ${only_warp} @group(1) @binding(6) var<uniform> n_warp_octaves: u32;
+        ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
         
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
 

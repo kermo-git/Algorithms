@@ -2,13 +2,22 @@
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
 import type { Config, NoiseAlgorithm } from '../Types'
-import { cubic_interpolation, pcd2d_1f, pcd3d_1f, pcd4d_1f } from './Common'
+import {
+    cubic_interpolation,
+    scramble_2d,
+    pcd2d_1f,
+    scramble_3d,
+    pcd3d_1f,
+    scramble_4d,
+    pcd4d_1f,
+} from './Common'
 
 export const Cubic2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_2d}
             ${pcd2d_1f}
             ${cubic_interpolation}
         `
@@ -20,23 +29,22 @@ export const Cubic2D: NoiseAlgorithm = {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
                 
-                let x1 = u32(i32(floor_pos.x));
-                let y1 = u32(i32(floor_pos.y));
+                let corner = scramble_2d(vec2i(floor_pos), channel);
 
-                let x0 = x1 - 1;
-                let x2 = x1 + 1;
-                let x3 = x1 + 2;
+                let x0 = corner.x - 1;
+                let x2 = corner.x + 1;
+                let x3 = corner.x + 2;
                 
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
 
                 for (var i = 0u; i < 4u; i++) {
-                    let yi = y1 - 1 + i;
+                    let yi = corner.y - 1 + i;
 
                     interpolated_x[i] = cubic_interpolation(
-                        pcd2d_1f(vec2u(x0, yi), channel),
-                        pcd2d_1f(vec2u(x1, yi), channel),
-                        pcd2d_1f(vec2u(x2, yi), channel),
-                        pcd2d_1f(vec2u(x3, yi), channel),
+                        pcd2d_1f(vec2u(x0, yi)),
+                        pcd2d_1f(vec2u(corner.x, yi)),
+                        pcd2d_1f(vec2u(x2, yi)),
+                        pcd2d_1f(vec2u(x3, yi)),
                         local_pos.x
                     );
                 }
@@ -64,6 +72,7 @@ export const Cubic3D: NoiseAlgorithm = {
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_3d}
             ${pcd3d_1f}
             ${cubic_interpolation}
         `
@@ -75,26 +84,26 @@ export const Cubic3D: NoiseAlgorithm = {
             let floor_pos = floor(pos);
             let local_pos = pos - floor_pos;
 
-            let c = vec3u(vec3i(floor_pos));
+            let corner = scramble_3d(vec3i(floor_pos), channel);
 
-            let x0 = c.x - 1;
-            let x2 = c.x + 1;
-            let x3 = c.x + 2;
+            let x0 = corner.x - 1;
+            let x2 = corner.x + 1;
+            let x3 = corner.x + 2;
 
             var interpolated_y = array<f32, 4>(0, 0, 0, 0);
 
             for (var i = 0u; i < 4u; i++) {
                 var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                let zi = c.z - 1 + i;
+                let zi = corner.z - 1 + i;
                 
                 for (var j = 0u; j < 4u; j++) {
-                    let yj = c.y - 1 + j;
+                    let yj = corner.y - 1 + j;
 
                     interpolated_x[j] = cubic_interpolation(
-                        pcd3d_1f(vec3u(x0, yj, zi), channel),
-                        pcd3d_1f(vec3u(c.x, yj, zi), channel),
-                        pcd3d_1f(vec3u(x2, yj, zi), channel),
-                        pcd3d_1f(vec3u(x3, yj, zi), channel),
+                        pcd3d_1f(vec3u(x0, yj, zi)),
+                        pcd3d_1f(vec3u(corner.x, yj, zi)),
+                        pcd3d_1f(vec3u(x2, yj, zi)),
+                        pcd3d_1f(vec3u(x3, yj, zi)),
                         local_pos.x
                     );
                 }
@@ -131,6 +140,7 @@ export const Cubic4D: NoiseAlgorithm = {
 
     createShaderDependencies: function (): string {
         return `
+            ${scramble_4d}
             ${pcd4d_1f}
             ${cubic_interpolation}
         `
@@ -142,29 +152,30 @@ export const Cubic4D: NoiseAlgorithm = {
                 let floor_pos = floor(global_pos);
                 let local_pos = global_pos - floor_pos;
 
-                let c = vec4u(vec4i(floor_pos));
-                let x0 = c.x - 1;
-                let x2 = c.x + 1;
-                let x3 = c.x + 2;
+                let corner = scramble_4d(vec4i(floor_pos), channel);
+
+                let x0 = corner.x - 1;
+                let x2 = corner.x + 1;
+                let x3 = corner.x + 2;
 
                 var interpolated_z = array<f32, 4>(0, 0, 0, 0);
 
                 for (var i = 0u; i < 4; i++) {
                     var interpolated_y = array<f32, 4>(0, 0, 0, 0);
-                    let wi = c.w - 1 + i;
+                    let wi = corner.w - 1 + i;
 
                     for (var j = 0u; j < 4; j++) {
                         var interpolated_x = array<f32, 4>(0, 0, 0, 0);
-                        let zj = c.z - 1 + j;
+                        let zj = corner.z - 1 + j;
                         
                         for (var k = 0u; k < 4; k++) {
-                            let yk = c.y - 1 + k;
+                            let yk = corner.y - 1 + k;
 
                             interpolated_x[k] = cubic_interpolation(
-                                pcd4d_1f(vec4u(x0, yk, zj, wi), channel),
-                                pcd4d_1f(vec4u(c.x, yk, zj, wi), channel),
-                                pcd4d_1f(vec4u(x2, yk, zj, wi), channel),
-                                pcd4d_1f(vec4u(x3, yk, zj, wi), channel),
+                                pcd4d_1f(vec4u(x0, yk, zj, wi)),
+                                pcd4d_1f(vec4u(corner.x, yk, zj, wi)),
+                                pcd4d_1f(vec4u(x2, yk, zj, wi)),
+                                pcd4d_1f(vec4u(x3, yk, zj, wi)),
                                 local_pos.x
                             );
                         }
