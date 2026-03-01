@@ -20,7 +20,7 @@ export const Simplex2D: NoiseAlgorithm = {
         return generateUnitVectors2D(16)
     },
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_2d}
             ${pcd2d_1u}

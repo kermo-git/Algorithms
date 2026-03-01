@@ -20,7 +20,7 @@ export const Perlin2D: NoiseAlgorithm = {
         return generateUnitVectors2D(16)
     },
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_2d}
             ${pcd2d_1u}
@@ -75,7 +75,7 @@ export const Perlin3D: NoiseAlgorithm = {
         return generateUnitVectors3D(64)
     },
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_3d}
             ${pcd3d_1u}
@@ -148,7 +148,7 @@ export const Perlin4D: NoiseAlgorithm = {
         return generateUnitVectors4D(256)
     },
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_4d}
             ${pcd4d_1u}

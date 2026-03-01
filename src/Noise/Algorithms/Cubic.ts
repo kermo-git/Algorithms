@@ -15,7 +15,7 @@ import {
 export const Cubic2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_2d}
             ${pcd2d_1f}
@@ -70,7 +70,7 @@ export const Cubic2D: NoiseAlgorithm = {
 export const Cubic3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_3d}
             ${pcd3d_1f}
@@ -138,7 +138,7 @@ export const Cubic3D: NoiseAlgorithm = {
 export const Cubic4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
 
-    createShaderDependencies: function (): string {
+    createShaderDependencies() {
         return `
             ${scramble_4d}
             ${pcd4d_1f}
@@ -148,9 +148,9 @@ export const Cubic4D: NoiseAlgorithm = {
 
     createShader({ name }: Config) {
         return /* wgsl */ `
-            fn ${name}(global_pos: vec4f, channel: u32) -> f32 {
-                let floor_pos = floor(global_pos);
-                let local_pos = global_pos - floor_pos;
+            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+                let floor_pos = floor(pos);
+                let local_pos = pos - floor_pos;
 
                 let corner = scramble_4d(vec4i(floor_pos), channel);
 
