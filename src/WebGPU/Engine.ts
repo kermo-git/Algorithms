@@ -94,7 +94,6 @@ export default class Engine {
 
     async compileShader(shader_code: string): Promise<ShaderCompilationResult> {
         const trimmed_code = shader_code.trim()
-        console.log(trimmed_code)
 
         const module = this.device.createShaderModule({
             code: trimmed_code,
