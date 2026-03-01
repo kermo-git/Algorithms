@@ -13,6 +13,13 @@ interface Emits {
     (e: 'canvasReady', canvas: HTMLCanvasElement): void
 }
 const props = defineProps<Props>()
+
+function issue_class() {
+    if (props.issues && props.issues.length > 0) {
+        return 'issues'
+    }
+    return 'props.issues && props.issues.length > 0'
+}
 const canvasRef = useTemplateRef('canvas')
 const emit = defineEmits<Emits>()
 
@@ -46,18 +53,15 @@ function download() {
 </script>
 
 <template>
-    <div class="main-container">
-        <div class="canvas-container">
-            <PanelButton class="save-button" :mdi-path="mdiFloppy" />
+    <div :class="`main-container ${issue_class()}`">
+        <template v-for="(issue, i) in props.issues" :key="i">
+            <p class="issue">{{ issue.message }}</p>
+            <p class="issue">
+                &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{ issue.codeLine }}
+            </p>
+        </template>
+        <div :class="`canvas-container ${issue_class()}`">
             <canvas ref="canvas" />
-        </div>
-        <div v-if="props.issues" class="issue-block">
-            <template v-for="(issue, i) in props.issues" :key="i">
-                <p class="issue">{{ issue.message }}</p>
-                <p class="issue">
-                    &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{ issue.codeLine }}
-                </p>
-            </template>
         </div>
         <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>
@@ -70,9 +74,17 @@ function download() {
     --error-color: rgb(255, 65, 65);
 }
 
+.main-container.issues {
+    background-color: black;
+}
+
 .canvas-container {
     height: 100%;
     overflow-y: scroll;
+}
+
+.canvas-container.issues {
+    display: none;
 }
 
 canvas {
@@ -87,14 +99,11 @@ canvas {
     bottom: 2em;
 }
 
-.issue-block {
-    position: absolute;
-    top: 0;
-    left: 1rem;
-    width: 100%;
+.issue {
     text-align: left;
     font-size: 15pt;
-    font-family: monospace;
     color: var(--error-color);
+    font-family: monospace;
+    margin-left: var(--small-gap);
 }
 </style>

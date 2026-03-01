@@ -121,24 +121,23 @@ export default class TerrainScene {
     async updateStartElevationShader(code: string) {
         this.setup.start_elevation_shader = code
 
-        const start_elevation_shader = await this.engine.compileShader(
-            startElevationShader(this.setup),
-        )
+        const { module, issues } = await this.engine.compileShader(startElevationShader(this.setup))
 
         this.noise_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
                 bindGroupLayouts: [this.noise_layout, this.terrain_layout],
             }),
             compute: {
-                module: start_elevation_shader.module,
+                module: module,
             },
         })
+        return issues
     }
 
     async updateColorShader(code: string) {
         this.setup.color_shader = code
 
-        const flat_display_shader = await this.engine.compileShader(
+        const { module, issues } = await this.engine.compileShader(
             flatDisplayShader(this.setup, this.engine.color_format),
         )
 
@@ -147,9 +146,10 @@ export default class TerrainScene {
                 bindGroupLayouts: [this.noise_layout, this.terrain_layout, this.canvas_layout],
             }),
             compute: {
-                module: flat_display_shader.module,
+                module: module,
             },
         })
+        return issues
     }
 
     draw(encoder: GPUComputePassEncoder) {
