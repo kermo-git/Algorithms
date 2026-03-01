@@ -11,14 +11,14 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
                 },
             },
             {
-                binding: 1, // hash_table
+                binding: 1, // unit_vectors_2D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 2, // noise_features
+                binding: 2, // unit_vectors_3D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',

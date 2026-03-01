@@ -14,16 +14,18 @@ import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
 import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
-import { noiseFeatureShader } from '@/Noise/SeedData'
 import { allFunctions } from '@/Noise/Algorithms/Common'
 
 function noiseFunctionShader(group: number) {
-    function createNoiseFunctions(algorithm: NoiseAlgorithm, name: string) {
+    function createNoiseFunctions(
+        algorithm: NoiseAlgorithm,
+        name: string,
+        extraBufferName?: string,
+    ) {
         return `
             ${algorithm.createShader({
-                name: name,
-                hash_table_size: 256,
-                n_channels: 8,
+                name,
+                extraBufferName,
             })}
 
             ${octaveNoiseShader({
@@ -35,11 +37,9 @@ function noiseFunctionShader(group: number) {
     }
 
     return /* wgsl */ `
-        ${noiseFeatureShader}
-
         @group(${group}) @binding(0) var<uniform> n_grid_columns: f32;
-        @group(${group}) @binding(1) var<storage> hash_table: array<i32>;
-        @group(${group}) @binding(2) var<storage> noise_features: array<NoiseFeature>;
+        @group(${group}) @binding(1) var<storage> unit_vectors_2D: array<vec2f>;
+        @group(${group}) @binding(2) var<storage> unit_vectors_3D: array<vec3f>;
 
         ${unitVector2DShader}
         ${unitVector3DShader}
@@ -52,11 +52,11 @@ function noiseFunctionShader(group: number) {
         ${createNoiseFunctions(Cubic2D, 'cubic_2d')}
         ${createNoiseFunctions(Cubic3D, 'cubic_3d')}
 
-        ${createNoiseFunctions(Perlin2D, 'perlin_2d')}
-        ${createNoiseFunctions(Perlin3D, 'perlin_3d')}
+        ${createNoiseFunctions(Perlin2D, 'perlin_2d', 'unit_vectors_2D')}
+        ${createNoiseFunctions(Perlin3D, 'perlin_3d', 'unit_vectors_3D')}
 
-        ${createNoiseFunctions(Simplex2D, 'simplex_2d')}
-        ${createNoiseFunctions(Simplex3D, 'simplex_3d')}
+        ${createNoiseFunctions(Simplex2D, 'simplex_2d', 'unit_vectors_2D')}
+        ${createNoiseFunctions(Simplex3D, 'simplex_3d', 'unit_vectors_3D')}
 
         ${createNoiseFunctions(Worley2D, 'worley_2d')}
         ${createNoiseFunctions(Worley3D, 'worley_3d')}

@@ -1,5 +1,5 @@
-import { generateUnitVectors2D, generateUnitVectors3D, generateUnitVectors4D } from '../SeedData'
-import { type NoiseAlgorithm, type Config, log2 } from '../Types'
+import { generateUnitVectors2D, generateUnitVectors3D, generateUnitVectors4D } from '../UnitVectors'
+import { type NoiseAlgorithm, type Config } from '../Types'
 import {
     fade_2d,
     fade_3d,
@@ -14,7 +14,7 @@ import {
 
 export const Perlin2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
-    extra_data_type: 'vec2f',
+    extra_data_type: 'array<vec2f>',
 
     generateExtraData() {
         return generateUnitVectors2D(16)
@@ -69,7 +69,7 @@ export const Perlin2D: NoiseAlgorithm = {
 
 export const Perlin3D: NoiseAlgorithm = {
     pos_type: 'vec3f',
-    extra_data_type: 'vec3f',
+    extra_data_type: 'array<vec3f>',
 
     generateExtraData() {
         return generateUnitVectors3D(64)
@@ -94,10 +94,10 @@ export const Perlin3D: NoiseAlgorithm = {
 
             fn ${name}(pos: vec3f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let u0 = global_pos - floor_pos;
+                let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
 
-                let p0 = scramble_3d(vec2i(floor_pos), channel);
+                let p0 = scramble_3d(vec3i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
                 let a = ${influence}(p0, u0);
@@ -142,7 +142,7 @@ export const Perlin3D: NoiseAlgorithm = {
 
 export const Perlin4D: NoiseAlgorithm = {
     pos_type: 'vec4f',
-    extra_data_type: 'vec4f',
+    extra_data_type: 'array<vec4f>',
 
     generateExtraData() {
         return generateUnitVectors4D(256)
@@ -160,14 +160,14 @@ export const Perlin4D: NoiseAlgorithm = {
         const influence = `${name}_influence`
 
         return /* wgsl */ `
-            fn ${influence}(grid_pos: vec3u, local_vec: vec3f) -> f32 {
+            fn ${influence}(grid_pos: vec4u, local_vec: vec4f) -> f32 {
                 let hash = pcd4d_1u(grid_pos) >> 24;
                 return dot(${extraBufferName}[hash], local_vec);
             }
 
             fn ${name}(pos: vec4f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let u0 = global_pos - floor_pos;
+                let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
 
                 let p0 = scramble_4d(vec4i(floor_pos), channel);

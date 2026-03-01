@@ -1,8 +1,8 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
-import { defaultColorPoints } from '@/Noise/SeedData'
-
 import createNoiseShader, { type Setup, type NoiseUniforms } from './Shader'
+
+export const defaultColorPoints = new Float32Array([0, 0, 0, 0, 1, 1, 1, 1])
 
 export default class NoiseScene {
     setup: Setup

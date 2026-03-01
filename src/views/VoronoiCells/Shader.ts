@@ -1,4 +1,3 @@
-import { noiseFeatureShader } from '@/Noise/SeedData'
 import { findGridPosShader, octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
@@ -48,7 +47,7 @@ export function createShader(
     }
 
     return /* wgsl */ `
-        const voronoi_channel = u32(${Date.now() >> 0});
+        const voronoi_channel = bitcast<u32>(i32(${Date.now() >> 0}));
         const noise_channel = voronoi_channel + 1u;
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
@@ -66,8 +65,8 @@ export function createShader(
         ${findGridPosShader}
 
         fn voronoi_point(coords: vec2i) -> vec2f {
-            var h = vec2u(coords) + voronoi_channel * 0x9e3779b9;
-            var h = h * 1664525u + 1013904223u;
+            var h = bitcast<vec2u>(coords) + voronoi_channel * 0x9e3779b9;
+            h = h * 1664525u + 1013904223u;
 
             h.x += h.y * 1664525u;
             h.y += h.x * 1664525u;
@@ -79,6 +78,20 @@ export function createShader(
             h = h ^ (h >> vec2u(16u));
 
             return vec2f(h.xy) * (1.0 / f32(0xFFFFFFFFu));
+        }
+
+        fn find_color(coords: vec2i) -> vec4f {
+            var h = bitcast<vec2u>(coords) + voronoi_channel * 0x9e3779b9;
+
+            h = h * 1664525u + 1013904223u;
+            h.x += h.y * 1664525u;
+            h.y += h.x * 1664525u;
+            h = h ^ (h >> vec2u(16u));
+
+            var x = h.x + h.y * 1664525u;
+            x ^= (x >> 16u);
+            
+            return voronoi_colors[x % arrayLength(&voronoi_colors)];
         }
 
         ${warp_algorithm.createShaderDependencies()}
@@ -135,11 +148,7 @@ export function createShader(
                     }
                 }
             }
-            let cell_m = min_dist_cell & vec2i(255, 255);
-            let hash = hash_table[hash_table[cell_m.x] + cell_m.y];
-            let index = u32(hash) % arrayLength(&voronoi_colors);
-            let color = voronoi_colors[index];
-
+            let color = find_color(min_dist_cell);
             textureStore(texture, texture_pos, color);
         }
     `

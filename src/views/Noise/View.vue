@@ -8,10 +8,7 @@ import RangeInput from '@/components/RangeInput.vue'
 import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
-import { defaultColorPoints } from '@/Noise/SeedData'
-import type { NoiseAlgorithm } from '@/Noise/Types'
-
-import NoiseScene from './Scene'
+import NoiseScene, { defaultColorPoints } from './Scene'
 import type { DomainTransform, NoiseUniforms } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
 import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'

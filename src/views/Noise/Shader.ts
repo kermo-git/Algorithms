@@ -10,7 +10,6 @@ import {
     unitVector3DShader,
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
-import { noiseFeatureShader } from '@/Noise/SeedData'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 
@@ -42,7 +41,7 @@ function warp2DShader() {
 
             let warp_noise_value = octave_noise(noise_pos, warp_channel, n_warp_octaves, persistence);
             let final_pos = noise_pos + warp_strength * unit_vector_2d(warp_noise_value);
-            return octave_noise(final_pos, channel, n_main_octaves, persistence);
+            return octave_noise(final_pos, main_channel, n_main_octaves, persistence);
         }
     `
 }
@@ -69,7 +68,7 @@ function warp3DShader() {
 
 function createNoiseFunctions({ algorithm, transform }: Setup) {
     let noise_functions = `
-        const main_channel = u32(${Date.now() >> 0});
+        const main_channel = bitcast<u32>(i32(${Date.now() >> 0}));
 
         ${algorithm.createShaderDependencies()}
         
@@ -154,8 +153,6 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
 
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-
-        ${noiseFeatureShader}
         
         @group(1) @binding(0) var<uniform> n_grid_columns: f32;
         @group(1) @binding(1) var<uniform> n_main_octaves: u32;

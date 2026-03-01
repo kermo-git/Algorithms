@@ -27,19 +27,19 @@ export const cubic_interpolation = /* wgsl */ `
 
 export const scramble_2d = /* wgsl */ `
     fn scramble_2d(coords: vec2i, seed: u32) -> vec2u {
-        return vec2u(coords) + seed * 0x9e3779b9;
+        return bitcast<vec2u>(coords) + seed * 0x9E3779B9;
     }
 `
 
 export const scramble_3d = /* wgsl */ `
     fn scramble_3d(coords: vec3i, seed: u32) -> vec3u {
-        return vec3u(coords) + seed * 0x9e3779b9;
+        return bitcast<vec3u>(coords) + seed * 0x9E3779B9;
     }
 `
 
 export const scramble_4d = /* wgsl */ `
     fn scramble_4d(coords: vec4i, seed: u32) -> vec4u {
-        return vec4u(coords) + seed * 0x9e3779b9;
+        return bitcast<vec4u>(coords) + seed * 0x9E3779B9;
     }
 `
 

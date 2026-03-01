@@ -9,7 +9,7 @@ import {
     createNoiseLayout,
     createTerrainLayout,
 } from './Layout'
-import { generateHashChannels, generateNoiseFeatures } from '@/Noise/SeedData'
+import { generateUnitVectors2D, generateUnitVectors3D } from '@/Noise/UnitVectors'
 
 export default class TerrainScene {
     setup!: Setup
@@ -26,8 +26,8 @@ export default class TerrainScene {
     noise_layout!: GPUBindGroupLayout
     noise_group!: GPUBindGroup
     n_grid_columns!: GPUBuffer
-    hash_table!: GPUBuffer
-    noise_features!: GPUBuffer
+    unit_vectors_2D!: GPUBuffer
+    unit_vectors_3D!: GPUBuffer
 
     terrain_A!: GPUBuffer
     terrain_B!: GPUBuffer
@@ -58,8 +58,8 @@ export default class TerrainScene {
         await this.updateColorShader(setup.color_shader)
 
         this.n_grid_columns = engine.createFloatUniform(setup.n_grid_cells_x || 16)
-        this.hash_table = engine.createStorageBuffer(generateHashChannels(256, 8))
-        this.noise_features = engine.createStorageBuffer(generateNoiseFeatures(256))
+        this.unit_vectors_2D = engine.createStorageBuffer(generateUnitVectors2D(16))
+        this.unit_vectors_3D = engine.createStorageBuffer(generateUnitVectors3D(64))
 
         this.noise_group = engine.device.createBindGroup({
             layout: this.noise_layout,
@@ -70,11 +70,11 @@ export default class TerrainScene {
                 },
                 {
                     binding: 1,
-                    resource: { buffer: this.hash_table },
+                    resource: { buffer: this.unit_vectors_2D },
                 },
                 {
                     binding: 2,
-                    resource: { buffer: this.noise_features },
+                    resource: { buffer: this.unit_vectors_3D },
                 },
             ],
         })
@@ -205,10 +205,9 @@ export default class TerrainScene {
 
     cleanup() {
         this.engine?.cleanup()
-        this.hash_table?.destroy()
         this.n_grid_columns?.destroy()
-        this.hash_table?.destroy()
-        this.noise_features?.destroy()
+        this.unit_vectors_2D?.destroy()
+        this.unit_vectors_3D?.destroy()
         this.terrain_A?.destroy()
         this.terrain_B?.destroy()
     }

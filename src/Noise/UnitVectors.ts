@@ -61,5 +61,3 @@ export function generateUnitVectors4D(n: number) {
 
     return data
 }
-
-export const defaultColorPoints = new Float32Array([0, 0, 0, 0, 1, 1, 1, 1])
