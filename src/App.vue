@@ -35,7 +35,7 @@ import { RouterLink, RouterView } from 'vue-router'
     --code-comment-color: rgb(255, 158, 46);
     --code-keyword-color: rgb(0, 187, 255);
     --code-function-color: rgb(157, 255, 0);
-    --code-number-color: rgb(72, 255, 212);
+    --code-number-color: rgb(255, 252, 72);
 
     --border: 2pt solid var(--secondary-color);
     --accent-border: 2pt solid var(--accent-color);

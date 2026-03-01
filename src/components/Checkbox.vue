@@ -69,7 +69,6 @@ input[type='checkbox'] {
     appearance: none;
 }
 
-input[type='checkbox']:checked,
 input[type='checkbox']:hover {
     border: var(--accent-border);
 }
