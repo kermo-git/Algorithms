@@ -73,20 +73,20 @@ export default class VoronoiScene {
             },
         ]
 
+        if (warp_algorithm.pos_type === 'vec3f') {
+            this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
+            bind_group_entries.push({
+                binding: 5,
+                resource: { buffer: this.noise_z },
+            })
+        }
+
         if (warp_algorithm.extra_data_type) {
             const data = warp_algorithm.generateExtraData!()
             this.noise_data = this.engine.createStorageBuffer(data)
             bind_group_entries.push({
-                binding: 5,
-                resource: { buffer: this.noise_data },
-            })
-        }
-
-        if (warp_algorithm.pos_type === 'vec3f') {
-            this.noise_z = this.engine.createFloatUniform(data.noise_z || 0)
-            bind_group_entries.push({
                 binding: 6,
-                resource: { buffer: this.noise_z },
+                resource: { buffer: this.noise_data },
             })
         }
 

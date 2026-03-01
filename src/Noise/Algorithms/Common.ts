@@ -178,6 +178,9 @@ export const allFunctions = `
     ${fade_3d}
     ${fade_4d}
     ${cubic_interpolation}
+    ${scramble_2d}
+    ${scramble_3d}
+    ${scramble_4d}
     ${pcd2d_1u}
     ${pcd2d_1f}
     ${pcd2d_2f}
