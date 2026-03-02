@@ -1,25 +1,25 @@
 export interface Example {
     name: string
-    start_elevation_shader: string
+    elevation_shader: string
     color_shader: string
 }
 
 export const examples: Example[] = [
     {
         name: 'Default',
-        start_elevation_shader: /* wgsl */ `const warp_1_channel = 0;
-const warp_2_channel = 1;
-const warp_1_octaves = 2;
-const warp_2_octaves = 4;
-const warp_scale = vec3f(0.9, 0.9, 1);
-const warp_persistence = 0.5;
-const warp_strength = 0.1;
+        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
+    const warp_1_channel = 0;
+    const warp_2_channel = 1;
+    const warp_1_octaves = 2;
+    const warp_2_octaves = 4;
+    const warp_scale = vec3f(0.9, 0.9, 1);
+    const warp_persistence = 0.5;
+    const warp_strength = 0.1;
 
-const noise_channel = 2;
-const noise_octaves = 3;
-const noise_persistence = 0.3;
+    const noise_channel = 2;
+    const noise_octaves = 3;
+    const noise_persistence = 0.3;
 
-fn start_elevation(pos: vec2f) -> f32 {
     let pos_3d = vec3f(pos, 0);
 
     let warp_1 = simplex_3d_octaves(
@@ -45,27 +45,25 @@ fn start_elevation(pos: vec2f) -> f32 {
         noise_persistence
     );
 }`,
-        color_shader: /* wgsl */ `const PI = radians(180);
+        color_shader: /* wgsl */ `fn color(pos: vec3f, 
+         gradient: vec2f) -> vec4f {
+    const PI = radians(180);
 
-const snow = vec4f(1);
-const grass = vec4f(
-    0, 0.7, 0.1, 1
-);
-const stone = vec4f(
-    0.5, 0.5, 0.5, 1
-);
-const up = vec3f(0, 0, 1);
+    const snow = vec4f(1);
+    const grass = vec4f(
+        0, 0.7, 0.1, 1
+    );
+    const stone = vec4f(
+        0.5, 0.5, 0.5, 1
+    );
+    const up = vec3f(0, 0, 1);
 
-const grass_end = 0.58;
-const snow_start = 0.62;
+    const grass_end = 0.58;
+    const snow_start = 0.62;
 
-const level_end = 0.28*PI;
-const steep_start = 0.32*PI;
+    const level_end = 0.28*PI;
+    const steep_start = 0.32*PI;
 
-fn terrain_color(
-    surface_pos: vec3f,
-    gradient: vec2f
-) -> vec4f {
     let normal = normalize(
         vec3f(-gradient.xy, 1)
     );
@@ -76,12 +74,12 @@ fn terrain_color(
 
     var ground_cover = grass;
     
-    if surface_pos.z > snow_start {
+    if pos.z > snow_start {
         ground_cover = snow;
-    } else if surface_pos.z > grass_end {
+    } else if pos.z > grass_end {
         ground_cover = mix(
             grass, snow,
-            (surface_pos.z - grass_end)/(
+            (pos.z - grass_end)/(
              snow_start - grass_end)
         );
     }

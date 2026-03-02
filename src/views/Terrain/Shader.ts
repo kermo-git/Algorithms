@@ -69,7 +69,7 @@ function noiseFunctionShader(group: number) {
 }
 
 export interface Setup {
-    start_elevation_shader: string
+    elevation_shader: string
     color_shader: string
     n_pixels_x: number
     n_pixels_y: number
@@ -87,7 +87,7 @@ export const terrainUnitShader = /* wgsl */ `
     };
 `
 
-export function startElevationShader(setup: Setup): string {
+export function elevationShader(setup: Setup): string {
     return /* wgsl */ `
         ${noiseFunctionShader(NOISE_GROUP)}
 
@@ -95,7 +95,7 @@ export function startElevationShader(setup: Setup): string {
         @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
         @group(${TERRAIN_GROUP}) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
 
-        ${setup.start_elevation_shader}
+        ${setup.elevation_shader}
         const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
@@ -110,7 +110,7 @@ export function startElevationShader(setup: Setup): string {
             let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
             let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
 
-            next_terrain[pixel_index].elevation = start_elevation(noise_pos);
+            next_terrain[pixel_index].elevation = elevation(noise_pos);
         }
     `
 }
@@ -195,8 +195,8 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
             let surface_pos = vec3f(noise_pos, elevation);
             let gradient = get_gradient(pixel_pos);
 
-            let color = terrain_color(surface_pos, gradient);
-            textureStore(texture, pixel_pos, color);
+            let terrain_color = color(surface_pos, gradient);
+            textureStore(texture, pixel_pos, terrain_color);
         }
     `
 }

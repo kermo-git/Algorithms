@@ -1,6 +1,6 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
 
-import { type Setup, startElevationShader, flatDisplayShader } from './Shader'
+import { type Setup, elevationShader, flatDisplayShader } from './Shader'
 import {
     NOISE_GROUP,
     TERRAIN_GROUP,
@@ -54,7 +54,7 @@ export default class TerrainScene {
         this.noise_layout = createNoiseLayout(engine.device)
         this.terrain_layout = createTerrainLayout(engine.device)
 
-        await this.updateStartElevationShader(setup.start_elevation_shader)
+        await this.updateStartElevationShader(setup.elevation_shader)
         await this.updateColorShader(setup.color_shader)
 
         this.n_grid_columns = engine.createFloatUniform(setup.n_grid_cells_x || 16)
@@ -119,9 +119,9 @@ export default class TerrainScene {
     }
 
     async updateStartElevationShader(code: string) {
-        this.setup.start_elevation_shader = code
+        this.setup.elevation_shader = code
 
-        const { module, issues } = await this.engine.compileShader(startElevationShader(this.setup))
+        const { module, issues } = await this.engine.compileShader(elevationShader(this.setup))
 
         this.noise_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
