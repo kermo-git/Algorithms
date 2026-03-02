@@ -60,9 +60,7 @@ function download() {
                 &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{ issue.codeLine }}
             </p>
         </template>
-        <div :class="`canvas-container ${issue_class()}`">
-            <canvas ref="canvas" />
-        </div>
+        <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />
         <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>
 </template>
@@ -78,25 +76,19 @@ function download() {
     background-color: black;
 }
 
-.canvas-container {
-    height: 100%;
-    overflow-y: scroll;
-}
-
-.canvas-container.issues {
-    display: none;
-}
-
-canvas {
+.display-canvas {
     width: 100%;
-    aspect-ratio: 1;
     image-rendering: pixelated;
+}
+
+.display-canvas.issues {
+    display: none;
 }
 
 .save-button {
     position: absolute;
-    right: 2em;
-    bottom: 2em;
+    left: 2rem;
+    top: 2rem;
 }
 
 .issue {

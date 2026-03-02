@@ -30,6 +30,8 @@ export default class VoronoiScene {
     async init(data: UniformData, canvas: HTMLCanvasElement) {
         this.engine = new Engine()
         await this.engine.init(canvas)
+        canvas.width = 1
+        canvas.height = 1
 
         const { device, color_format } = this.engine
         const { warp_algorithm } = this.setup
