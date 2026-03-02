@@ -107,10 +107,10 @@ export function startElevationShader(setup: Setup): string {
             if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
                 return;
             }
-            let grid_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
+            let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
             let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
 
-            next_terrain[pixel_index].elevation = start_elevation(grid_pos);
+            next_terrain[pixel_index].elevation = start_elevation(noise_pos);
         }
     `
 }
@@ -128,6 +128,57 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
         ${setup.color_shader}
 
         const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
+
+        fn flat_index(dims: vec2u, pos: vec2u) -> u32 {
+            return pos.y * dims.x + pos.x;
+        }
+
+        fn terrain_value(pixel_pos: vec2u) -> TerrainUnit {
+            return prev_terrain[flat_index(pixel_dims, pixel_pos)];
+        }
+
+        fn get_gradient(pixel_pos: vec2u) -> vec2f {
+            let current = terrain_value(pixel_pos).elevation;
+            let pixel_size = f32(n_grid_columns) / f32(pixel_dims.x);
+
+            var gradient = vec2f(0);
+            var before = vec2f(current);
+            var after = vec2f(current);
+            var delta_input = vec2f(pixel_size);
+
+            let not_max_edge = pixel_pos < (pixel_dims - 1);
+            let not_min_edge = pixel_pos > vec2u(0);
+
+            if not_min_edge.x {
+                before.x = terrain_value(
+                    vec2u(pixel_pos.x - 1, pixel_pos.y)
+                ).elevation;
+            }
+            if not_max_edge.x {
+                after.x = terrain_value(
+                    vec2u(pixel_pos.x + 1, pixel_pos.y)
+                ).elevation;
+            }
+            if not_min_edge.x && not_max_edge.x {
+                delta_input.x = 2 * pixel_size;
+            }
+
+            if not_min_edge.y {
+                before.y = terrain_value(
+                    vec2u(pixel_pos.x, pixel_pos.y - 1)
+                ).elevation;
+            }
+            if not_max_edge.y {
+                after.y = terrain_value(
+                    vec2u(pixel_pos.x, pixel_pos.y + 1)
+                ).elevation;
+            }
+            if not_min_edge.y && not_max_edge.y {
+                delta_input.y = 2 * pixel_size;
+            }
+
+            return (after - before) / delta_input;
+        }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
@@ -138,11 +189,13 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
             if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
                 return;
             }
-            let grid_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
-            let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
-            let elevation = prev_terrain[pixel_index].elevation;
 
-            let color = terrain_color(vec3f(grid_pos, elevation));
+            let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
+            let elevation = terrain_value(pixel_pos).elevation;
+            let surface_pos = vec3f(noise_pos, elevation);
+            let gradient = get_gradient(pixel_pos);
+
+            let color = terrain_color(surface_pos, gradient);
             textureStore(texture, pixel_pos, color);
         }
     `
