@@ -62,8 +62,8 @@ function download() {
         </template>
         <div :class="`scroll-container ${issue_class()}`">
             <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />
+            <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
         </div>
-        <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
     </div>
 </template>
 

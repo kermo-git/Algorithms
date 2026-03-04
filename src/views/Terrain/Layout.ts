@@ -1,5 +1,3 @@
-export const NOISE_GROUP = 0
-
 export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
@@ -28,8 +26,6 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     })
 }
 
-export const TERRAIN_GROUP = 1
-
 export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
@@ -50,8 +46,6 @@ export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
         ],
     })
 }
-
-export const CANVAS_GROUP = 2
 
 export function createCanvasLayout(device: GPUDevice, color_format: GPUTextureFormat) {
     return device.createBindGroupLayout({

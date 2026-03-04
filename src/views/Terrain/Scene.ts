@@ -1,14 +1,7 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
 
-import { type Setup, elevationShader, flatDisplayShader } from './Shader'
-import {
-    NOISE_GROUP,
-    TERRAIN_GROUP,
-    CANVAS_GROUP,
-    createCanvasLayout,
-    createNoiseLayout,
-    createTerrainLayout,
-} from './Layout'
+import { type Setup, elevationShader, flatDisplayShader, colorShader } from './Shader'
+import { createCanvasLayout, createNoiseLayout, createTerrainLayout } from './Layout'
 import { generateUnitVectors2D, generateUnitVectors3D } from '@/Noise/UnitVectors'
 
 export default class TerrainScene {
@@ -19,8 +12,8 @@ export default class TerrainScene {
     n_workgroups_y!: number
 
     noise_pipeline!: GPUComputePipeline
+    color_pipeline!: GPUComputePipeline
     flat_display_pipeline!: GPUComputePipeline
-    terrain_display_pipeline!: GPUComputePipeline
     erosion_pipeline!: GPUComputePipeline
 
     noise_layout!: GPUBindGroupLayout
@@ -34,7 +27,6 @@ export default class TerrainScene {
     terrain_layout!: GPUBindGroupLayout
     terrain_group_AB!: GPUBindGroup
     terrain_group_BA!: GPUBindGroup
-    current_terrain_group!: GPUBindGroup
 
     canvas_layout!: GPUBindGroupLayout
 
@@ -56,6 +48,7 @@ export default class TerrainScene {
 
         await this.updateStartElevationShader(setup.elevation_shader)
         await this.updateColorShader(setup.color_shader)
+        await this.createFlatDisplayShader()
 
         this.n_grid_columns = engine.createFloatUniform(setup.n_grid_cells_x || 16)
         this.unit_vectors_2D = engine.createStorageBuffer(generateUnitVectors2D(16))
@@ -79,7 +72,7 @@ export default class TerrainScene {
             ],
         })
 
-        const n_bytes = setup.n_pixels_x * setup.n_pixels_y * 48
+        const n_bytes = setup.n_pixels_x * setup.n_pixels_y * 64
         this.terrain_A = this.engine.createStorageBuffer(null, n_bytes)
         this.terrain_B = this.engine.createStorageBuffer(null, n_bytes)
 
@@ -110,7 +103,6 @@ export default class TerrainScene {
                 },
             ],
         })
-        this.current_terrain_group = this.terrain_group_AB
     }
 
     updateNGridColumns(value: number) {
@@ -137,13 +129,11 @@ export default class TerrainScene {
     async updateColorShader(code: string) {
         this.setup.color_shader = code
 
-        const { module, issues } = await this.engine.compileShader(
-            flatDisplayShader(this.setup, this.engine.color_format),
-        )
+        const { module, issues } = await this.engine.compileShader(colorShader(this.setup))
 
-        this.flat_display_pipeline = this.engine.device.createComputePipeline({
+        this.color_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
-                bindGroupLayouts: [this.noise_layout, this.terrain_layout, this.canvas_layout],
+                bindGroupLayouts: [this.noise_layout, this.terrain_layout],
             }),
             compute: {
                 module: module,
@@ -152,20 +142,38 @@ export default class TerrainScene {
         return issues
     }
 
+    async createFlatDisplayShader() {
+        const { module } = await this.engine.compileShader(
+            flatDisplayShader(this.setup, this.engine.color_format),
+        )
+        this.flat_display_pipeline = this.engine.device.createComputePipeline({
+            layout: this.engine.device.createPipelineLayout({
+                bindGroupLayouts: [this.canvas_layout, this.terrain_layout],
+            }),
+            compute: {
+                module: module,
+            },
+        })
+    }
+
     draw(encoder: GPUComputePassEncoder) {
         encoder.dispatchWorkgroups(this.n_workgroups_x, this.n_workgroups_y)
     }
 
-    noisePass(encoder: GPUCommandEncoder, terrain_group: GPUBindGroup) {
+    computePass(
+        encoder: GPUCommandEncoder,
+        pipeline: GPUComputePipeline,
+        terrain_group: GPUBindGroup,
+    ) {
         const pass_encoder = encoder.beginComputePass()
-        pass_encoder.setPipeline(this.noise_pipeline)
-        pass_encoder.setBindGroup(NOISE_GROUP, this.noise_group)
-        pass_encoder.setBindGroup(TERRAIN_GROUP, terrain_group)
+        pass_encoder.setPipeline(pipeline)
+        pass_encoder.setBindGroup(0, this.noise_group)
+        pass_encoder.setBindGroup(1, terrain_group)
         this.draw(pass_encoder)
         pass_encoder.end()
     }
 
-    colorPass(encoder: GPUCommandEncoder, terrain_group: GPUBindGroup) {
+    flatDisplayPass(encoder: GPUCommandEncoder, terrain_group: GPUBindGroup) {
         const texture = this.engine.getTexture()
         const canvas_group = this.engine.device.createBindGroup({
             layout: this.canvas_layout,
@@ -179,9 +187,8 @@ export default class TerrainScene {
 
         const pass_encoder = encoder.beginComputePass()
         pass_encoder.setPipeline(this.flat_display_pipeline)
-        pass_encoder.setBindGroup(NOISE_GROUP, this.noise_group)
-        pass_encoder.setBindGroup(TERRAIN_GROUP, terrain_group)
-        pass_encoder.setBindGroup(CANVAS_GROUP, canvas_group)
+        pass_encoder.setBindGroup(0, canvas_group)
+        pass_encoder.setBindGroup(1, terrain_group)
 
         this.draw(pass_encoder)
         pass_encoder.end()
@@ -190,16 +197,17 @@ export default class TerrainScene {
     renderNoise(): void {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
-        this.noisePass(cmd_encoder, this.terrain_group_AB)
-        this.colorPass(cmd_encoder, this.terrain_group_BA)
+        this.computePass(cmd_encoder, this.noise_pipeline, this.terrain_group_AB)
+        this.computePass(cmd_encoder, this.color_pipeline, this.terrain_group_BA)
+        this.flatDisplayPass(cmd_encoder, this.terrain_group_AB)
         device.queue.submit([cmd_encoder.finish()])
-        this.current_terrain_group = this.terrain_group_BA
     }
 
     renderColor() {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
-        this.colorPass(cmd_encoder, this.current_terrain_group)
+        this.computePass(cmd_encoder, this.color_pipeline, this.terrain_group_BA)
+        this.flatDisplayPass(cmd_encoder, this.terrain_group_AB)
         device.queue.submit([cmd_encoder.finish()])
     }
 

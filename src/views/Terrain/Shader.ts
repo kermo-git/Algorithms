@@ -13,7 +13,6 @@ import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
-import { CANVAS_GROUP, NOISE_GROUP, TERRAIN_GROUP } from './Layout'
 import { allFunctions } from '@/Noise/Algorithms/Common'
 
 function noiseFunctionShader(group: number) {
@@ -80,20 +79,24 @@ export interface Setup {
 export const terrainUnitShader = /* wgsl */ `
     struct TerrainUnit {
         elevation: f32,
+        gradient: vec2f,
+
         water: f32,
         sediment: f32,
+        velocity: vec2f,
         water_outflow_flux: vec4f,
-        velocity: vec2f
+
+        color: vec4f,
     };
 `
 
 export function elevationShader(setup: Setup): string {
     return /* wgsl */ `
-        ${noiseFunctionShader(NOISE_GROUP)}
+        ${noiseFunctionShader(0)}
 
         ${terrainUnitShader}
-        @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
-        @group(${TERRAIN_GROUP}) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
 
         ${setup.elevation_shader}
         const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
@@ -115,30 +118,26 @@ export function elevationShader(setup: Setup): string {
     `
 }
 
-export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat): string {
+export function colorShader(setup: Setup): string {
     return /* wgsl */ `
-        ${noiseFunctionShader(NOISE_GROUP)}
+        ${noiseFunctionShader(0)}
         
         ${terrainUnitShader}
 
-        @group(${TERRAIN_GROUP}) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
-        @group(${TERRAIN_GROUP}) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
-        @group(${CANVAS_GROUP}) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
 
         ${setup.color_shader}
 
         const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
 
-        fn flat_index(dims: vec2u, pos: vec2u) -> u32 {
-            return pos.y * dims.x + pos.x;
+        fn find_index(pos: vec2u) -> u32 {
+            return pos.y * pixel_dims.x + pos.x;
         }
 
-        fn terrain_value(pixel_pos: vec2u) -> TerrainUnit {
-            return prev_terrain[flat_index(pixel_dims, pixel_pos)];
-        }
-
-        fn get_gradient(pixel_pos: vec2u) -> vec2f {
-            let current = terrain_value(pixel_pos).elevation;
+        fn find_gradient(pixel_pos: vec2u) -> vec2f {
+            let pixel_index = find_index(pixel_pos);
+            let current = prev_terrain[pixel_index].elevation;
             let pixel_size = f32(n_grid_columns) / f32(pixel_dims.x);
 
             var gradient = vec2f(0);
@@ -150,28 +149,24 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
             let not_min_edge = pixel_pos > vec2u(0);
 
             if not_min_edge.x {
-                before.x = terrain_value(
-                    vec2u(pixel_pos.x - 1, pixel_pos.y)
-                ).elevation;
+                before.x = prev_terrain[pixel_index - 1].elevation;
             }
             if not_max_edge.x {
-                after.x = terrain_value(
-                    vec2u(pixel_pos.x + 1, pixel_pos.y)
-                ).elevation;
+                after.x = prev_terrain[pixel_index + 1].elevation;
             }
             if not_min_edge.x && not_max_edge.x {
                 delta_input.x = 2 * pixel_size;
             }
 
             if not_min_edge.y {
-                before.y = terrain_value(
-                    vec2u(pixel_pos.x, pixel_pos.y - 1)
-                ).elevation;
+                before.y = prev_terrain[
+                    pixel_index - pixel_dims.x
+                ].elevation;
             }
             if not_max_edge.y {
-                after.y = terrain_value(
-                    vec2u(pixel_pos.x, pixel_pos.y + 1)
-                ).elevation;
+                after.y = prev_terrain[
+                    pixel_index + pixel_dims.x
+                ].elevation;
             }
             if not_min_edge.y && not_max_edge.y {
                 delta_input.y = 2 * pixel_size;
@@ -191,12 +186,48 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
             }
 
             let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
-            let elevation = terrain_value(pixel_pos).elevation;
+            let pixel_index = find_index(pixel_pos);
+            let elevation = prev_terrain[pixel_index].elevation;
             let surface_pos = vec3f(noise_pos, elevation);
-            let gradient = get_gradient(pixel_pos);
-
+            let gradient = find_gradient(pixel_pos);
             let terrain_color = color(surface_pos, gradient);
-            textureStore(texture, pixel_pos, terrain_color);
+
+            next_terrain[pixel_index].elevation = prev_terrain[pixel_index].elevation;
+            next_terrain[pixel_index].gradient = gradient;
+
+            next_terrain[pixel_index].water = prev_terrain[pixel_index].water;
+            next_terrain[pixel_index].sediment = prev_terrain[pixel_index].sediment;
+            next_terrain[pixel_index].velocity = prev_terrain[pixel_index].velocity;
+
+            next_terrain[pixel_index].water_outflow_flux = prev_terrain[pixel_index].water_outflow_flux;
+            next_terrain[pixel_index].color = terrain_color;
+        }
+    `
+}
+
+export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat): string {
+    return /* wgsl */ `
+        ${terrainUnitShader}
+
+        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+
+        const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
+        
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+        fn main(
+            @builtin(global_invocation_id) gid: vec3u
+        ) {
+            let pixel_pos = gid.xy;
+
+            if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
+                return;
+            }
+
+            let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
+            let color = prev_terrain[pixel_index].color;
+            textureStore(texture, pixel_pos, color);
         }
     `
 }
