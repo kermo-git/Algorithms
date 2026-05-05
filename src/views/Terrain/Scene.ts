@@ -32,11 +32,11 @@ export default class TerrainScene {
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         this.setup = setup
-        canvas.width = setup.n_pixels_x
-        canvas.height = setup.n_pixels_y
+        canvas.width = setup.terrain_res_x
+        canvas.height = setup.terrain_res_y
 
-        this.n_workgroups_x = Math.ceil(this.setup.n_pixels_x / WG_DIM)
-        this.n_workgroups_y = Math.ceil(this.setup.n_pixels_y / WG_DIM)
+        this.n_workgroups_x = Math.ceil(this.setup.terrain_res_x / WG_DIM)
+        this.n_workgroups_y = Math.ceil(this.setup.terrain_res_y / WG_DIM)
 
         const engine = new Engine()
         this.engine = engine
@@ -72,7 +72,7 @@ export default class TerrainScene {
             ],
         })
 
-        const n_bytes = setup.n_pixels_x * setup.n_pixels_y * 64
+        const n_bytes = setup.terrain_res_x * setup.terrain_res_y * 64
         this.terrain_A = this.engine.createStorageBuffer(null, n_bytes)
         this.terrain_B = this.engine.createStorageBuffer(null, n_bytes)
 

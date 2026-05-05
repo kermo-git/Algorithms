@@ -70,8 +70,8 @@ function noiseFunctionShader(group: number) {
 export interface Setup {
     elevation_shader: string
     color_shader: string
-    n_pixels_x: number
-    n_pixels_y: number
+    terrain_res_x: number
+    terrain_res_y: number
     n_grid_cells_x: number
     n_grid_cells_y: number
 }
@@ -95,11 +95,11 @@ export function elevationShader(setup: Setup): string {
         ${noiseFunctionShader(0)}
 
         ${terrainUnitShader}
-        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
         ${setup.elevation_shader}
-        const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
+        const terrain_res = vec2u(${setup.terrain_res_x}, ${setup.terrain_res_y});
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
@@ -107,13 +107,13 @@ export function elevationShader(setup: Setup): string {
         ) {
             let pixel_pos = gid.xy;
 
-            if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
+            if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
                 return;
             }
-            let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
-            let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
+            let noise_pos = find_grid_pos(pixel_pos, terrain_res, n_grid_columns);
+            let pixel_index = pixel_pos.y * terrain_res.x + pixel_pos.x;
 
-            next_terrain[pixel_index].elevation = elevation(noise_pos);
+            write_terrain[pixel_index].elevation = elevation(noise_pos);
         }
     `
 }
@@ -124,48 +124,48 @@ export function colorShader(setup: Setup): string {
         
         ${terrainUnitShader}
 
-        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
         ${setup.color_shader}
 
-        const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
+        const terrain_res = vec2u(${setup.terrain_res_x}, ${setup.terrain_res_y});
 
         fn find_index(pos: vec2u) -> u32 {
-            return pos.y * pixel_dims.x + pos.x;
+            return pos.y * terrain_res.x + pos.x;
         }
 
         fn find_gradient(pixel_pos: vec2u) -> vec2f {
             let pixel_index = find_index(pixel_pos);
-            let current = prev_terrain[pixel_index].elevation;
-            let pixel_size = f32(n_grid_columns) / f32(pixel_dims.x);
+            let current = read_terrain[pixel_index].elevation;
+            let pixel_size = f32(n_grid_columns) / f32(terrain_res.x);
 
             var gradient = vec2f(0);
             var before = vec2f(current);
             var after = vec2f(current);
             var delta_input = vec2f(pixel_size);
 
-            let not_max_edge = pixel_pos < (pixel_dims - 1);
+            let not_max_edge = pixel_pos < (terrain_res - 1);
             let not_min_edge = pixel_pos > vec2u(0);
 
             if not_min_edge.x {
-                before.x = prev_terrain[pixel_index - 1].elevation;
+                before.x = read_terrain[pixel_index - 1].elevation;
             }
             if not_max_edge.x {
-                after.x = prev_terrain[pixel_index + 1].elevation;
+                after.x = read_terrain[pixel_index + 1].elevation;
             }
             if not_min_edge.x && not_max_edge.x {
                 delta_input.x = 2 * pixel_size;
             }
 
             if not_min_edge.y {
-                before.y = prev_terrain[
-                    pixel_index - pixel_dims.x
+                before.y = read_terrain[
+                    pixel_index - terrain_res.x
                 ].elevation;
             }
             if not_max_edge.y {
-                after.y = prev_terrain[
-                    pixel_index + pixel_dims.x
+                after.y = read_terrain[
+                    pixel_index + terrain_res.x
                 ].elevation;
             }
             if not_min_edge.y && not_max_edge.y {
@@ -181,26 +181,26 @@ export function colorShader(setup: Setup): string {
         ) {
             let pixel_pos = gid.xy;
 
-            if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
+            if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
                 return;
             }
 
-            let noise_pos = find_grid_pos(pixel_pos, pixel_dims, n_grid_columns);
+            let noise_pos = find_grid_pos(pixel_pos, terrain_res, n_grid_columns);
             let pixel_index = find_index(pixel_pos);
-            let elevation = prev_terrain[pixel_index].elevation;
+            let elevation = read_terrain[pixel_index].elevation;
             let surface_pos = vec3f(noise_pos, elevation);
             let gradient = find_gradient(pixel_pos);
             let terrain_color = color(surface_pos, gradient);
 
-            next_terrain[pixel_index].elevation = prev_terrain[pixel_index].elevation;
-            next_terrain[pixel_index].gradient = gradient;
+            write_terrain[pixel_index].elevation = read_terrain[pixel_index].elevation;
+            write_terrain[pixel_index].gradient = gradient;
 
-            next_terrain[pixel_index].water = prev_terrain[pixel_index].water;
-            next_terrain[pixel_index].sediment = prev_terrain[pixel_index].sediment;
-            next_terrain[pixel_index].velocity = prev_terrain[pixel_index].velocity;
+            write_terrain[pixel_index].water = read_terrain[pixel_index].water;
+            write_terrain[pixel_index].sediment = read_terrain[pixel_index].sediment;
+            write_terrain[pixel_index].velocity = read_terrain[pixel_index].velocity;
 
-            next_terrain[pixel_index].water_outflow_flux = prev_terrain[pixel_index].water_outflow_flux;
-            next_terrain[pixel_index].color = terrain_color;
+            write_terrain[pixel_index].water_outflow_flux = read_terrain[pixel_index].water_outflow_flux;
+            write_terrain[pixel_index].color = terrain_color;
         }
     `
 }
@@ -210,10 +210,10 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
         ${terrainUnitShader}
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
-        @group(1) @binding(0) var<storage, read> prev_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> next_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
-        const pixel_dims = vec2u(${setup.n_pixels_x}, ${setup.n_pixels_y});
+        const terrain_res = vec2u(${setup.terrain_res_x}, ${setup.terrain_res_y});
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
@@ -221,12 +221,53 @@ export function flatDisplayShader(setup: Setup, color_format: GPUTextureFormat):
         ) {
             let pixel_pos = gid.xy;
 
-            if (pixel_pos.x >= pixel_dims.x || pixel_pos.y >= pixel_dims.y) {
+            if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
                 return;
             }
 
-            let pixel_index = pixel_pos.y * pixel_dims.x + pixel_pos.x;
-            let color = prev_terrain[pixel_index].color;
+            let pixel_index = pixel_pos.y * terrain_res.x + pixel_pos.x;
+            let color = read_terrain[pixel_index].color;
+            textureStore(texture, pixel_pos, color);
+        }
+    `
+}
+
+export function rayMarchingShader(setup: Setup, color_format: GPUTextureFormat): string {
+    return /* wgsl */ `
+        ${terrainUnitShader}
+
+        struct Camera {
+            pos: vec3f,
+            rotation: vec2f,
+            FOV: f32
+        }
+
+        struct RayMarchingConfig {
+            max_dist: f32,
+            step_scale: f32,
+            hit_threshold: f32
+        }
+
+        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
+        @group(2) @binding(0) var<uniform> camera: Camera;
+        @group(2) @binding(1) var<uniform> config: RayMarchingConfig;
+
+        const terrain_res = vec2u(${setup.terrain_res_x}, ${setup.terrain_res_y});
+        
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+        fn main(
+            @builtin(global_invocation_id) gid: vec3u
+        ) {
+            let pixel_pos = gid.xy;
+
+            if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
+                return;
+            }
+
+            let pixel_index = pixel_pos.y * terrain_res.x + pixel_pos.x;
+            let color = read_terrain[pixel_index].color;
             textureStore(texture, pixel_pos, color);
         }
     `

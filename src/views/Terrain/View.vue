@@ -38,8 +38,8 @@ async function initScene() {
             {
                 elevation_shader: elevation_shader.value,
                 color_shader: color_shader.value,
-                n_pixels_x: 1024,
-                n_pixels_y: 1024,
+                terrain_res_x: 1024,
+                terrain_res_y: 1024,
                 n_grid_cells_x: n_grid_columns.value,
                 n_grid_cells_y: n_grid_columns.value,
             },
@@ -52,6 +52,7 @@ async function initScene() {
 async function runTerrainElevation() {
     if (elevation_editor.value) {
         const code = elevation_editor.value.getCode()
+        elevation_shader.value = code
         shader_issues.value = await scene.value.updateStartElevationShader(code)
         scene.value.renderNoise()
     }
@@ -64,6 +65,7 @@ function changeNColumns(n: number) {
 async function runColor() {
     if (color_editor.value) {
         const code = color_editor.value.getCode()
+        color_shader.value = code
         shader_issues.value = await scene.value.updateColorShader(code)
         scene.value.renderColor()
     }
@@ -81,7 +83,7 @@ async function runColor() {
             <NumberSingleSelect
                 text="Grid columns"
                 name="n_grid_columns"
-                :options="[4, 8, 16]"
+                :options="[2, 4, 8, 16]"
                 v-model="n_grid_columns"
                 @update:model-value="changeNColumns"
             />
