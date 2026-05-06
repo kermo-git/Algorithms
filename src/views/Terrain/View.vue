@@ -19,7 +19,7 @@ const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
-const n_grid_columns = ref(4)
+const grid_size = ref(4)
 const elevation_editor = useTemplateRef('elevation_editor')
 const elevation_shader = ref(examples[0].elevation_shader)
 
@@ -40,8 +40,8 @@ async function initScene() {
                 color_shader: color_shader.value,
                 terrain_res_x: 1024,
                 terrain_res_y: 1024,
-                n_grid_cells_x: n_grid_columns.value,
-                n_grid_cells_y: n_grid_columns.value,
+                n_grid_cells_x: grid_size.value,
+                n_grid_cells_y: grid_size.value,
             },
             canvasRef.value,
         )
@@ -58,8 +58,8 @@ async function runTerrainElevation() {
     }
 }
 
-function changeNColumns(n: number) {
-    scene.value.updateNGridColumns(n)
+function changeGridSize(n: number) {
+    scene.value.updateGridDimensions(n, n)
 }
 
 async function runColor() {
@@ -84,8 +84,8 @@ async function runColor() {
                 text="Grid columns"
                 name="n_grid_columns"
                 :options="[2, 4, 8, 16]"
-                v-model="n_grid_columns"
-                @update:model-value="changeNColumns"
+                v-model="grid_size"
+                @update:model-value="changeGridSize"
             />
         </VBox>
         <template v-if="active_tab == 'Elevation'">

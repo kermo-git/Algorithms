@@ -18,7 +18,7 @@ export default class TerrainScene {
 
     noise_layout!: GPUBindGroupLayout
     noise_group!: GPUBindGroup
-    n_grid_columns!: GPUBuffer
+    grid_dims!: GPUBuffer
     unit_vectors_2D!: GPUBuffer
     unit_vectors_3D!: GPUBuffer
 
@@ -50,7 +50,9 @@ export default class TerrainScene {
         await this.updateColorShader(setup.color_shader)
         await this.createFlatDisplayShader()
 
-        this.n_grid_columns = engine.createFloatUniform(setup.n_grid_cells_x || 16)
+        this.grid_dims = engine.createUniformBuffer(
+            new Float32Array([setup.n_grid_cells_x, setup.n_grid_cells_y]),
+        )
         this.unit_vectors_2D = engine.createStorageBuffer(generateUnitVectors2D(16))
         this.unit_vectors_3D = engine.createStorageBuffer(generateUnitVectors3D(64))
 
@@ -59,7 +61,7 @@ export default class TerrainScene {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.n_grid_columns },
+                    resource: { buffer: this.grid_dims },
                 },
                 {
                     binding: 1,
@@ -105,8 +107,8 @@ export default class TerrainScene {
         })
     }
 
-    updateNGridColumns(value: number) {
-        this.engine.updateFloatUniform(this.n_grid_columns, value)
+    updateGridDimensions(n_columns: number, n_rows: number) {
+        this.engine.updateBuffer(this.grid_dims, new Float32Array([n_columns, n_rows]))
         this.renderNoise()
     }
 
@@ -213,7 +215,7 @@ export default class TerrainScene {
 
     cleanup() {
         this.engine?.cleanup()
-        this.n_grid_columns?.destroy()
+        this.grid_dims?.destroy()
         this.unit_vectors_2D?.destroy()
         this.unit_vectors_3D?.destroy()
         this.terrain_A?.destroy()

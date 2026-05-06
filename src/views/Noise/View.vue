@@ -33,6 +33,7 @@ const active_tab = ref('Configuration')
 function getNoiseParams(): NoiseUniforms {
     return {
         n_grid_columns: grid_size.value,
+        n_grid_rows: grid_size.value,
         n_main_octaves: n_main_octaves.value,
         persistence: persistence.value,
         z_coord: z_coord.value,
@@ -117,7 +118,7 @@ async function initScene(canvas: HTMLCanvasElement) {
 }
 
 watch(grid_size, (new_grid_size) => {
-    scene.value.updateNGridColumns(new_grid_size)
+    scene.value.updateGridDimensions(new_grid_size, new_grid_size)
 })
 
 watch(n_main_octaves, (new_n_octaves) => {

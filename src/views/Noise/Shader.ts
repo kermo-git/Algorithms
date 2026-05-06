@@ -1,11 +1,9 @@
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
 import {
     interpolateColorShader,
-    findGridPosShader,
     rotate3DShader,
     rotate4DShader,
     octaveNoiseShader,
-    randVec,
     unitVector2DShader,
     unitVector3DShader,
 } from '@/Noise/ShaderUtils'
@@ -20,6 +18,7 @@ export interface Setup {
 
 export interface NoiseUniforms {
     n_grid_columns?: number
+    n_grid_rows?: number
     n_main_octaves?: number
     persistence?: number
     z_coord?: number
@@ -127,16 +126,16 @@ function noisePosCode(algorithm: NoiseAlgorithm) {
     switch (algorithm.pos_type) {
         case 'vec2f':
             return /* wgsl */ `
-                let noise_pos = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+                let noise_pos = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
             `
         case 'vec3f':
             return /* wgsl */ `
-                let noise_pos_2D = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+                let noise_pos_2D = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
                 let noise_pos = vec3f(noise_pos_2D, z_coordinate);
             `
         case 'vec4f':
             return /* wgsl */ `
-                let noise_pos_2D = find_grid_pos(texture_pos, texture_dims, n_grid_columns);
+                let noise_pos_2D = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
                 let noise_pos = vec4f(noise_pos_2D, z_coordinate, w_coordinate);
             `
     }
@@ -154,7 +153,7 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
     return /* wgsl */ `
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
-        @group(1) @binding(0) var<uniform> n_grid_columns: f32;
+        @group(1) @binding(0) var<uniform> grid_dims: vec2f;
         @group(1) @binding(1) var<uniform> n_main_octaves: u32;
         @group(1) @binding(2) var<uniform> persistence: f32;
         
@@ -165,8 +164,6 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
         ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
         
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
-
-        ${findGridPosShader}
 
         ${noise_functions}
 

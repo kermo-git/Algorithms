@@ -11,15 +11,6 @@ export function randVec(vec_type: VecType, min = 10, max = 30) {
     return `vec3f(${randStrFloat(min, max)}, ${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
 }
 
-export const findGridPosShader = /* wgsl */ `
-    fn find_grid_pos(texture_pos: vec2u, texture_dims: vec2u, n_grid_columns: f32) -> vec2f {
-        let texture_dims_f = vec2f(texture_dims);
-        let n_grid_rows = n_grid_columns * texture_dims_f.y / texture_dims_f.x;
-        let grid_dims = vec2f(n_grid_columns, n_grid_rows);
-        return grid_dims * vec2f(texture_pos) / texture_dims_f;
-    }
-`
-
 // https://iquilezles.org/articles/fbm/
 
 export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTransformNames) {

@@ -1,6 +1,5 @@
 import { WG_DIM } from '@/WebGPU/Engine'
 import {
-    findGridPosShader,
     rotate3DShader,
     octaveNoiseShader,
     unitVector2DShader,
@@ -36,7 +35,7 @@ function noiseFunctionShader(group: number) {
     }
 
     return /* wgsl */ `
-        @group(${group}) @binding(0) var<uniform> n_grid_columns: f32;
+        @group(${group}) @binding(0) var<uniform> grid_dims: vec2f;
         @group(${group}) @binding(1) var<storage> unit_vectors_2D: array<vec2f>;
         @group(${group}) @binding(2) var<storage> unit_vectors_3D: array<vec3f>;
 
@@ -62,8 +61,6 @@ function noiseFunctionShader(group: number) {
 
         ${createNoiseFunctions(Worley2nd2D, 'worley_2nd_2d')}
         ${createNoiseFunctions(Worley2nd3D, 'worley_2nd_3d')}
-
-        ${findGridPosShader}
     `
 }
 
@@ -110,7 +107,7 @@ export function elevationShader(setup: Setup): string {
             if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
                 return;
             }
-            let noise_pos = find_grid_pos(pixel_pos, terrain_res, n_grid_columns);
+            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_res);
             let pixel_index = pixel_pos.y * terrain_res.x + pixel_pos.x;
 
             write_terrain[pixel_index].elevation = elevation(noise_pos);
@@ -138,7 +135,7 @@ export function colorShader(setup: Setup): string {
         fn find_gradient(pixel_pos: vec2u) -> vec2f {
             let pixel_index = find_index(pixel_pos);
             let current = read_terrain[pixel_index].elevation;
-            let pixel_size = f32(n_grid_columns) / f32(terrain_res.x);
+            let pixel_size = grid_dims.x / f32(terrain_res.x);
 
             var gradient = vec2f(0);
             var before = vec2f(current);
@@ -185,7 +182,7 @@ export function colorShader(setup: Setup): string {
                 return;
             }
 
-            let noise_pos = find_grid_pos(pixel_pos, terrain_res, n_grid_columns);
+            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_res);
             let pixel_index = find_index(pixel_pos);
             let elevation = read_terrain[pixel_index].elevation;
             let surface_pos = vec3f(noise_pos, elevation);
@@ -242,17 +239,33 @@ export function rayMarchingShader(setup: Setup, color_format: GPUTextureFormat):
             FOV: f32
         }
 
-        struct RayMarchingConfig {
-            max_dist: f32,
-            step_scale: f32,
-            hit_threshold: f32
+        fn find_camera_ray(texture_dims: vec2u, pixel_pos: vec2u, camera: Camera) -> vec3f {
+            // TODO
+            return vec3f(0);
         }
+
+        struct RayHit {
+            hit: bool;
+            pos: vec3f;
+        }
+
+        fn find_box_rayhit(box_dims: vec3f, ray_origin: vec3f; ray_direction: vec3f) -> RayHit {
+            var rayhit: RayHit;
+            // TODO
+            return rayhit;
+        }
+        
+        fn find_terrain_rayhit(ray_origin: vec3f; ray_direction: vec3f) -> RayHit {
+
+        }
+
+        const STEP_SCALE = 1.0;
+        const HIT_THRESHOLD = 0.005;
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
         @group(2) @binding(0) var<uniform> camera: Camera;
-        @group(2) @binding(1) var<uniform> config: RayMarchingConfig;
 
         const terrain_res = vec2u(${setup.terrain_res_x}, ${setup.terrain_res_y});
         
@@ -261,13 +274,13 @@ export function rayMarchingShader(setup: Setup, color_format: GPUTextureFormat):
             @builtin(global_invocation_id) gid: vec3u
         ) {
             let pixel_pos = gid.xy;
+            let texture_dims = textureDimensions(texture);
 
-            if (pixel_pos.x >= terrain_res.x || pixel_pos.y >= terrain_res.y) {
+            if (pixel_pos.x >= texture_dims.x || pixel_pos.y >= texture_dims.y) {
                 return;
             }
 
-            let pixel_index = pixel_pos.y * terrain_res.x + pixel_pos.x;
-            let color = read_terrain[pixel_index].color;
+            let color = vec4f(0, 1, 1, 1); // TODO
             textureStore(texture, pixel_pos, color);
         }
     `

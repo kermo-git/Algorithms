@@ -1,4 +1,4 @@
-import { findGridPosShader, octaveNoiseShader } from '@/Noise/ShaderUtils'
+import { octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
 
@@ -12,6 +12,7 @@ export interface Setup {
 
 export interface UniformData {
     voronoi_n_columns?: number
+    voronoi_n_rows?: number
     voronoi_colors?: FloatArray
     noise_scale?: number
     noise_warp_strength?: number
@@ -52,7 +53,7 @@ export function createShader(
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
         
-        @group(1) @binding(0) var<uniform> voronoi_n_columns: f32;
+        @group(1) @binding(0) var<uniform> voronoi_grid_dims: vec2f;
         @group(1) @binding(1) var<uniform> noise_scale: f32;
         @group(1) @binding(2) var<uniform> noise_n_octaves: u32;
         @group(1) @binding(3) var<uniform> noise_persistence: f32;
@@ -61,8 +62,6 @@ export function createShader(
         ${noise_data} @group(1) @binding(6) var<storage> noise_data: ${warp_algorithm.extra_data_type};
 
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
-        
-        ${findGridPosShader}
 
         fn voronoi_point(coords: vec2i) -> vec2f {
             var h = bitcast<vec2u>(coords) + voronoi_channel * 0x9e3779b9;
@@ -125,8 +124,9 @@ export function createShader(
             if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
                 return;
             }
-            let unwarped_voronoi_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns);
-            let noise_pos = find_grid_pos(texture_pos, texture_dims, voronoi_n_columns * noise_scale);
+            let normalized_texture_pos = vec2f(texture_pos) / vec2f(texture_dims);
+            let unwarped_voronoi_pos = voronoi_grid_dims * normalized_texture_pos;
+            let noise_pos = unwarped_voronoi_pos * noise_scale;
             let voronoi_pos = warp_pos(unwarped_voronoi_pos, ${pos_expr});
 
             let grid_pos = vec2i(floor(voronoi_pos));

@@ -15,7 +15,7 @@ export default class NoiseScene {
     pipeline!: GPUComputePipeline
 
     noise_data!: GPUBuffer
-    n_grid_columns!: GPUBuffer
+    grid_dims!: GPUBuffer
     n_main_octaves!: GPUBuffer
     persistence!: GPUBuffer
     z_coord!: GPUBuffer
@@ -47,14 +47,16 @@ export default class NoiseScene {
                 module: module,
             },
         })
-        this.n_grid_columns = this.engine.createFloatUniform(data.n_grid_columns || 16)
+        this.grid_dims = this.engine.createUniformBuffer(
+            new Float32Array([data.n_grid_columns || 16, data.n_grid_rows || 16]),
+        )
         this.n_main_octaves = this.engine.createIntUniform(data.n_main_octaves || 1)
         this.persistence = this.engine.createFloatUniform(data.persistence || 0.5)
 
         const bind_group_entries = [
             {
                 binding: 0,
-                resource: { buffer: this.n_grid_columns },
+                resource: { buffer: this.grid_dims },
             },
             {
                 binding: 1,
@@ -153,8 +155,8 @@ export default class NoiseScene {
         this.engine.endPass(encoder)
     }
 
-    updateNGridColumns(value: number) {
-        this.engine.updateFloatUniform(this.n_grid_columns, value)
+    updateGridDimensions(n_columns: number, n_rows: number) {
+        this.engine.updateBuffer(this.grid_dims, new Float32Array([n_columns, n_rows]))
         this.render()
     }
 
@@ -213,7 +215,7 @@ export default class NoiseScene {
     cleanup() {
         this.engine.cleanup()
         this.noise_data?.destroy()
-        this.n_grid_columns?.destroy()
+        this.grid_dims?.destroy()
         this.n_main_octaves?.destroy()
         this.persistence?.destroy()
         this.z_coord?.destroy()

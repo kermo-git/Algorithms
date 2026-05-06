@@ -12,7 +12,7 @@ export default class VoronoiScene {
     engine!: Engine
     pipeline!: GPUComputePipeline
 
-    voronoi_n_columns!: GPUBuffer
+    voronoi_grid_dims!: GPUBuffer
     voronoi_color_grid!: GPUBuffer
     voronoi_colors!: GPUBuffer
     n_colors: number = 0
@@ -46,7 +46,9 @@ export default class VoronoiScene {
                 module: module,
             },
         })
-        this.voronoi_n_columns = this.engine.createFloatUniform(data.voronoi_n_columns || 16)
+        this.voronoi_grid_dims = this.engine.createUniformBuffer(
+            new Float32Array([data.voronoi_n_columns || 16, data.voronoi_n_rows || 16]),
+        )
         this.noise_scale = this.engine.createFloatUniform(data.noise_scale || 1)
         this.noise_n_octaves = this.engine.createIntUniform(data.noise_n_octaves || 1)
         this.noise_persistence = this.engine.createFloatUniform(data.noise_persistence || 0.5)
@@ -55,7 +57,7 @@ export default class VoronoiScene {
         const bind_group_entries: GPUBindGroupEntry[] = [
             {
                 binding: 0,
-                resource: { buffer: this.voronoi_n_columns },
+                resource: { buffer: this.voronoi_grid_dims },
             },
             {
                 binding: 1,
@@ -140,8 +142,8 @@ export default class VoronoiScene {
         this.engine.endPass(encoder)
     }
 
-    updateVoronoiNColumns(value: number) {
-        this.engine.updateFloatUniform(this.voronoi_n_columns, value)
+    updateVoronoiGridDimensions(n_columns: number, n_rows: number) {
+        this.engine.updateBuffer(this.voronoi_grid_dims, new Float32Array([n_columns, n_rows]))
         this.render()
     }
 
@@ -201,7 +203,7 @@ export default class VoronoiScene {
     cleanup() {
         this.engine.cleanup()
 
-        this.voronoi_n_columns?.destroy()
+        this.voronoi_grid_dims?.destroy()
         this.voronoi_color_grid?.destroy()
         this.voronoi_colors?.destroy()
 

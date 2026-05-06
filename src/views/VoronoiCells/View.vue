@@ -22,7 +22,7 @@ const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const voronoi_colors = ref(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB'])
-const voronoi_n_columns = ref(16)
+const voronoi_grid_size = ref(16)
 
 const noise_algorithm = ref<string>('Simplex')
 const noise_dimension = ref<'2D' | '3D'>('2D')
@@ -46,7 +46,8 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     const init_params: UniformData = {
-        voronoi_n_columns: voronoi_n_columns.value,
+        voronoi_n_columns: voronoi_grid_size.value,
+        voronoi_n_rows: voronoi_grid_size.value,
         voronoi_colors: shaderColorArray(voronoi_colors.value),
         noise_scale: noise_scale.value,
         noise_warp_strength: noise_warp_strength.value,
@@ -86,8 +87,8 @@ watch(
     },
 )
 
-watch(voronoi_n_columns, (new_grid_size) => {
-    scene.value.updateVoronoiNColumns(new_grid_size)
+watch(voronoi_grid_size, (new_grid_size) => {
+    scene.value.updateVoronoiGridDimensions(new_grid_size, new_grid_size)
 })
 
 watch(voronoi_colors, (new_colors) => {
@@ -133,7 +134,7 @@ onBeforeUnmount(() => {
                     text="Grid size"
                     name="n_grid_columns"
                     :options="[4, 8, 16, 32, 64]"
-                    v-model="voronoi_n_columns"
+                    v-model="voronoi_grid_size"
                 />
                 <TextSingleSelect
                     text="Distance measure"
