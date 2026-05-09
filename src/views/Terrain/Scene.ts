@@ -1,7 +1,12 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
 
-import { type Setup, elevationShader, flatDisplayShader, colorShader } from './Shader'
-import { createCanvasLayout, createNoiseLayout, createTerrainLayout } from './Layout'
+import { type Setup, noiseShader, display2DShader, colorShader, display3DShader } from './Shader'
+import {
+    createNoiseLayout,
+    createTerrainLayout,
+    createUniformsLayout,
+    createCanvasLayout,
+} from './Layout'
 import { generateUnitVectors2D, generateUnitVectors3D } from '@/Noise/UnitVectors'
 
 export default class TerrainScene {
@@ -12,13 +17,14 @@ export default class TerrainScene {
     n_workgroups_y!: number
 
     noise_pipeline!: GPUComputePipeline
-    color_pipeline!: GPUComputePipeline
-    flat_display_pipeline!: GPUComputePipeline
     erosion_pipeline!: GPUComputePipeline
+    color_pipeline!: GPUComputePipeline
+    display_2D_pipeline!: GPUComputePipeline
+    display_3D_pipeline!: GPUComputePipeline
+    selected_display_pipeline!: GPUComputePipeline
 
     noise_layout!: GPUBindGroupLayout
     noise_group!: GPUBindGroup
-    grid_dims!: GPUBuffer
     unit_vectors_2D!: GPUBuffer
     unit_vectors_3D!: GPUBuffer
 
@@ -28,31 +34,35 @@ export default class TerrainScene {
     terrain_group_AB!: GPUBindGroup
     terrain_group_BA!: GPUBindGroup
 
+    uniforms_layout!: GPUBindGroupLayout
+    uniforms_group!: GPUBindGroup
+    uniforms!: GPUBuffer
+
     canvas_layout!: GPUBindGroupLayout
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         this.setup = setup
-        canvas.width = setup.terrain_res_x
-        canvas.height = setup.terrain_res_y
+        canvas.width = setup.terrain_dims[0]
+        canvas.height = setup.terrain_dims[1]
 
-        this.n_workgroups_x = Math.ceil(this.setup.terrain_res_x / WG_DIM)
-        this.n_workgroups_y = Math.ceil(this.setup.terrain_res_y / WG_DIM)
+        this.n_workgroups_x = Math.ceil(this.setup.terrain_dims[0] / WG_DIM)
+        this.n_workgroups_y = Math.ceil(this.setup.terrain_dims[1] / WG_DIM)
 
         const engine = new Engine()
         this.engine = engine
         await engine.init(canvas)
 
-        this.canvas_layout = createCanvasLayout(engine.device, engine.color_format)
         this.noise_layout = createNoiseLayout(engine.device)
         this.terrain_layout = createTerrainLayout(engine.device)
+        this.uniforms_layout = createUniformsLayout(engine.device)
+        this.canvas_layout = createCanvasLayout(engine.device, engine.color_format)
 
-        await this.updateStartElevationShader(setup.elevation_shader)
-        await this.updateColorShader(setup.color_shader)
-        await this.createFlatDisplayShader()
+        await this.createNoiseShader()
+        await this.createColorShader()
+        await this.createDisplay2DShader()
+        await this.createDisplay3DShader()
+        this.selected_display_pipeline = this.display_2D_pipeline
 
-        this.grid_dims = engine.createUniformBuffer(
-            new Float32Array([setup.n_grid_cells_x, setup.n_grid_cells_y]),
-        )
         this.unit_vectors_2D = engine.createStorageBuffer(generateUnitVectors2D(16))
         this.unit_vectors_3D = engine.createStorageBuffer(generateUnitVectors3D(64))
 
@@ -61,20 +71,16 @@ export default class TerrainScene {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.grid_dims },
-                },
-                {
-                    binding: 1,
                     resource: { buffer: this.unit_vectors_2D },
                 },
                 {
-                    binding: 2,
+                    binding: 1,
                     resource: { buffer: this.unit_vectors_3D },
                 },
             ],
         })
 
-        const n_bytes = setup.terrain_res_x * setup.terrain_res_y * 64
+        const n_bytes = setup.terrain_dims[0] * setup.terrain_dims[1] * 64
         this.terrain_A = this.engine.createStorageBuffer(null, n_bytes)
         this.terrain_B = this.engine.createStorageBuffer(null, n_bytes)
 
@@ -105,17 +111,24 @@ export default class TerrainScene {
                 },
             ],
         })
+
+        this.uniforms = engine.createUniformBuffer(
+            new Float32Array([...setup.camera_pos, 0, ...setup.camera_rotation]),
+        )
+        this.uniforms_group = engine.device.createBindGroup({
+            layout: createUniformsLayout(engine.device),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.uniforms },
+                },
+            ],
+        })
+        this.renderNoise(this.selected_display_pipeline)
     }
 
-    updateGridDimensions(n_columns: number, n_rows: number) {
-        this.engine.updateBuffer(this.grid_dims, new Float32Array([n_columns, n_rows]))
-        this.renderNoise()
-    }
-
-    async updateStartElevationShader(code: string) {
-        this.setup.elevation_shader = code
-
-        const { module, issues } = await this.engine.compileShader(elevationShader(this.setup))
+    private async createNoiseShader() {
+        const { module, issues } = await this.engine.compileShader(noiseShader(this.setup))
 
         this.noise_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
@@ -128,9 +141,7 @@ export default class TerrainScene {
         return issues
     }
 
-    async updateColorShader(code: string) {
-        this.setup.color_shader = code
-
+    private async createColorShader() {
         const { module, issues } = await this.engine.compileShader(colorShader(this.setup))
 
         this.color_pipeline = this.engine.device.createComputePipeline({
@@ -144,13 +155,13 @@ export default class TerrainScene {
         return issues
     }
 
-    async createFlatDisplayShader() {
+    private async createDisplay2DShader() {
         const { module } = await this.engine.compileShader(
-            flatDisplayShader(this.setup, this.engine.color_format),
+            display2DShader(this.setup, this.engine.color_format),
         )
-        this.flat_display_pipeline = this.engine.device.createComputePipeline({
+        this.display_2D_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
-                bindGroupLayouts: [this.canvas_layout, this.terrain_layout],
+                bindGroupLayouts: [this.canvas_layout, this.terrain_layout, this.uniforms_layout],
             }),
             compute: {
                 module: module,
@@ -158,11 +169,25 @@ export default class TerrainScene {
         })
     }
 
-    draw(encoder: GPUComputePassEncoder) {
+    private async createDisplay3DShader() {
+        const { module } = await this.engine.compileShader(
+            display3DShader(this.setup, this.engine.color_format),
+        )
+        this.display_3D_pipeline = this.engine.device.createComputePipeline({
+            layout: this.engine.device.createPipelineLayout({
+                bindGroupLayouts: [this.canvas_layout, this.terrain_layout, this.uniforms_layout],
+            }),
+            compute: {
+                module: module,
+            },
+        })
+    }
+
+    private draw(encoder: GPUComputePassEncoder) {
         encoder.dispatchWorkgroups(this.n_workgroups_x, this.n_workgroups_y)
     }
 
-    computePass(
+    private computePass(
         encoder: GPUCommandEncoder,
         pipeline: GPUComputePipeline,
         terrain_group: GPUBindGroup,
@@ -175,7 +200,11 @@ export default class TerrainScene {
         pass_encoder.end()
     }
 
-    flatDisplayPass(encoder: GPUCommandEncoder, terrain_group: GPUBindGroup) {
+    private displayPass(
+        encoder: GPUCommandEncoder,
+        terrain_group: GPUBindGroup,
+        display_pipeline: GPUComputePipeline,
+    ) {
         const texture = this.engine.getTexture()
         const canvas_group = this.engine.device.createBindGroup({
             layout: this.canvas_layout,
@@ -188,34 +217,81 @@ export default class TerrainScene {
         })
 
         const pass_encoder = encoder.beginComputePass()
-        pass_encoder.setPipeline(this.flat_display_pipeline)
+        pass_encoder.setPipeline(display_pipeline)
         pass_encoder.setBindGroup(0, canvas_group)
         pass_encoder.setBindGroup(1, terrain_group)
+        pass_encoder.setBindGroup(2, this.uniforms_group)
 
         this.draw(pass_encoder)
         pass_encoder.end()
     }
 
-    renderNoise(): void {
+    private renderNoise(display_pipeline: GPUComputePipeline): void {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
         this.computePass(cmd_encoder, this.noise_pipeline, this.terrain_group_AB)
         this.computePass(cmd_encoder, this.color_pipeline, this.terrain_group_BA)
-        this.flatDisplayPass(cmd_encoder, this.terrain_group_AB)
+        this.displayPass(cmd_encoder, this.terrain_group_AB, display_pipeline)
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    renderColor() {
+    private renderColor(display_pipeline: GPUComputePipeline) {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
         this.computePass(cmd_encoder, this.color_pipeline, this.terrain_group_BA)
-        this.flatDisplayPass(cmd_encoder, this.terrain_group_AB)
+        this.displayPass(cmd_encoder, this.terrain_group_AB, display_pipeline)
         device.queue.submit([cmd_encoder.finish()])
+    }
+
+    setDisplay2D() {
+        const device = this.engine.device
+        const cmd_encoder = device.createCommandEncoder()
+        this.displayPass(cmd_encoder, this.terrain_group_AB, this.display_2D_pipeline)
+        device.queue.submit([cmd_encoder.finish()])
+
+        this.selected_display_pipeline = this.display_2D_pipeline
+    }
+
+    moveCamera(camera_pos: number[], camera_rotation: number[]) {
+        this.setup.camera_pos = camera_pos
+        this.setup.camera_rotation = camera_rotation
+
+        this.engine.updateBuffer(
+            this.uniforms,
+            new Float32Array([...this.setup.camera_pos, 0, ...this.setup.camera_rotation]),
+        )
+
+        const device = this.engine.device
+        const cmd_encoder = device.createCommandEncoder()
+        this.displayPass(cmd_encoder, this.terrain_group_AB, this.display_3D_pipeline)
+        device.queue.submit([cmd_encoder.finish()])
+
+        this.selected_display_pipeline = this.display_3D_pipeline
+    }
+
+    async updateNoiseShader(code: string) {
+        this.setup.noise_shader = code
+
+        const issues = await this.createNoiseShader()
+        if (issues.length > 0) {
+            this.renderNoise(this.selected_display_pipeline)
+        }
+        return issues
+    }
+
+    async updateColorShader(code: string) {
+        this.setup.color_shader = code
+
+        const issues = await this.createColorShader()
+        if (issues.length > 0) {
+            this.renderColor(this.selected_display_pipeline)
+        }
+        return issues
     }
 
     cleanup() {
         this.engine?.cleanup()
-        this.grid_dims?.destroy()
+        this.uniforms?.destroy()
         this.unit_vectors_2D?.destroy()
         this.unit_vectors_3D?.destroy()
         this.terrain_A?.destroy()

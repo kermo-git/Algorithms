@@ -2,21 +2,14 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
             {
-                binding: 0, // n_grid_columns
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: 'uniform',
-                },
-            },
-            {
-                binding: 1, // unit_vectors_2D
+                binding: 0, // unit_vectors_2D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
                 },
             },
             {
-                binding: 2, // unit_vectors_3D
+                binding: 1, // unit_vectors_3D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'read-only-storage',
@@ -41,6 +34,20 @@ export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'storage',
+                },
+            },
+        ],
+    })
+}
+
+export function createUniformsLayout(device: GPUDevice) {
+    return device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0, // struct: grid_dims, camera_FOV, camera_pos, camera_rotation
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: {
+                    type: 'uniform',
                 },
             },
         ],

@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import { mdiPlay } from '@mdi/js'
-import { ref, shallowRef, useTemplateRef } from 'vue'
+import { computed, ref, shallowRef, useTemplateRef, watch } from 'vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
 import CodeEditor from '@/components/CodeEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import VBox from '@/components/VBox.vue'
 import PanelButton from '@/components/PanelButton.vue'
-import HBox from '@/components/HBox.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 
 import { examples } from './Examples'
 import TerrainScene from './Scene'
+import {
+    DEG_TO_RAD,
+    rotateX,
+    rotateY,
+    translate,
+    to_webGPU_3x3,
+    combine,
+    transform,
+} from '@/WebGPU/Geometry'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
@@ -20,46 +28,62 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
 const grid_size = ref(4)
-const elevation_editor = useTemplateRef('elevation_editor')
-const elevation_shader = ref(examples[0].elevation_shader)
+const noise_editor = useTemplateRef('elevation_editor')
+const noise_shader = ref(examples[0].elevation_shader)
 
 const color_editor = useTemplateRef('color_editor')
 const color_shader = ref(examples[0].color_shader)
 
-async function canvasReady(canvas: HTMLCanvasElement) {
-    canvasRef.value = canvas
-    await initScene()
-}
+const terrain_distance = ref(4)
+const terrain_deg_x = ref(30)
+const terrain_deg_y = ref(0)
 
-async function initScene() {
+const camera_setup = computed(() => {
+    const rad_x = terrain_deg_x.value * DEG_TO_RAD
+    const rad_y = terrain_deg_y.value * DEG_TO_RAD
+
+    const rotate = combine(rotateY(-rad_y), rotateX(-rad_x))
+    const move = translate(0, -terrain_distance.value, 0)
+    const move_rotate = combine(move, rotate)
+
+    return {
+        pos: transform([0, 0, 0], move_rotate),
+        rotation: to_webGPU_3x3(rotate),
+    }
+})
+
+async function initScene(grid_size: number) {
     if (canvasRef.value) {
         scene.value.cleanup()
         await scene.value.init(
             {
-                elevation_shader: elevation_shader.value,
+                noise_shader: noise_shader.value,
                 color_shader: color_shader.value,
-                terrain_res_x: 1024,
-                terrain_res_y: 1024,
-                n_grid_cells_x: grid_size.value,
-                n_grid_cells_y: grid_size.value,
+                terrain_dims: [1024, 1024],
+                grid_dims: [grid_size, grid_size],
+                camera_pos: camera_setup.value.pos,
+                camera_rotation: camera_setup.value.rotation,
             },
             canvasRef.value,
         )
-        scene.value.renderNoise()
     }
 }
 
-async function runTerrainElevation() {
-    if (elevation_editor.value) {
-        const code = elevation_editor.value.getCode()
-        elevation_shader.value = code
-        shader_issues.value = await scene.value.updateStartElevationShader(code)
-        scene.value.renderNoise()
-    }
+async function canvasReady(canvas: HTMLCanvasElement) {
+    canvasRef.value = canvas
+    await initScene(grid_size.value)
 }
 
-function changeGridSize(n: number) {
-    scene.value.updateGridDimensions(n, n)
+watch(grid_size, (new_grid_size) => {
+    initScene(new_grid_size)
+})
+
+async function runNoise() {
+    if (noise_editor.value) {
+        const code = noise_editor.value.getCode()
+        noise_shader.value = code
+        shader_issues.value = await scene.value.updateNoiseShader(code)
+    }
 }
 
 async function runColor() {
@@ -67,7 +91,6 @@ async function runColor() {
         const code = color_editor.value.getCode()
         color_shader.value = code
         shader_issues.value = await scene.value.updateColorShader(code)
-        scene.value.renderColor()
     }
 }
 </script>
@@ -85,22 +108,12 @@ async function runColor() {
                 name="n_grid_columns"
                 :options="[2, 4, 8, 16]"
                 v-model="grid_size"
-                @update:model-value="changeGridSize"
             />
         </VBox>
         <template v-if="active_tab == 'Elevation'">
             <div class="editor-container">
-                <PanelButton
-                    class="run-button"
-                    text="Run"
-                    :mdi-path="mdiPlay"
-                    @click="runTerrainElevation"
-                />
-                <CodeEditor
-                    class="terrain-editor"
-                    ref="elevation_editor"
-                    :code="elevation_shader"
-                />
+                <PanelButton class="run-button" text="Run" :mdi-path="mdiPlay" @click="runNoise" />
+                <CodeEditor class="terrain-editor" ref="elevation_editor" :code="noise_shader" />
             </div>
         </template>
         <template v-else-if="active_tab == 'Color'">
