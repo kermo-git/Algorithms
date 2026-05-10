@@ -226,7 +226,7 @@ export default class TerrainScene {
         pass_encoder.end()
     }
 
-    private renderNoise(display_pipeline: GPUComputePipeline): void {
+    private renderNoise(display_pipeline: GPUComputePipeline) {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
         this.computePass(cmd_encoder, this.noise_pipeline, this.terrain_group_AB)
@@ -273,7 +273,7 @@ export default class TerrainScene {
         this.setup.noise_shader = code
 
         const issues = await this.createNoiseShader()
-        if (issues.length > 0) {
+        if (issues.length === 0) {
             this.renderNoise(this.selected_display_pipeline)
         }
         return issues
@@ -283,7 +283,7 @@ export default class TerrainScene {
         this.setup.color_shader = code
 
         const issues = await this.createColorShader()
-        if (issues.length > 0) {
+        if (issues.length === 0) {
             this.renderColor(this.selected_display_pipeline)
         }
         return issues

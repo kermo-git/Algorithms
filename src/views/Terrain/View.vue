@@ -74,8 +74,8 @@ async function canvasReady(canvas: HTMLCanvasElement) {
     await initScene(grid_size.value)
 }
 
-watch(grid_size, (new_grid_size) => {
-    initScene(new_grid_size)
+watch(grid_size, async (new_grid_size) => {
+    await initScene(new_grid_size)
 })
 
 async function runNoise() {
