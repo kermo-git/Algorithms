@@ -11,7 +11,7 @@ import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 
 import { examples } from './Examples'
 import TerrainScene from './Scene'
-import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
+import { DEG_TO_RAD, rotateX, rotateY, rotateZ, translate } from '@/WebGPU/Geometry'
 import RangeInput from '@/components/RangeInput.vue'
 
 const active_tab = ref('Elevation')
@@ -29,29 +29,28 @@ const color_shader = ref(examples[0].color_shader)
 
 const terrain_distance = ref(4)
 const terrain_deg_x = ref(30)
-const terrain_deg_y = ref(0)
+const terrain_deg_z = ref(30)
 
-const light_deg_X = ref(45)
-const light_deg_Y = ref(45)
-const ambient_intensity = ref(0.1)
+const light_deg_X = ref(20)
+const light_deg_Z = ref(0)
+const ambient_intensity = ref(0.3)
 
 const light_dir = computed(() => {
     const rad_x = light_deg_X.value * DEG_TO_RAD
-    const rad_y = light_deg_Y.value * DEG_TO_RAD
+    const rad_z = light_deg_Z.value * DEG_TO_RAD
 
-    return rotateY(rad_y).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
+    return rotateZ(rad_z).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
 })
 
 const camera = computed(() => {
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
-    const rad_y = terrain_deg_y.value * DEG_TO_RAD
+    const rad_z = terrain_deg_z.value * DEG_TO_RAD
 
-    const rotate = rotateX(-rad_x).matmul(rotateY(-rad_y))
+    const rotate = rotateX(-rad_x).matmul(rotateZ(-rad_z))
     const move = translate(0, -terrain_distance.value, 0)
-    const move_rotate = rotate.matmul(move)
 
     return {
-        pos: move_rotate.matmul_vec([0, 0, 0]),
+        pos: rotate.matmul(move).matmul_vec([0, 0, 0]),
         rotation: rotate,
     }
 })
@@ -142,10 +141,10 @@ async function runColor() {
                 <RangeInput v-model="ambient_intensity" :min="0" :max="1" :step="0.1" />
 
                 <p>Light angle around X-axis: {{ light_deg_X }}</p>
-                <RangeInput v-model="light_deg_X" :min="0" :max="180" :step="1" />
+                <RangeInput v-model="light_deg_X" :min="-90" :max="90" :step="1" />
 
-                <p>Light angle around Y-axis: {{ light_deg_Y }}</p>
-                <RangeInput v-model="light_deg_Y" :min="0" :max="360" :step="1" />
+                <p>Light angle around Z-axis: {{ light_deg_Z }}</p>
+                <RangeInput v-model="light_deg_Z" :min="0" :max="360" :step="1" />
             </VBox>
         </template>
     </SidePanelCanvas>

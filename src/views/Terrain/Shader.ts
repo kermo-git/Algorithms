@@ -228,13 +228,12 @@ export function display2DShader(setup: Setup, color_format: GPUTextureFormat): s
         ${lightStruct}
         ${cameraStruct}
 
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
         @group(2) @binding(0) var<uniform> light: Light;
-        @group(2) @binding(1) var<uniform> camera: Camera;
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
         
@@ -256,7 +255,9 @@ export function display2DShader(setup: Setup, color_format: GPUTextureFormat): s
             let light_level = dot(normal, light.dir);
 
             let color = a * pixel.color + (1 - a) * pixel.color * light_level;
-            textureStore(texture, pixel_pos, color);
+
+            let canvas_pos = vec2u(pixel_pos.x, terrain_dims.y - 1 - pixel_pos.y);
+            textureStore(canvas, canvas_pos, color);
         }
     `
 }
@@ -267,7 +268,7 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
         ${lightStruct}
         ${cameraStruct}
 
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
@@ -309,14 +310,14 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
             @builtin(global_invocation_id) gid: vec3u
         ) {
             let pixel_pos = gid.xy;
-            let texture_dims = textureDimensions(texture);
+            let canvas_dims = textureDimensions(canvas);
 
-            if (pixel_pos.x >= texture_dims.x || pixel_pos.y >= texture_dims.y) {
+            if (pixel_pos.x >= canvas_dims.x || pixel_pos.y >= canvas_dims.y) {
                 return;
             }
 
             var color = vec4f(0, 0, 0, 1);
-            let camera_ray = camera.rotation * find_camera_ray(texture_dims, pixel_pos);
+            let camera_ray = camera.rotation * find_camera_ray(canvas_dims, pixel_pos);
 
             let box_rayhit = find_box_rayhit(
                 vec3f(grid_dims, 1), 
@@ -330,7 +331,7 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
                 }
             }
 
-            textureStore(texture, pixel_pos, color);
+            textureStore(canvas, pixel_pos, color);
         }
     `
 }
