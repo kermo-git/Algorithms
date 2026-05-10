@@ -1,4 +1,5 @@
 import { WG_DIM } from '@/WebGPU/Engine'
+import type { Mat4x4 } from '@/WebGPU/Geometry'
 import {
     rotate3DShader,
     octaveNoiseShader,
@@ -68,8 +69,10 @@ export interface Setup {
     color_shader: string
     terrain_dims: number[]
     grid_dims: number[]
+    light_dir: number[]
+    ambient_intensity: number
     camera_pos: number[]
-    camera_rotation: number[]
+    camera_rotation: Mat4x4
 }
 
 const terrainStruct = /* wgsl */ `
@@ -86,10 +89,17 @@ const terrainStruct = /* wgsl */ `
     };
 `
 
-const uniformStruct = /* wgsl */ `
-    struct Uniforms {
-        camera_pos: vec3f,
-        camera_rotation: mat3x3f,
+const lightStruct = /* wgsl */ `
+    struct Light {
+        dir: vec3f,
+        ambient_intensity: f32,
+    }
+`
+
+const cameraStruct = /* wgsl */ `
+    struct Camera {
+        pos: vec3f,
+        rotation: mat3x3f,
     }
 `
 
@@ -215,14 +225,16 @@ export function colorShader(setup: Setup): string {
 export function display2DShader(setup: Setup, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
-        ${uniformStruct}
+        ${lightStruct}
+        ${cameraStruct}
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
-        @group(2) @binding(0) var<uniform> uniforms: Uniforms;
+        @group(2) @binding(0) var<uniform> light: Light;
+        @group(2) @binding(1) var<uniform> camera: Camera;
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
         
@@ -237,7 +249,13 @@ export function display2DShader(setup: Setup, color_format: GPUTextureFormat): s
             }
 
             let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
-            let color = read_terrain[pixel_index].color;
+            let pixel = read_terrain[pixel_index];
+
+            let a = light.ambient_intensity;
+            let normal = normalize(vec3f(-pixel.gradient.xy, 1));
+            let light_level = dot(normal, light.dir);
+
+            let color = a * pixel.color + (1 - a) * pixel.color * light_level;
             textureStore(texture, pixel_pos, color);
         }
     `
@@ -246,14 +264,16 @@ export function display2DShader(setup: Setup, color_format: GPUTextureFormat): s
 export function display3DShader(setup: Setup, color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
-        ${uniformStruct}
+        ${lightStruct}
+        ${cameraStruct}
 
         @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
 
-        @group(2) @binding(0) var<uniform> uniforms: Uniforms;
+        @group(2) @binding(0) var<uniform> light: Light;
+        @group(2) @binding(1) var<uniform> camera: Camera;
 
         const STEP_SCALE = 1.0;
         const HIT_THRESHOLD = 0.005;
@@ -261,7 +281,7 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
 
         fn find_camera_ray(texture_dims: vec2u, pixel_pos: vec2u) -> vec3f {
             // TODO
-            return uniforms.camera_rotation * vec3f(0);
+            return camera.rotation * vec3f(0);
         }
 
         struct RayHit {
@@ -296,11 +316,11 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
             }
 
             var color = vec4f(0, 0, 0, 1);
-            let camera_ray = uniforms.camera_rotation * find_camera_ray(texture_dims, pixel_pos);
+            let camera_ray = camera.rotation * find_camera_ray(texture_dims, pixel_pos);
 
             let box_rayhit = find_box_rayhit(
                 vec3f(grid_dims, 1), 
-                uniforms.camera_pos, 
+                camera.pos, 
                 camera_ray
             );
             if box_rayhit.hit {

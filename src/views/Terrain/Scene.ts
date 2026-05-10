@@ -8,6 +8,7 @@ import {
     createCanvasLayout,
 } from './Layout'
 import { generateUnitVectors2D, generateUnitVectors3D } from '@/Noise/UnitVectors'
+import type { Mat4x4 } from '@/WebGPU/Geometry'
 
 export default class TerrainScene {
     setup!: Setup
@@ -36,7 +37,8 @@ export default class TerrainScene {
 
     uniforms_layout!: GPUBindGroupLayout
     uniforms_group!: GPUBindGroup
-    uniforms!: GPUBuffer
+    light!: GPUBuffer
+    camera!: GPUBuffer
 
     canvas_layout!: GPUBindGroupLayout
 
@@ -112,15 +114,26 @@ export default class TerrainScene {
             ],
         })
 
-        this.uniforms = engine.createUniformBuffer(
-            new Float32Array([...setup.camera_pos, 0, ...setup.camera_rotation]),
+        this.light = engine.createUniformBuffer(
+            new Float32Array([...setup.light_dir, setup.ambient_intensity]),
+        )
+        this.camera = engine.createUniformBuffer(
+            new Float32Array([
+                ...setup.camera_pos,
+                0,
+                ...setup.camera_rotation.toWebGPU_rotation_mat3x3(),
+            ]),
         )
         this.uniforms_group = engine.device.createBindGroup({
             layout: createUniformsLayout(engine.device),
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.uniforms },
+                    resource: { buffer: this.light },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.camera },
                 },
             ],
         })
@@ -243,30 +256,47 @@ export default class TerrainScene {
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    setDisplay2D() {
+    private renderDisplay(display_pipeline: GPUComputePipeline) {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
-        this.displayPass(cmd_encoder, this.terrain_group_AB, this.display_2D_pipeline)
+        this.displayPass(cmd_encoder, this.terrain_group_AB, display_pipeline)
         device.queue.submit([cmd_encoder.finish()])
+    }
 
+    setDisplay2D() {
+        this.renderDisplay(this.display_2D_pipeline)
         this.selected_display_pipeline = this.display_2D_pipeline
     }
 
-    moveCamera(camera_pos: number[], camera_rotation: number[]) {
-        this.setup.camera_pos = camera_pos
-        this.setup.camera_rotation = camera_rotation
+    setDisplay3D() {
+        this.renderDisplay(this.display_3D_pipeline)
+        this.selected_display_pipeline = this.display_3D_pipeline
+    }
+
+    setLight(dir: number[], ambient_intensity: number) {
+        this.setup.light_dir = dir
+        this.setup.ambient_intensity = ambient_intensity
 
         this.engine.updateBuffer(
-            this.uniforms,
-            new Float32Array([...this.setup.camera_pos, 0, ...this.setup.camera_rotation]),
+            this.light,
+            new Float32Array([...this.setup.light_dir, this.setup.ambient_intensity]),
         )
+        this.renderDisplay(this.selected_display_pipeline)
+    }
 
-        const device = this.engine.device
-        const cmd_encoder = device.createCommandEncoder()
-        this.displayPass(cmd_encoder, this.terrain_group_AB, this.display_3D_pipeline)
-        device.queue.submit([cmd_encoder.finish()])
+    setCamera(pos: number[], rotation: Mat4x4) {
+        this.setup.camera_pos = pos
+        this.setup.camera_rotation = rotation
 
-        this.selected_display_pipeline = this.display_3D_pipeline
+        this.engine.updateBuffer(
+            this.camera,
+            new Float32Array([
+                ...this.setup.camera_pos,
+                0,
+                ...this.setup.camera_rotation.toWebGPU_rotation_mat3x3(),
+            ]),
+        )
+        this.renderDisplay(this.selected_display_pipeline)
     }
 
     async updateNoiseShader(code: string) {
@@ -291,7 +321,7 @@ export default class TerrainScene {
 
     cleanup() {
         this.engine?.cleanup()
-        this.uniforms?.destroy()
+        this.light?.destroy()
         this.unit_vectors_2D?.destroy()
         this.unit_vectors_3D?.destroy()
         this.terrain_A?.destroy()

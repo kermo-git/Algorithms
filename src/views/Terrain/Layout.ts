@@ -44,7 +44,14 @@ export function createUniformsLayout(device: GPUDevice) {
     return device.createBindGroupLayout({
         entries: [
             {
-                binding: 0, // struct: grid_dims, camera_FOV, camera_pos, camera_rotation
+                binding: 0, // struct Light: ambient_intensity, dir
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: {
+                    type: 'uniform',
+                },
+            },
+            {
+                binding: 1, // struct Camera: pos, rotation
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
                     type: 'uniform',

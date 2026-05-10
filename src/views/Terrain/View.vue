@@ -11,15 +11,8 @@ import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 
 import { examples } from './Examples'
 import TerrainScene from './Scene'
-import {
-    DEG_TO_RAD,
-    rotateX,
-    rotateY,
-    translate,
-    to_webGPU_3x3,
-    combine,
-    transform,
-} from '@/WebGPU/Geometry'
+import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
+import RangeInput from '@/components/RangeInput.vue'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
@@ -38,17 +31,28 @@ const terrain_distance = ref(4)
 const terrain_deg_x = ref(30)
 const terrain_deg_y = ref(0)
 
-const camera_setup = computed(() => {
+const light_deg_X = ref(45)
+const light_deg_Y = ref(45)
+const ambient_intensity = ref(0.1)
+
+const light_dir = computed(() => {
+    const rad_x = light_deg_X.value * DEG_TO_RAD
+    const rad_y = light_deg_Y.value * DEG_TO_RAD
+
+    return rotateY(rad_y).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
+})
+
+const camera = computed(() => {
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
     const rad_y = terrain_deg_y.value * DEG_TO_RAD
 
-    const rotate = combine(rotateY(-rad_y), rotateX(-rad_x))
+    const rotate = rotateX(-rad_x).matmul(rotateY(-rad_y))
     const move = translate(0, -terrain_distance.value, 0)
-    const move_rotate = combine(move, rotate)
+    const move_rotate = rotate.matmul(move)
 
     return {
-        pos: transform([0, 0, 0], move_rotate),
-        rotation: to_webGPU_3x3(rotate),
+        pos: move_rotate.matmul_vec([0, 0, 0]),
+        rotation: rotate,
     }
 })
 
@@ -61,8 +65,10 @@ async function initScene(grid_size: number) {
                 color_shader: color_shader.value,
                 terrain_dims: [1024, 1024],
                 grid_dims: [grid_size, grid_size],
-                camera_pos: camera_setup.value.pos,
-                camera_rotation: camera_setup.value.rotation,
+                light_dir: light_dir.value,
+                ambient_intensity: ambient_intensity.value,
+                camera_pos: camera.value.pos,
+                camera_rotation: camera.value.rotation,
             },
             canvasRef.value,
         )
@@ -76,6 +82,14 @@ async function canvasReady(canvas: HTMLCanvasElement) {
 
 watch(grid_size, async (new_grid_size) => {
     await initScene(new_grid_size)
+})
+
+watch([light_dir, ambient_intensity], (new_values) => {
+    scene.value.setLight(new_values[0], new_values[1])
+})
+
+watch(camera, (new_camera) => {
+    scene.value.setCamera(new_camera.pos, new_camera.rotation)
 })
 
 async function runNoise() {
@@ -97,7 +111,7 @@ async function runColor() {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Elevation', 'Color', 'Erosion']"
+        :tab-captions="['Elevation', 'Color', 'Rendering']"
         v-model="active_tab"
         @canvas-ready="canvasReady"
         :issues="shader_issues"
@@ -122,7 +136,18 @@ async function runColor() {
                 <CodeEditor class="terrain-editor" ref="color_editor" :code="color_shader" />
             </div>
         </template>
-        <template v-else></template>
+        <template v-else-if="active_tab == 'Rendering'">
+            <VBox>
+                <p>Ambient light intensity: {{ ambient_intensity }}</p>
+                <RangeInput v-model="ambient_intensity" :min="0" :max="1" :step="0.1" />
+
+                <p>Light angle around X-axis: {{ light_deg_X }}</p>
+                <RangeInput v-model="light_deg_X" :min="0" :max="180" :step="1" />
+
+                <p>Light angle around Y-axis: {{ light_deg_Y }}</p>
+                <RangeInput v-model="light_deg_Y" :min="0" :max="360" :step="1" />
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
 

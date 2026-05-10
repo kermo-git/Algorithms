@@ -1,82 +1,108 @@
 export const DEG_TO_RAD = Math.PI / 180
 
-export function rotateX(rad: number) {
-    const sin = Math.sin(rad)
-    const cos = Math.cos(rad)
+export class Mat4x4 {
+    columns_flat: Float32Array
 
-    // prettier-ignore
-    return [
-        1,  0,   0,   0, // First column
-        0,  cos, sin, 0, // Second column
-        0, -sin, cos, 0, // Third column
-        0,  0,   0,   1
-    ]
-}
+    constructor(columns?: number[][]) {
+        if (columns?.length === 4 && columns.every((c) => c.length === 4)) {
+            this.columns_flat = new Float32Array(columns.flat())
+        } else {
+            this.columns_flat = new Float32Array(16)
+        }
+    }
 
-export function rotateY(rad: number) {
-    const sin = Math.sin(rad)
-    const cos = Math.cos(rad)
+    get(row: number, col: number) {
+        return this.columns_flat[4 * col + row]
+    }
 
-    // prettier-ignore
-    return [
-        cos, 0, -sin, 0,
-        0,   1,  0,   0,
-        sin, 0,  cos, 0,
-        0,  0,   0,   1
-    ]
-}
+    set(row: number, col: number, value: number) {
+        this.columns_flat[4 * col + row] = value
+    }
 
-export function rotateZ(rad: number) {
-    const sin = Math.sin(rad)
-    const cos = Math.cos(rad)
+    matmul(other: Mat4x4): Mat4x4 {
+        const res = new Mat4x4()
 
-    // prettier-ignore
-    return [
-         cos, sin, 0, 0,
-        -sin, cos, 0, 0,
-         0,   0,   1, 0,
-         0,   0,   0, 1
-    ]
-}
-
-export function translate(x: number, y: number, z: number) {
-    // prettier-ignore
-    return [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        x, y, z, 1
-    ]
-}
-
-export function to_webGPU_3x3(mat4x4: number[]) {
-    return mat4x4.slice(0, 12)
-}
-
-export function combine(first_transform: number[], second_transform: number[]) {
-    const res = new Array(16).fill(0)
-
-    for (let col = 0; col < 4; col++) {
-        for (let row = 0; row < 4; row++) {
-            for (let common_dim = 0; common_dim < 4; common_dim++) {
-                res[4 * col + row] +=
-                    second_transform[4 * common_dim + row] * first_transform[4 * col + common_dim]
+        for (let col = 0; col < 4; col++) {
+            for (let row = 0; row < 4; row++) {
+                let value = 0
+                for (let common_dim = 0; common_dim < 4; common_dim++) {
+                    value += this.get(row, common_dim) * other.get(common_dim, col)
+                }
+                res.set(row, col, value)
             }
         }
+
+        return res
     }
 
-    return res
+    matmul_vec(vec3: number[]): number[] {
+        const res = new Array(3)
+        const last_dim = 3
+
+        for (let row = 0; row < last_dim; row++) {
+            let value = 0
+            for (let col = 0; col < last_dim; col++) {
+                value += this.get(row, col) * vec3[col]
+            }
+            res[row] = value + this.get(row, last_dim)
+        }
+        return res
+    }
+
+    toWebGPU_mat4x4() {
+        return new Float32Array(this.columns_flat)
+    }
+
+    toWebGPU_rotation_mat3x3() {
+        return new Float32Array(this.columns_flat.slice(0, 12))
+    }
 }
 
-export function transform(vec3: number[], transform: number[]) {
-    const res = new Array(3).fill(0)
-    const last_dim = 3
+export function rotateX(rad: number): Mat4x4 {
+    const sin = Math.sin(rad)
+    const cos = Math.cos(rad)
 
-    for (let row = 0; row < last_dim; row++) {
-        for (let col = 0; col < last_dim; col++) {
-            res[row] += transform[4 * col + row] * vec3[col]
-        }
-        res[row] += transform[4 * last_dim + row]
-    }
-    return res
+    // prettier-ignore
+    return new Mat4x4([
+        [1,  0,   0,   0],
+        [0,  cos, sin, 0],
+        [0, -sin, cos, 0],
+        [0,  0,   0,   1]
+    ])
+}
+
+export function rotateY(rad: number): Mat4x4 {
+    const sin = Math.sin(rad)
+    const cos = Math.cos(rad)
+
+    // prettier-ignore
+    return new Mat4x4([
+        [cos, 0, -sin, 0],
+        [0,   1,  0,   0],
+        [sin, 0,  cos, 0],
+        [0,   0,  0,   1]
+    ])
+}
+
+export function rotateZ(rad: number): Mat4x4 {
+    const sin = Math.sin(rad)
+    const cos = Math.cos(rad)
+
+    // prettier-ignore
+    return new Mat4x4([
+        [ cos, sin, 0, 0],
+        [-sin, cos, 0, 0],
+        [ 0,   0,   1, 0],
+        [ 0,   0,   0, 1]
+    ])
+}
+
+export function translate(x: number, y: number, z: number): Mat4x4 {
+    // prettier-ignore
+    return new Mat4x4([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [x, y, z, 1]
+    ])
 }

@@ -67,10 +67,6 @@ export const examples: Example[] = [
     let normal = normalize(
         vec3f(-gradient.xy, 1)
     );
-    let light = normalize(
-        vec3f(0, 0.5, 1)
-    );
-    let light_level = dot(normal, light);
 
     var ground_cover = grass;
     
@@ -96,7 +92,7 @@ export const examples: Example[] = [
              steep_start - level_end)
         );
     }
-    return ground_color * light_level;
+    return ground_color;
 }`,
     },
 ]
