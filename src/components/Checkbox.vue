@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@jamescoyle/vue-icon'
-import { mdiCheck, mdiPlay } from '@mdi/js'
+import { mdiCheck } from '@mdi/js'
 
 interface Props {
     text: string
@@ -13,7 +13,6 @@ defineOptions({ inheritAttrs: false })
 function onChange(event: Event) {
     const element = event.target as HTMLInputElement
     model.value = element.checked
-    console.log(mdiPlay)
 }
 </script>
 
@@ -36,6 +35,7 @@ function onChange(event: Event) {
 
 <style scoped>
 .component {
+    flex-grow: 1;
     box-sizing: border-box;
     height: var(--button-height);
     display: flex;

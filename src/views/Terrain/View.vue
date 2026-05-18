@@ -13,6 +13,8 @@ import { examples } from './Examples'
 import TerrainScene from './Scene'
 import { DEG_TO_RAD, rotateX, rotateY, rotateZ, translate } from '@/WebGPU/Geometry'
 import RangeInput from '@/components/RangeInput.vue'
+import Checkbox from '@/components/Checkbox.vue'
+import HBox from '@/components/HBox.vue'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
@@ -27,30 +29,31 @@ const noise_shader = ref(examples[0].elevation_shader)
 const color_editor = useTemplateRef('color_editor')
 const color_shader = ref(examples[0].color_shader)
 
-const terrain_distance = ref(4)
-const terrain_deg_x = ref(30)
-const terrain_deg_z = ref(30)
-
-const light_deg_X = ref(20)
-const light_deg_Z = ref(0)
+const light_deg_x = ref(20)
+const light_deg_z = ref(0)
 const ambient_intensity = ref(0.3)
 
 const light_dir = computed(() => {
-    const rad_x = light_deg_X.value * DEG_TO_RAD
-    const rad_z = light_deg_Z.value * DEG_TO_RAD
+    const rad_x = light_deg_x.value * DEG_TO_RAD
+    const rad_z = light_deg_z.value * DEG_TO_RAD
 
     return rotateZ(rad_z).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
 })
 
+const render_3D = ref(false)
+const terrain_deg_x = ref(70)
+const terrain_deg_z = ref(30)
+
 const camera = computed(() => {
+    const size = grid_size.value
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
     const rad_z = terrain_deg_z.value * DEG_TO_RAD
 
     const rotate = rotateX(-rad_x).matmul(rotateZ(-rad_z))
-    const move = translate(0, -terrain_distance.value, 0)
+    const move = translate(0, -2 * size, 0)
 
     return {
-        pos: rotate.matmul(move).matmul_vec([0, 0, 0]),
+        pos: rotate.matmul(move).matmul_vec([0.5 * size, 0, 0.5 * size]),
         rotation: rotate,
     }
 })
@@ -85,6 +88,14 @@ watch(grid_size, async (new_grid_size) => {
 
 watch([light_dir, ambient_intensity], (new_values) => {
     scene.value.setLight(new_values[0], new_values[1])
+})
+
+watch(render_3D, (new_render_3D) => {
+    if (new_render_3D) {
+        scene.value.setDisplay3D()
+    } else {
+        scene.value.setDisplay2D()
+    }
 })
 
 watch(camera, (new_camera) => {
@@ -140,11 +151,23 @@ async function runColor() {
                 <p>Ambient light intensity: {{ ambient_intensity }}</p>
                 <RangeInput v-model="ambient_intensity" :min="0" :max="1" :step="0.1" />
 
-                <p>Light angle around X-axis: {{ light_deg_X }}</p>
-                <RangeInput v-model="light_deg_X" :min="-90" :max="90" :step="1" />
+                <p>Light angle: {{ light_deg_x }}</p>
+                <RangeInput v-model="light_deg_x" :min="0" :max="90" :step="1" />
 
-                <p>Light angle around Z-axis: {{ light_deg_Z }}</p>
-                <RangeInput v-model="light_deg_Z" :min="0" :max="360" :step="1" />
+                <p>Light direction: {{ light_deg_z }}</p>
+                <RangeInput v-model="light_deg_z" :min="0" :max="360" :step="1" />
+
+                <HBox justify="left">
+                    <Checkbox text="3D view" name="render_3D" v-model="render_3D" />
+                </HBox>
+
+                <template v-if="render_3D">
+                    <p>View angle: {{ terrain_deg_x }}</p>
+                    <RangeInput v-model="terrain_deg_x" :min="0" :max="90" :step="1" />
+
+                    <p>View direction: {{ terrain_deg_z }}</p>
+                    <RangeInput v-model="terrain_deg_z" :min="0" :max="360" :step="1" />
+                </template>
             </VBox>
         </template>
     </SidePanelCanvas>

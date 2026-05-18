@@ -278,32 +278,56 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
 
         const STEP_SCALE = 1.0;
         const HIT_THRESHOLD = 0.005;
+
         const CAMERA_FOV = radians(70);
-
-        fn find_camera_ray(texture_dims: vec2u, pixel_pos: vec2u) -> vec3f {
-            // TODO
-            return camera.rotation * vec3f(0);
-        }
-
-        struct RayHit {
-            hit: bool,
-            pos: vec3f,
-        }
-
-        fn find_box_rayhit(box_dims: vec3f, ray_origin: vec3f, ray_direction: vec3f) -> RayHit {
-            var rayhit: RayHit;
-            // TODO
-            return rayhit;
-        }
-        
-        fn find_terrain_rayhit(ray_origin: vec3f, ray_direction: vec3f) -> RayHit {
-            var rayhit: RayHit;
-            // TODO
-            return rayhit;
-        }
+        const IMAGE_WIDTH = 2 * tan(CAMERA_FOV / 2);
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
-        const grid_dims = vec2f(${setup.grid_dims[0]}, ${setup.grid_dims[1]});
+        const box_dims = vec3f(${setup.grid_dims[0]}, ${setup.grid_dims[1]}, 1);
+
+        fn find_box_distance(ray_origin: vec3f, ray_direction: vec3f) -> f32 {
+            let t1 = -ray_origin / ray_direction;
+            let t2 = (box_dims - ray_origin) / ray_direction;
+
+            let t_min = min(t1, t2);
+            let t_max = max(t1, t2);
+
+            if !(t_max.x < t_min.y || t_max.y < t_min.x) {
+                let outside_dist = max(t_max.z, max(t_min.x, t_min.y));
+
+                if (outside_dist >= 0) {
+                    return outside_dist;
+                } else {
+                    let inside_dist = min(t_max.z, min(t_max.x, t_max.y));
+
+                    if (inside_dist >= 0) {
+                        return inside_dist;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        fn find_box_normal(surface_point: vec3f) -> vec3f {
+            let abs_x = abs(surface_point.x) + HIT_THRESHOLD;
+            let abs_z = abs(surface_point.z) + HIT_THRESHOLD;
+
+            if (abs_x < box_dims.x) {
+                if (abs_z < box_dims.z) {
+                    return vec3f(0, 1, 0);
+                }
+                return vec3f(0, 0, 1);
+            } else {
+                return vec3f(1, 0, 0);
+            }
+        }
+
+        fn find_terrain(pos: vec3f) -> TerrainUnit {
+            const pixels_per_grid_cell = vec2f(terrain_dims) / box_dims.xy;
+            let pixel_pos = vec2u(floor(pos.xy * pixels_per_grid_cell));
+            let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
+            return read_terrain[pixel_index];
+        }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
@@ -317,17 +341,42 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
             }
 
             var color = vec4f(0, 0, 0, 1);
-            let camera_ray = camera.rotation * find_camera_ray(canvas_dims, pixel_pos);
+            
+            let canvas_dims_f = vec2f(canvas_dims);
+            let norm_pixel_pos = vec2f(f32(pixel_pos.x), f32(canvas_dims.y - pixel_pos.y)) / canvas_dims_f;
 
-            let box_rayhit = find_box_rayhit(
-                vec3f(grid_dims, 1), 
-                camera.pos, 
-                camera_ray
-            );
-            if box_rayhit.hit {
-                let terrain_rayhit = find_terrain_rayhit(box_rayhit.pos, camera_ray);
-                if terrain_rayhit.hit {
-                    // TODO
+            let image_height = IMAGE_WIDTH * canvas_dims_f.y / canvas_dims_f.x;
+            let image_dims = vec2f(IMAGE_WIDTH, image_height);
+
+            let image_pos = image_dims * (norm_pixel_pos - 0.5);
+            let camera_ray = camera.rotation * normalize(vec3f(image_pos.x, 1, image_pos.y));
+
+            var current_distance = find_box_distance(camera.pos, camera_ray);
+            
+            if current_distance > 0 {
+                var current_pos = camera.pos + current_distance * camera_ray;
+                var terrain = find_terrain(current_pos);
+
+                if terrain.elevation > current_pos.z {
+                    color = terrain.color;
+                } else {
+                    while (
+                        current_pos.z - terrain.elevation > HIT_THRESHOLD
+                    ) && 
+                        all(current_pos >= vec3f(0)) && 
+                        all(current_pos < box_dims) 
+                    {
+
+                        current_distance += STEP_SCALE * terrain.elevation;
+                        current_pos = camera.pos + current_distance * camera_ray;
+                        terrain = find_terrain(current_pos);
+                    }
+                    let a = light.ambient_intensity;
+                    let normal = normalize(vec3f(-terrain.gradient.xy, 1));
+                    let light_level = dot(normal, light.dir);
+
+                    color = a * terrain.color + (1 - a) * terrain.color * light_level;
+
                 }
             }
 
