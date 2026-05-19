@@ -73,6 +73,7 @@ export interface Setup {
     ambient_intensity: number
     camera_pos: number[]
     camera_rotation: Mat4x4
+    render_3D: boolean
 }
 
 const terrainStruct = /* wgsl */ `
@@ -276,8 +277,8 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
         @group(2) @binding(0) var<uniform> light: Light;
         @group(2) @binding(1) var<uniform> camera: Camera;
 
-        const STEP_SCALE = 1.0;
-        const HIT_THRESHOLD = 0.005;
+        const STEP_SCALE = 0.1;
+        const HIT_THRESHOLD = 0.01;
 
         const CAMERA_FOV = radians(70);
         const IMAGE_WIDTH = 2 * tan(CAMERA_FOV / 2);
@@ -293,15 +294,17 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
             let t_max = max(t1, t2);
 
             if !(t_max.x < t_min.y || t_max.y < t_min.x) {
-                let outside_dist = max(t_max.z, max(t_min.x, t_min.y));
+                if !(t_max.x < t_min.z || t_max.z < t_min.x || t_max.y < t_min.z || t_max.z < t_min.y) {
+                    let outside_dist = max(t_min.z, max(t_min.x, t_min.y));
 
-                if (outside_dist >= 0) {
-                    return outside_dist;
-                } else {
-                    let inside_dist = min(t_max.z, min(t_max.x, t_max.y));
+                    if (outside_dist >= 0) {
+                        return outside_dist;
+                    } else {
+                        let inside_dist = min(t_max.z, min(t_max.x, t_max.y));
 
-                    if (inside_dist >= 0) {
-                        return inside_dist;
+                        if (inside_dist >= 0) {
+                            return inside_dist;
+                        }
                     }
                 }
             }
@@ -309,17 +312,22 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
         }
 
         fn find_box_normal(surface_point: vec3f) -> vec3f {
-            let abs_x = abs(surface_point.x) + HIT_THRESHOLD;
-            let abs_z = abs(surface_point.z) + HIT_THRESHOLD;
-
-            if (abs_x < box_dims.x) {
-                if (abs_z < box_dims.z) {
-                    return vec3f(0, 1, 0);
-                }
-                return vec3f(0, 0, 1);
-            } else {
+            if (surface_point.x < 0 + HIT_THRESHOLD) {
+                return vec3f(-1, 0, 0);
+            }
+            if (surface_point.x > box_dims.x - HIT_THRESHOLD) {
                 return vec3f(1, 0, 0);
             }
+            if (surface_point.y < 0 + HIT_THRESHOLD) {
+                return vec3f(0, -1, 0);
+            }
+            if (surface_point.y > box_dims.y - HIT_THRESHOLD) {
+                return vec3f(0, 1, 0);
+            }
+            if (surface_point.z < 0 + HIT_THRESHOLD) {
+                return vec3f(0, 0, -1);
+            }
+            return vec3f(0, 0, 1);
         }
 
         fn find_terrain(pos: vec3f) -> TerrainUnit {
@@ -333,21 +341,20 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
-            let pixel_pos = gid.xy;
             let canvas_dims = textureDimensions(canvas);
+            let pixel_pos = vec2u(gid.x, canvas_dims.y - 1 - gid.y);
 
-            if (pixel_pos.x >= canvas_dims.x || pixel_pos.y >= canvas_dims.y) {
+            if (pixel_pos.x >= canvas_dims.x || pixel_pos.y < 0) {
                 return;
             }
 
             var color = vec4f(0, 0, 0, 1);
-            
             let canvas_dims_f = vec2f(canvas_dims);
-            let norm_pixel_pos = vec2f(f32(pixel_pos.x), f32(canvas_dims.y - pixel_pos.y)) / canvas_dims_f;
 
             let image_height = IMAGE_WIDTH * canvas_dims_f.y / canvas_dims_f.x;
             let image_dims = vec2f(IMAGE_WIDTH, image_height);
 
+            let norm_pixel_pos = vec2f(pixel_pos) / canvas_dims_f;
             let image_pos = image_dims * (norm_pixel_pos - 0.5);
             let camera_ray = camera.rotation * normalize(vec3f(image_pos.x, 1, image_pos.y));
 
@@ -356,31 +363,33 @@ export function display3DShader(setup: Setup, color_format: GPUTextureFormat): s
             if current_distance > 0 {
                 var current_pos = camera.pos + current_distance * camera_ray;
                 var terrain = find_terrain(current_pos);
+                let a = light.ambient_intensity;
 
                 if terrain.elevation > current_pos.z {
-                    color = terrain.color;
+                    let normal = find_box_normal(current_pos);
+                    let light_level = dot(normal, light.dir);
+                    const box_color = vec4f(0.5, 0.5, 0.5, 1);
+                    color = a * box_color + (1 - a) * box_color * light_level;
                 } else {
-                    while (
-                        current_pos.z - terrain.elevation > HIT_THRESHOLD
-                    ) && 
-                        all(current_pos >= vec3f(0)) && 
-                        all(current_pos < box_dims) 
-                    {
-
-                        current_distance += STEP_SCALE * terrain.elevation;
+                    while true {
+                        if any(current_pos <= vec3f(0) - HIT_THRESHOLD) || 
+                           any(current_pos >= box_dims + HIT_THRESHOLD) {
+                            break;
+                        }
+                        if abs(current_pos.z - terrain.elevation) <= HIT_THRESHOLD {
+                            let normal = normalize(vec3f(-terrain.gradient.xy, 1));
+                            let light_level = dot(normal, light.dir);
+                            color = a * terrain.color + (1 - a) * terrain.color * light_level;
+                            break;
+                        }
+                        current_distance += STEP_SCALE * abs(current_pos.z - terrain.elevation);
                         current_pos = camera.pos + current_distance * camera_ray;
                         terrain = find_terrain(current_pos);
                     }
-                    let a = light.ambient_intensity;
-                    let normal = normalize(vec3f(-terrain.gradient.xy, 1));
-                    let light_level = dot(normal, light.dir);
-
-                    color = a * terrain.color + (1 - a) * terrain.color * light_level;
-
                 }
             }
 
-            textureStore(canvas, pixel_pos, color);
+            textureStore(canvas, gid.xy, color);
         }
     `
 }

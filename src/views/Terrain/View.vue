@@ -41,19 +41,20 @@ const light_dir = computed(() => {
 })
 
 const render_3D = ref(false)
-const terrain_deg_x = ref(70)
-const terrain_deg_z = ref(30)
+const terrain_deg_x = ref(45)
+const terrain_deg_z = ref(0)
 
 const camera = computed(() => {
     const size = grid_size.value
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
     const rad_z = terrain_deg_z.value * DEG_TO_RAD
 
-    const rotate = rotateX(-rad_x).matmul(rotateZ(-rad_z))
-    const move = translate(0, -2 * size, 0)
+    const move1 = translate(0, -size, 0)
+    const rotate = rotateZ(-rad_z).matmul(rotateX(-rad_x))
+    const move2 = translate(0.5 * size, 0.5 * size, 0)
 
     return {
-        pos: rotate.matmul(move).matmul_vec([0.5 * size, 0, 0.5 * size]),
+        pos: move2.matmul(rotate).matmul(move1).matmul_vec([0, 0, 0]),
         rotation: rotate,
     }
 })
@@ -71,6 +72,7 @@ async function initScene(grid_size: number) {
                 ambient_intensity: ambient_intensity.value,
                 camera_pos: camera.value.pos,
                 camera_rotation: camera.value.rotation,
+                render_3D: render_3D.value,
             },
             canvasRef.value,
         )
@@ -155,7 +157,7 @@ async function runColor() {
                 <RangeInput v-model="light_deg_x" :min="0" :max="90" :step="1" />
 
                 <p>Light direction: {{ light_deg_z }}</p>
-                <RangeInput v-model="light_deg_z" :min="0" :max="360" :step="1" />
+                <RangeInput v-model="light_deg_z" :min="-180" :max="180" :step="1" />
 
                 <HBox justify="left">
                     <Checkbox text="3D view" name="render_3D" v-model="render_3D" />
@@ -166,7 +168,7 @@ async function runColor() {
                     <RangeInput v-model="terrain_deg_x" :min="0" :max="90" :step="1" />
 
                     <p>View direction: {{ terrain_deg_z }}</p>
-                    <RangeInput v-model="terrain_deg_z" :min="0" :max="360" :step="1" />
+                    <RangeInput v-model="terrain_deg_z" :min="-180" :max="180" :step="1" />
                 </template>
             </VBox>
         </template>

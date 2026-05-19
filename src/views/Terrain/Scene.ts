@@ -63,7 +63,9 @@ export default class TerrainScene {
         await this.createColorShader()
         await this.createDisplay2DShader()
         await this.createDisplay3DShader()
-        this.selected_display_pipeline = this.display_2D_pipeline
+        this.selected_display_pipeline = setup.render_3D
+            ? this.display_3D_pipeline
+            : this.display_2D_pipeline
 
         this.unit_vectors_2D = engine.createStorageBuffer(generateUnitVectors2D(16))
         this.unit_vectors_3D = engine.createStorageBuffer(generateUnitVectors3D(64))

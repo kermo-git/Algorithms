@@ -10,14 +10,14 @@ export const examples: Example[] = [
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     const warp_1_channel = 0;
     const warp_2_channel = 1;
-    const warp_1_octaves = 2;
+    const warp_1_octaves = 4;
     const warp_2_octaves = 4;
-    const warp_scale = vec3f(0.9, 0.9, 1);
+    const warp_scale = vec3f(0.5, 0.5, 1);
     const warp_persistence = 0.5;
-    const warp_strength = 0.1;
+    const warp_strength = 0.2;
 
     const noise_channel = 2;
-    const noise_octaves = 3;
+    const noise_octaves = 4;
     const noise_persistence = 0.3;
 
     let pos_3d = vec3f(pos, 0);
