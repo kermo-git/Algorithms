@@ -10,7 +10,7 @@ export interface Example {
     activation: string
 }
 
-export function normalizeKernel(kernel: FloatArray) {
+function normalizeKernel(kernel: FloatArray) {
     let n_nagative = 0
     let n_positive = 0
 
@@ -33,6 +33,29 @@ export function normalizeKernel(kernel: FloatArray) {
     })
 }
 
+function mazeKernel() {
+    const N = -1
+    const P = 1
+
+    return normalizeKernel(
+        new Float32Array(
+            [
+                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                [0, N, N, N, N, N, N, N, N, N, 0],
+                [0, N, N, N, P, P, P, N, N, N, 0],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [N, N, N, P, P, P, P, P, N, N, N],
+                [0, N, N, N, P, P, P, N, N, N, 0],
+                [0, N, N, N, N, N, N, N, N, N, 0],
+                [0, 0, N, N, N, N, N, N, N, 0, 0],
+                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+            ].flat(),
+        ),
+    )
+}
+
 export const examples: Example[] = [
     {
         name: 'Organic maze',
@@ -41,26 +64,21 @@ export const examples: Example[] = [
 
         kernel_radius: 5,
         get_kernel: () => {
-            const N = -1
-            const P = 1
+            return mazeKernel()
+        },
+        activation: sigmoid,
+    },
+    {
+        name: 'Flowing maze',
+        color_0: '#59F9CE',
+        color_1: '#4842FF',
 
-            return normalizeKernel(
-                new Float32Array(
-                    [
-                        [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                        [0, 0, N, N, N, N, N, N, N, 0, 0],
-                        [0, N, N, N, N, N, N, N, N, N, 0],
-                        [0, N, N, N, P, P, P, N, N, N, 0],
-                        [N, N, N, P, P, P, P, P, N, N, N],
-                        [N, N, N, P, P, P, P, P, N, N, N],
-                        [N, N, N, P, P, P, P, P, N, N, N],
-                        [0, N, N, N, P, P, P, N, N, N, 0],
-                        [0, N, N, N, N, N, N, N, N, N, 0],
-                        [0, 0, N, N, N, N, N, N, N, 0, 0],
-                        [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                    ].flat(),
-                ),
-            )
+        kernel_radius: 5,
+        get_kernel: () => {
+            const kernel = mazeKernel()
+            kernel[22] = 1
+            kernel[98] = -1
+            return kernel
         },
         activation: sigmoid,
     },
