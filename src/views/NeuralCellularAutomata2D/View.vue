@@ -30,8 +30,7 @@ const activation_shader = ref<string>(default_example.activation)
 const scene = shallowRef(
     new NeuralScene({
         activation_shader: activation_shader.value,
-        n_grid_rows: grid_size.value,
-        n_grid_cols: grid_size.value,
+        canvas_dims: [grid_size.value, grid_size.value],
         kernel_radius: kernel_radius.value,
         kernel: kernel.value,
     }),
@@ -81,8 +80,7 @@ watch(
         scene.value.cleanup()
         scene.value = new NeuralScene({
             activation_shader: new_activation,
-            n_grid_rows: new_grid_size,
-            n_grid_cols: new_grid_size,
+            canvas_dims: [new_grid_size, new_grid_size],
             kernel_radius: new_kernel_size,
             kernel: new_kernel,
         })

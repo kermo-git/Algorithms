@@ -23,7 +23,7 @@ export interface UniformData {
 
 export function createShader(
     { distance_measure, warp_algorithm }: Setup,
-    color_format: GPUTextureFormat,
+    canvas_color_format: GPUTextureFormat,
 ) {
     const pos_type = warp_algorithm.pos_type
     const noise_data = warp_algorithm.extra_data_type ? '' : '//'
@@ -51,7 +51,7 @@ export function createShader(
         const voronoi_channel = bitcast<u32>(i32(${Date.now() >> 0}));
         const noise_channel = voronoi_channel + 1u;
 
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         
         @group(1) @binding(0) var<uniform> voronoi_grid_dims: vec2f;
         @group(1) @binding(1) var<uniform> noise_scale: f32;
@@ -118,14 +118,14 @@ export function createShader(
 
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(@builtin(global_invocation_id) gid: vec3u) {
-            let texture_pos = gid.xy;
-            let texture_dims: vec2u = textureDimensions(texture);
+            let canvas_pos = gid.xy;
+            let canvas_dims: vec2u = textureDimensions(canvas);
 
-            if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
+            if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
             }
-            let normalized_texture_pos = vec2f(texture_pos) / vec2f(texture_dims);
-            let unwarped_voronoi_pos = voronoi_grid_dims * normalized_texture_pos;
+            let norm_canvas_pos = vec2f(canvas_pos) / vec2f(canvas_dims);
+            let unwarped_voronoi_pos = voronoi_grid_dims * norm_canvas_pos;
             let noise_pos = unwarped_voronoi_pos * noise_scale;
             let voronoi_pos = warp_pos(unwarped_voronoi_pos, ${pos_expr});
 
@@ -149,7 +149,7 @@ export function createShader(
                 }
             }
             let color = find_color(min_dist_cell);
-            textureStore(texture, texture_pos, color);
+            textureStore(canvas, canvas_pos, color);
         }
     `
 }

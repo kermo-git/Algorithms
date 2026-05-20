@@ -33,10 +33,10 @@ export default class VoronoiScene {
         canvas.width = 1
         canvas.height = 1
 
-        const { device, color_format } = this.engine
+        const { device, canvas_color_format } = this.engine
         const { warp_algorithm } = this.setup
 
-        const shader_code = `${createShader(this.setup, color_format)}`
+        const shader_code = `${createShader(this.setup, canvas_color_format)}`
 
         const { module } = await this.engine.compileShader(shader_code)
 

@@ -23,27 +23,25 @@ export interface Setup {
      * ```
      */
     update_shader: string
-    n_grid_rows: number
-    n_grid_cols: number
+    canvas_dims: number[]
 }
 
-export function createShader(setup: Setup, color_format: GPUTextureFormat): string {
+export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
     return /* wgsl */ `
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         
         @group(1) @binding(0) var<storage, read> current_generation: array<u32>;
         @group(1) @binding(1) var<storage, read_write> next_generation: array<u32>;
         @group(2) @binding(0) var<storage> colors: array<vec4f>;
-
-        const n_grid_rows = ${setup.n_grid_rows};
-        const n_grid_cols = ${setup.n_grid_cols};
+        
+        const canvas_dims = vec2u(${setup.canvas_dims[0]}, ${setup.canvas_dims[1]});
         const n_states = ${setup.n_states};
 
         fn neighbor(center_pos: vec2u, offset_x: i32, offset_y: i32) -> u32 {
-            let grid_x = (i32(center_pos.x) + offset_x) % n_grid_cols;
-            let grid_y = (i32(center_pos.y) + offset_y) % n_grid_rows;
-            let grid_i = grid_y * n_grid_cols + grid_x;
-            return current_generation[grid_i];
+            let canvas_x = (i32(center_pos.x) + offset_x) % i32(canvas_dims.x);
+            let canvas_y = (i32(center_pos.y) + offset_y) % i32(canvas_dims.y);
+            let canvas_i = canvas_y * i32(canvas_dims.x) + canvas_x;
+            return current_generation[canvas_i];
         }
 
         fn shift(state: u32, shift: i32) -> u32 {
@@ -57,11 +55,11 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
 
             for (var ny = 0u; ny < neighborhood_size; ny++) {
                 for (var nx = 0u; nx < neighborhood_size; nx++) {
-                    let grid_x = (start_pos.x + nx) % n_grid_cols;
-                    let grid_y = (start_pos.y + ny) % n_grid_rows;
-                    let grid_i = grid_y * n_grid_cols + grid_x;
+                    let canvas_x = (start_pos.x + nx) % canvas_dims.x;
+                    let canvas_y = (start_pos.y + ny) % canvas_dims.y;
+                    let canvas_i = canvas_y * canvas_dims.x + canvas_x;
 
-                    if current_generation[grid_i] == state {
+                    if current_generation[canvas_i] == state {
                         result += 1;
                     }
                 }
@@ -75,19 +73,19 @@ export function createShader(setup: Setup, color_format: GPUTextureFormat): stri
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
-            let grid_pos = gid.xy;
+            let canvas_pos = gid.xy;
 
-            if (grid_pos.x >= n_grid_cols || grid_pos.y >= n_grid_rows) {
+            if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
             }
-            let shifted_grid_pos = grid_pos + vec2u(n_grid_cols, n_grid_rows);
-            let grid_i = grid_pos.y * n_grid_cols + grid_pos.x;
-            let current_state = current_generation[grid_i];
+            let shifted_grid_pos = canvas_pos + canvas_dims;
+            let canvas_i = canvas_pos.y * canvas_dims.x + canvas_pos.x;
+            let current_state = current_generation[canvas_i];
 
             let next_state = update(shifted_grid_pos, current_state);
-            next_generation[grid_i] = next_state;
+            next_generation[canvas_i] = next_state;
 
-            textureStore(texture, grid_pos, colors[current_state]);
+            textureStore(canvas, canvas_pos, colors[current_state]);
         }
     `
 }

@@ -126,22 +126,25 @@ function noisePosCode(algorithm: NoiseAlgorithm) {
     switch (algorithm.pos_type) {
         case 'vec2f':
             return /* wgsl */ `
-                let noise_pos = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
+                let noise_pos = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
             `
         case 'vec3f':
             return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
+                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
                 let noise_pos = vec3f(noise_pos_2D, z_coordinate);
             `
         case 'vec4f':
             return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(texture_pos) / vec2f(texture_dims);
+                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
                 let noise_pos = vec4f(noise_pos_2D, z_coordinate, w_coordinate);
             `
     }
 }
 
-export default function createNoiseShader(setup: Setup, color_format: GPUTextureFormat): string {
+export default function createNoiseShader(
+    setup: Setup,
+    canvas_color_format: GPUTextureFormat,
+): string {
     const { algorithm, transform } = setup
     const noise_data = algorithm.extra_data_type ? '' : '//'
     const not_2D = algorithm.pos_type !== 'vec2f' ? '' : '//'
@@ -151,7 +154,7 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
     const { noise_functions, noise_expr } = createNoiseFunctions(setup)
 
     return /* wgsl */ `
-        @group(0) @binding(0) var texture: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         
         @group(1) @binding(0) var<uniform> grid_dims: vec2f;
         @group(1) @binding(1) var<uniform> n_main_octaves: u32;
@@ -173,17 +176,17 @@ export default function createNoiseShader(setup: Setup, color_format: GPUTexture
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
-            let texture_pos = gid.xy;
-            let texture_dims = textureDimensions(texture);
+            let canvas_pos = gid.xy;
+            let canvas_dims = textureDimensions(canvas);
 
-            if (texture_pos.x >= texture_dims.x || texture_pos.y >= texture_dims.y) {
+            if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
             }
             ${noisePosCode(algorithm)}
             let noise_value = ${noise_expr};
             let color = interpolate_color(noise_value);
 
-            textureStore(texture, texture_pos, color);
+            textureStore(canvas, canvas_pos, color);
         }
     `
 }

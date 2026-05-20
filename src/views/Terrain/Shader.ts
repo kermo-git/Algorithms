@@ -223,13 +223,13 @@ export function colorShader(setup: Setup): string {
     `
 }
 
-export function display2DShader(setup: Setup, color_format: GPUTextureFormat): string {
+export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
         ${lightStruct}
         ${cameraStruct}
 
-        @group(0) @binding(0) var canvas: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
@@ -263,13 +263,13 @@ export function display2DShader(setup: Setup, color_format: GPUTextureFormat): s
     `
 }
 
-export function display3DShader(setup: Setup, color_format: GPUTextureFormat): string {
+export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
         ${lightStruct}
         ${cameraStruct}
 
-        @group(0) @binding(0) var canvas: texture_storage_2d<${color_format}, write>;
+        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
 
         @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
         @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;

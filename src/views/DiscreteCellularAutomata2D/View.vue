@@ -27,8 +27,7 @@ const scene = shallowRef(
     new AutomatonScene({
         n_states: n_states.value,
         update_shader: update_shader.value,
-        n_grid_rows: grid_size.value,
-        n_grid_cols: grid_size.value,
+        canvas_dims: [grid_size.value, grid_size.value],
     }),
 )
 const shader_issues = ref<ShaderIssue[]>([])
@@ -56,8 +55,7 @@ watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_u
     scene.value = new AutomatonScene({
         n_states: new_n_states,
         update_shader: new_update_shader,
-        n_grid_rows: new_grid_size,
-        n_grid_cols: new_grid_size,
+        canvas_dims: [new_grid_size, new_grid_size],
     })
 
     if (canvasRef.value) {

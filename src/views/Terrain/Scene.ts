@@ -57,7 +57,7 @@ export default class TerrainScene {
         this.noise_layout = createNoiseLayout(engine.device)
         this.terrain_layout = createTerrainLayout(engine.device)
         this.uniforms_layout = createUniformsLayout(engine.device)
-        this.canvas_layout = createCanvasLayout(engine.device, engine.color_format)
+        this.canvas_layout = createCanvasLayout(engine.device, engine.canvas_color_format)
 
         await this.createNoiseShader()
         await this.createColorShader()
@@ -172,7 +172,7 @@ export default class TerrainScene {
 
     private async createDisplay2DShader() {
         const { module } = await this.engine.compileShader(
-            display2DShader(this.setup, this.engine.color_format),
+            display2DShader(this.setup, this.engine.canvas_color_format),
         )
         this.display_2D_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({
@@ -186,7 +186,7 @@ export default class TerrainScene {
 
     private async createDisplay3DShader() {
         const { module } = await this.engine.compileShader(
-            display3DShader(this.setup, this.engine.color_format),
+            display3DShader(this.setup, this.engine.canvas_color_format),
         )
         this.display_3D_pipeline = this.engine.device.createComputePipeline({
             layout: this.engine.device.createPipelineLayout({

@@ -24,13 +24,13 @@ export class AutomatonScene {
     async init(colors: FloatArray, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
         this.engine = new Engine()
         await this.engine.init(canvas)
-        const { device, color_format } = this.engine
-        const { n_grid_rows, n_grid_cols, n_states } = this.setup
+        const { device, canvas_color_format } = this.engine
+        const { canvas_dims, n_states } = this.setup
 
-        canvas.width = n_grid_cols
-        canvas.height = n_grid_rows
+        canvas.width = canvas_dims[0]
+        canvas.height = canvas_dims[1]
 
-        const shader_code = createShader(this.setup, color_format)
+        const shader_code = createShader(this.setup, canvas_color_format)
         const { module, issues } = await this.engine.compileShader(shader_code)
 
         this.pipeline = device.createComputePipeline({
@@ -53,7 +53,7 @@ export class AutomatonScene {
             ],
         })
 
-        const n_cells = n_grid_rows * n_grid_cols
+        const n_cells = canvas_dims[0] * canvas_dims[1]
         const random_data = new Uint32Array(n_cells).map(() => {
             return Math.floor(Math.random() * n_states)
         })
@@ -68,8 +68,8 @@ export class AutomatonScene {
     }
 
     reset() {
-        const { n_grid_rows, n_grid_cols, n_states } = this.setup
-        const n_cells = n_grid_rows * n_grid_cols
+        const { canvas_dims, n_states } = this.setup
+        const n_cells = canvas_dims[0] * canvas_dims[1]
         const random_data = new Uint32Array(n_cells).map(() => {
             return Math.floor(Math.random() * n_states)
         })

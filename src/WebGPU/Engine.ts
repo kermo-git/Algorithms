@@ -19,7 +19,7 @@ export default class Engine {
     device!: GPUDevice
     context!: GPUCanvasContext
     observer!: ResizeObserver
-    color_format!: GPUTextureFormat
+    canvas_color_format!: GPUTextureFormat
 
     async init(canvas: HTMLCanvasElement) {
         const context = canvas.getContext('webgpu')
@@ -36,13 +36,13 @@ export default class Engine {
         this.device = await adapter.requestDevice({
             requiredFeatures: has_bgra8unorm_storage ? ['bgra8unorm-storage'] : [],
         })
-        this.color_format = has_bgra8unorm_storage
+        this.canvas_color_format = has_bgra8unorm_storage
             ? navigator.gpu.getPreferredCanvasFormat()
             : 'rgba8unorm'
 
         context.configure({
             device: this.device,
-            format: this.color_format,
+            format: this.canvas_color_format,
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
         })
     }
