@@ -41,8 +41,8 @@ const light_dir = computed(() => {
 })
 
 const render_3D = ref(false)
-const terrain_deg_x = ref(45)
-const terrain_deg_z = ref(0)
+const terrain_deg_x = ref(40)
+const terrain_deg_z = ref(70)
 
 const camera = computed(() => {
     const size = grid_size.value
@@ -123,7 +123,7 @@ async function runColor() {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Elevation', 'Color', 'Rendering']"
+        :tab-captions="['Elevation', 'Color', 'Rendering', 'Examples']"
         v-model="active_tab"
         @canvas-ready="canvasReady"
         :issues="shader_issues"

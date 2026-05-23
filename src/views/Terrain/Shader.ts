@@ -90,11 +90,20 @@ const terrainStruct = /* wgsl */ `
     };
 `
 
+const terrainSampleStruct = /* wgsl */ `
+    struct TerrainSample {
+        altitude: f32,
+        gradient: vec2f,
+        hit: bool,
+        color: vec4f,
+    };
+`
+
 const lightStruct = /* wgsl */ `
     struct Light {
         dir: vec3f,
         ambient_intensity: f32,
-    }
+    };
 `
 
 const cameraStruct = /* wgsl */ `
@@ -266,6 +275,7 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
 export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
+        ${terrainSampleStruct}
         ${lightStruct}
         ${cameraStruct}
 
@@ -278,12 +288,13 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
         @group(2) @binding(1) var<uniform> camera: Camera;
 
         const STEP_SCALE = 0.1;
-        const HIT_THRESHOLD = 0.01;
+        const HIT_THRESHOLD = ${setup.grid_dims[0] / setup.terrain_dims[0]};
 
         const CAMERA_FOV = radians(70);
         const IMAGE_WIDTH = 2 * tan(CAMERA_FOV / 2);
 
-        const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
+        const terrain_dims = vec2i(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
+        const terrain_dims_f = vec2f(terrain_dims);
         const box_dims = vec3f(${setup.grid_dims[0]}, ${setup.grid_dims[1]}, 1);
 
         fn find_box_distance(ray_origin: vec3f, ray_direction: vec3f) -> f32 {
@@ -329,12 +340,72 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
             }
             return vec3f(0, 0, 1);
         }
+        
+        fn sample_terrain(pos: vec3f) -> TerrainSample {
+            const pixels_per_grid_cell = terrain_dims_f / box_dims.xy;
 
-        fn find_terrain(pos: vec3f) -> TerrainUnit {
-            const pixels_per_grid_cell = vec2f(terrain_dims) / box_dims.xy;
-            let pixel_pos = vec2u(floor(pos.xy * pixels_per_grid_cell));
-            let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
-            return read_terrain[pixel_index];
+            let pixel_pos_float = pos.xy * pixels_per_grid_cell;
+            let pixel_pos_floor = floor(pixel_pos_float);
+            let pixel_pos = vec2i(pixel_pos_floor);
+
+            let pixel_relative_pos = pixel_pos_float - pixel_pos_floor;
+            let pixel_center_offset = pixel_relative_pos - vec2f(0.5);
+            let mix_factor = abs(pixel_center_offset);
+
+            let not_min_edge = select(
+                vec2i(0), vec2i(1), pixel_pos > vec2i(0)
+            );
+            let not_max_edge = select(
+                vec2i(0), vec2i(1), 
+                pixel_pos < terrain_dims - vec2i(1)
+            );
+            let neighbor_pos = pixel_pos + select(
+                /* false */ 
+                vec2i(-1) * not_min_edge, 
+                /* true */ 
+                vec2i(1) * not_max_edge, 
+                /* condition */ 
+                pixel_center_offset >= vec2f(0)
+            );
+
+            let pixel = read_terrain[pixel_pos.y * terrain_dims.x + pixel_pos.x];
+            let neighbor_x = read_terrain[pixel_pos.y * terrain_dims.x + neighbor_pos.x];
+            let neighbor_y = read_terrain[neighbor_pos.y * terrain_dims.x + pixel_pos.x];
+            let neighbor_xy = read_terrain[neighbor_pos.y * terrain_dims.x + neighbor_pos.x];
+
+            let elevation = mix(
+                mix(pixel.elevation, neighbor_x.elevation, mix_factor.x),
+                mix(neighbor_y.elevation, neighbor_xy.elevation, mix_factor.x),
+                mix_factor.y
+            );
+            let gradient = mix(
+                mix(pixel.gradient, neighbor_x.gradient, mix_factor.x),
+                mix(neighbor_y.gradient, neighbor_xy.gradient, mix_factor.x),
+                mix_factor.y
+            );
+            let altitude = pos.z - elevation;
+
+            if abs(altitude) <= HIT_THRESHOLD {
+                let color = mix(
+                    mix(pixel.color, neighbor_x.color, mix_factor.x),
+                    mix(neighbor_y.color, neighbor_xy.color, mix_factor.x),
+                    mix_factor.y
+                );
+
+                return TerrainSample(
+                    altitude,
+                    gradient,
+                    true,
+                    color
+                );
+            } else {
+                return TerrainSample(
+                    altitude,
+                    gradient,
+                    false,
+                    vec4f(0)
+                );
+            }
         }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
@@ -348,7 +419,6 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
                 return;
             }
 
-            var color = vec4f(0, 0, 0, 1);
             let canvas_dims_f = vec2f(canvas_dims);
 
             let image_height = IMAGE_WIDTH * canvas_dims_f.y / canvas_dims_f.x;
@@ -358,38 +428,45 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
             let image_pos = image_dims * (norm_pixel_pos - 0.5);
             let camera_ray = camera.rotation * normalize(vec3f(image_pos.x, 1, image_pos.y));
 
-            var current_distance = find_box_distance(camera.pos, camera_ray);
+            var current_distance = find_box_distance(camera.pos, camera_ray) + HIT_THRESHOLD;
             
             if current_distance > 0 {
                 var current_pos = camera.pos + current_distance * camera_ray;
-                var terrain = find_terrain(current_pos);
+
+                var terrain = sample_terrain(current_pos);
                 let a = light.ambient_intensity;
 
-                if terrain.elevation > current_pos.z {
+                if terrain.altitude < 0 {
                     let normal = find_box_normal(current_pos);
                     let light_level = dot(normal, light.dir);
                     const box_color = vec4f(0.5, 0.5, 0.5, 1);
-                    color = a * box_color + (1 - a) * box_color * light_level;
+                    let color = a * box_color + (1 - a) * box_color * light_level;
+                    textureStore(canvas, gid.xy, color);
                 } else {
-                    while true {
-                        if any(current_pos <= vec3f(0) - HIT_THRESHOLD) || 
-                           any(current_pos >= box_dims + HIT_THRESHOLD) {
-                            break;
-                        }
-                        if abs(current_pos.z - terrain.elevation) <= HIT_THRESHOLD {
+                    const MAX_STEPS = 1000;
+                    for (var s = 0; s < MAX_STEPS; s++) {
+                        current_distance += 0.1 * terrain.altitude;
+                        current_pos = camera.pos + current_distance * camera_ray;
+                        terrain = sample_terrain(current_pos);
+
+                        if terrain.hit {
                             let normal = normalize(vec3f(-terrain.gradient.xy, 1));
                             let light_level = dot(normal, light.dir);
-                            color = a * terrain.color + (1 - a) * terrain.color * light_level;
+                            let color = a * terrain.color + (1 - a) * terrain.color * light_level;
+                            textureStore(canvas, gid.xy, color);
+                            break;
+                        } else if (
+                            any(current_pos <= vec3f(0)) || 
+                            any(current_pos >= box_dims)
+                        ) {
+                            textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
                             break;
                         }
-                        current_distance += STEP_SCALE * abs(current_pos.z - terrain.elevation);
-                        current_pos = camera.pos + current_distance * camera_ray;
-                        terrain = find_terrain(current_pos);
                     }
                 }
+            } else {
+                textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
             }
-
-            textureStore(canvas, gid.xy, color);
         }
     `
 }
