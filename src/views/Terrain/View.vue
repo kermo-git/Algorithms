@@ -2,36 +2,38 @@
 import { mdiPlay } from '@mdi/js'
 import { computed, ref, shallowRef, useTemplateRef, watch } from 'vue'
 
-import type { ShaderIssue } from '@/WebGPU/Engine'
-import CodeEditor from '@/components/CodeEditor.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import VBox from '@/components/VBox.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-
-import { examples } from './Examples'
-import TerrainScene from './Scene'
-import { DEG_TO_RAD, rotateX, rotateY, rotateZ, translate } from '@/WebGPU/Geometry'
 import RangeInput from '@/components/RangeInput.vue'
 import Checkbox from '@/components/Checkbox.vue'
+import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
+
+import type { ShaderIssue } from '@/WebGPU/Engine'
+import { DEG_TO_RAD, rotateX, rotateZ, translate } from '@/WebGPU/Geometry'
+
+import { examples, type Example } from './Examples'
+import TerrainScene from './Scene'
+import MenuItem from '@/components/MenuItem.vue'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
-
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
 const grid_size = ref(4)
-const noise_editor = useTemplateRef('elevation_editor')
 const noise_shader = ref(examples[0].elevation_shader)
-
-const color_editor = useTemplateRef('color_editor')
 const color_shader = ref(examples[0].color_shader)
 
 const light_deg_x = ref(20)
 const light_deg_z = ref(0)
 const ambient_intensity = ref(0.3)
+
+const render_3D = ref(false)
+const terrain_deg_x = ref(40)
+const terrain_deg_z = ref(70)
 
 const light_dir = computed(() => {
     const rad_x = light_deg_x.value * DEG_TO_RAD
@@ -39,10 +41,6 @@ const light_dir = computed(() => {
 
     return rotateZ(rad_z).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
 })
-
-const render_3D = ref(false)
-const terrain_deg_x = ref(40)
-const terrain_deg_z = ref(70)
 
 const camera = computed(() => {
     const size = grid_size.value
@@ -79,9 +77,23 @@ async function initScene(grid_size: number) {
     }
 }
 
+function setExample(example: Example) {
+    noise_shader.value = example.elevation_shader
+    color_shader.value = example.color_shader
+    initScene(grid_size.value)
+}
+
 async function canvasReady(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     await initScene(grid_size.value)
+}
+
+async function runNoise() {
+    shader_issues.value = await scene.value.updateNoiseShader(noise_shader.value)
+}
+
+async function runColor() {
+    shader_issues.value = await scene.value.updateColorShader(color_shader.value)
 }
 
 watch(grid_size, async (new_grid_size) => {
@@ -103,22 +115,6 @@ watch(render_3D, (new_render_3D) => {
 watch(camera, (new_camera) => {
     scene.value.setCamera(new_camera.pos, new_camera.rotation)
 })
-
-async function runNoise() {
-    if (noise_editor.value) {
-        const code = noise_editor.value.getCode()
-        noise_shader.value = code
-        shader_issues.value = await scene.value.updateNoiseShader(code)
-    }
-}
-
-async function runColor() {
-    if (color_editor.value) {
-        const code = color_editor.value.getCode()
-        color_shader.value = code
-        shader_issues.value = await scene.value.updateColorShader(code)
-    }
-}
 </script>
 
 <template>
@@ -139,13 +135,13 @@ async function runColor() {
         <template v-if="active_tab == 'Elevation'">
             <div class="editor-container">
                 <PanelButton class="run-button" text="Run" :mdi-path="mdiPlay" @click="runNoise" />
-                <CodeEditor class="terrain-editor" ref="elevation_editor" :code="noise_shader" />
+                <CodeEditor class="terrain-editor" v-model="noise_shader" />
             </div>
         </template>
         <template v-else-if="active_tab == 'Color'">
             <div class="editor-container">
                 <PanelButton class="run-button" text="Run" :mdi-path="mdiPlay" @click="runColor" />
-                <CodeEditor class="terrain-editor" ref="color_editor" :code="color_shader" />
+                <CodeEditor class="terrain-editor" v-model="color_shader" />
             </div>
         </template>
         <template v-else-if="active_tab == 'Rendering'">
@@ -170,6 +166,16 @@ async function runColor() {
                     <p>View direction: {{ terrain_deg_z }}</p>
                     <RangeInput v-model="terrain_deg_z" :min="-180" :max="180" :step="1" />
                 </template>
+            </VBox>
+        </template>
+        <template v-else>
+            <VBox>
+                <MenuItem
+                    v-for="example in examples"
+                    :key="example.name"
+                    :text="example.name"
+                    @click="setExample(example)"
+                />
             </VBox>
         </template>
     </SidePanelCanvas>

@@ -1,26 +1,15 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
 
-interface Props {
-    code: string
-}
-const props = defineProps<Props>()
-const changed = defineModel<boolean>()
+const code = defineModel<string>()
 const editor_ref = useTemplateRef('editor')
 
 onMounted(() => {
     if (editor_ref.value) {
-        const editor_code = props.code?.replace(/\u{20}/gu, '\u{A0}') || ''
+        const editor_code = code.value?.replace(/\u{20}/gu, '\u{A0}') || ''
         editor_ref.value.innerHTML = syntaxHighlight(editor_code)
     }
 })
-
-function getCode() {
-    const text = editor_ref.value?.innerText || ''
-    return text.replace(/\u{A0}/gu, '\u{20}')
-}
-
-defineExpose({ getCode })
 
 function onInput(ev: InputEvent) {
     const el = ev.target as HTMLTextAreaElement
@@ -29,7 +18,7 @@ function onInput(ev: InputEvent) {
     const caret_offset = getCaretOffset(el)
     el.innerHTML = syntaxHighlight(text)
     setCaretOffset(el, caret_offset)
-    changed.value = true
+    code.value = text.replace(/\u{A0}/gu, '\u{20}')
 }
 
 const KEYWORDS = [

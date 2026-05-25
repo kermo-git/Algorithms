@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
+import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
+import CACodeEditor from '@/components/CACodeEditor.vue'
+import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
+import RangeInput from '@/components/RangeInput.vue'
+import ColorPalette from '@/components/ColorPalette.vue'
+import MenuItem from '@/components/MenuItem.vue'
+import VBox from '@/components/VBox.vue'
+
 import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
 import { type ShaderIssue } from '@/WebGPU/Engine'
 
-import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import MenuItem from '@/components/MenuItem.vue'
-
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
-import RangeInput from '@/components/RangeInput.vue'
-import ColorPalette from '@/components/ColorPalette.vue'
-import CACodeEditor from '@/components/CACodeEditor.vue'
-import VBox from '@/components/VBox.vue'
 
 const default_example = examples[0]
 
@@ -21,7 +21,15 @@ const activeTab = ref('Configuration')
 const grid_size = ref(256)
 const colors = ref(default_example.colors)
 const n_states = ref(default_example.nStates)
+
 const update_shader = ref<string>(default_example.updateShader)
+const editor_code = ref(default_example.updateShader)
+const is_running = ref(false)
+const skip_frames = ref(false)
+const interval_ref = ref<number | null>(null)
+
+const shader_issues = ref<ShaderIssue[]>([])
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const scene = shallowRef(
     new AutomatonScene({
@@ -30,8 +38,6 @@ const scene = shallowRef(
         canvas_dims: [grid_size.value, grid_size.value],
     }),
 )
-const shader_issues = ref<ShaderIssue[]>([])
-const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
@@ -39,17 +45,44 @@ async function initScene(canvas: HTMLCanvasElement) {
     shader_issues.value = await scene.value.init(shader_colors, canvas)
 }
 
-onBeforeUnmount(() => {
-    scene.value.cleanup()
-})
-
 function setExample(example: Example) {
     colors.value = example.colors
     n_states.value = example.nStates
     update_shader.value = example.updateShader
+    editor_code.value = example.updateShader
 }
 
+function reset() {
+    if (editor_code.value != update_shader.value) {
+        update_shader.value = editor_code.value
+    } else {
+        scene.value.reset()
+    }
+}
+
+function step() {
+    scene.value.step(skip_frames.value ? 2 : 1)
+}
+
+function run() {
+    const fps = 60
+    interval_ref.value = setInterval(step, 1000 / fps)
+}
+
+function pause() {
+    if (interval_ref.value) {
+        clearInterval(interval_ref.value)
+    }
+    interval_ref.value = null
+}
+
+watch(colors, (new_colors) => {
+    const lerp_colors = lerpColorArray(new_colors, n_states.value)
+    scene.value.updateColors(shaderColorArray(lerp_colors))
+})
+
 watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
+    pause()
     scene.value.cleanup()
 
     scene.value = new AutomatonScene({
@@ -61,19 +94,15 @@ watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_u
     if (canvasRef.value) {
         initScene(canvasRef.value)
     }
+
+    if (is_running.value) {
+        run()
+    }
 })
 
-function reset() {
-    scene.value.reset()
-}
-
-function step(two_frames?: boolean) {
-    scene.value.step(two_frames ? 2 : 1)
-}
-
-watch(colors, (new_colors) => {
-    const lerp_colors = lerpColorArray(new_colors, n_states.value)
-    scene.value.updateColors(shaderColorArray(lerp_colors))
+onBeforeUnmount(() => {
+    pause()
+    scene.value.cleanup()
 })
 </script>
 
@@ -86,10 +115,20 @@ watch(colors, (new_colors) => {
     >
         <CACodeEditor
             v-if="activeTab === 'Configuration'"
-            :code="update_shader"
-            @code-change="(new_update_shader) => (update_shader = new_update_shader)"
+            v-model:code="editor_code"
+            v-model:is_running="is_running"
+            v-model:skip-frames="skip_frames"
             @reset="reset"
             @step="step"
+            @update:is_running="
+                (value) => {
+                    if (value) {
+                        run()
+                    } else {
+                        pause()
+                    }
+                }
+            "
         />
         <VBox>
             <template v-if="activeTab === 'Configuration'">
@@ -110,11 +149,7 @@ watch(colors, (new_colors) => {
                     v-for="example in examples"
                     :key="example.name"
                     :text="example.name"
-                    @click="
-                        () => {
-                            setExample(example)
-                        }
-                    "
+                    @click="setExample(example)"
                 />
             </template>
         </VBox>
