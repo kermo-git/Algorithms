@@ -48,7 +48,7 @@ export class Perlin2D implements NoiseAlgorithm {
 
     createShader({ name, extraBufferName }: Config) {
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-        const norm_constant = this.quadratic ? 1.2 : Math.sqrt(2)
+        const norm_constant = this.quadratic ? 1.35 : 1.6
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec2u, local_vec: vec2f) -> f32 {
@@ -107,7 +107,7 @@ export class Perlin3D implements NoiseAlgorithm {
     }
 
     createShader({ name, extraBufferName }: Config) {
-        const norm_constant = this.quadratic ? 1.3 : 1.55
+        const norm_constant = this.quadratic ? 1.5 : 1.7
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec3u, local_vec: vec3f) -> f32 {
@@ -186,7 +186,7 @@ export class Perlin4D implements NoiseAlgorithm {
     }
 
     createShader({ name, extraBufferName }: Config) {
-        const norm_constant = this.quadratic ? 1 : 1.57
+        const norm_constant = this.quadratic ? 1.5 : 1.7
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec4u, local_vec: vec4f) -> f32 {

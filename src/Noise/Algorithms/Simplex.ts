@@ -179,7 +179,7 @@ export const Simplex3D: NoiseAlgorithm = {
                 let i2 = ${influence}(skew_c2, c2_pos);
                 let i3 = ${influence}(skew_c3, c3_pos);
 
-                let n = 40 * (i0 + i1 + i2 + i3);
+                let n = 42 * (i0 + i1 + i2 + i3);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
             }
         `
@@ -406,7 +406,7 @@ export const Simplex4D: NoiseAlgorithm = {
                 let i3 = ${influence}(skew_c3, c3_pos);
                 let i4 = ${influence}(skew_c4, c4_pos);
 
-                let n = 44 * (i0 + i1 + i2 + i3 + i4);
+                let n = 42 * (i0 + i1 + i2 + i3 + i4);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
             }
         `

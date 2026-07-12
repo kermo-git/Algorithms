@@ -77,7 +77,7 @@ export const Worley2nd3D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp((sqrt(min_2nd_dist_sqr) - 0.1) * 0.92, 0, 1);
+                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.92, 0, 1);
             }
         `
     },
@@ -121,7 +121,7 @@ export const Worley2nd4D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.97, 0, 1);
+                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.92, 0, 1);
             }
         `
     },

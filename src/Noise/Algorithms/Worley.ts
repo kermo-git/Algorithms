@@ -63,7 +63,7 @@ export const Worley3D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr) * 0.92, 0, 1);
+                return clamp(sqrt(min_dist_sqr), 0, 1);
             }
         `
     },
@@ -100,7 +100,7 @@ export const Worley4D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr) * 0.95, 0, 1);
+                return clamp(sqrt(min_dist_sqr), 0, 1);
             }
         `
     },

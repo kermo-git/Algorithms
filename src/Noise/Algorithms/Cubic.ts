@@ -57,8 +57,8 @@ export const Cubic2D: NoiseAlgorithm = {
                     local_pos.y
                 );
 
-                const NORM_MIN = -0.3;
-                const NORM_MAX = 1.3;
+                const NORM_MIN = -0.2;
+                const NORM_MAX = 1.2;
                 const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
 
                 return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
@@ -125,8 +125,8 @@ export const Cubic3D: NoiseAlgorithm = {
                 local_pos.z
             );
 
-            const NORM_MIN = -0.3;
-            const NORM_MAX = 1.3;
+            const NORM_MIN = -0.2;
+            const NORM_MAX = 1.2;
             const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
 
             return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
@@ -206,8 +206,8 @@ export const Cubic4D: NoiseAlgorithm = {
                     local_pos.w
                 );
 
-                const NORM_MIN = -0.3;
-                const NORM_MAX = 1.3;
+                const NORM_MIN = -0.2;
+                const NORM_MAX = 1.2;
                 const NORM_DIFF = 1 / (NORM_MAX - NORM_MIN);
 
                 return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
