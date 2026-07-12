@@ -50,8 +50,11 @@ function noiseFunctionShader(group: number) {
         ${createNoiseFunctions(Cubic2D, 'cubic_2d')}
         ${createNoiseFunctions(Cubic3D, 'cubic_3d')}
 
-        ${createNoiseFunctions(Perlin2D, 'perlin_2d', 'unit_vectors_2D')}
-        ${createNoiseFunctions(Perlin3D, 'perlin_3d', 'unit_vectors_3D')}
+        ${createNoiseFunctions(new Perlin2D(), 'perlin_2d', 'unit_vectors_2D')}
+        ${createNoiseFunctions(new Perlin3D(), 'perlin_3d', 'unit_vectors_3D')}
+
+        ${createNoiseFunctions(new Perlin2D(true), 'quadratic_2d', 'unit_vectors_2D')}
+        ${createNoiseFunctions(new Perlin3D(true), 'quadratic_3d', 'unit_vectors_3D')}
 
         ${createNoiseFunctions(Simplex2D, 'simplex_2d', 'unit_vectors_2D')}
         ${createNoiseFunctions(Simplex3D, 'simplex_3d', 'unit_vectors_3D')}
@@ -295,7 +298,7 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
 
         const terrain_dims = vec2i(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
         const terrain_dims_f = vec2f(terrain_dims);
-        const box_dims = vec3f(${setup.grid_dims[0]}, ${setup.grid_dims[1]}, 1);
+        const box_dims = vec3f(${setup.grid_dims[0]}, ${setup.grid_dims[1]}, 3);
 
         fn find_box_distance(ray_origin: vec3f, ray_direction: vec3f) -> f32 {
             let t1 = -ray_origin / ray_direction;

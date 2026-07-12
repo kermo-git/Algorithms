@@ -128,7 +128,7 @@ watch(camera, (new_camera) => {
             <NumberSingleSelect
                 text="Grid columns"
                 name="n_grid_columns"
-                :options="[2, 4, 8, 16]"
+                :options="[2, 4, 8, 16, 32, 64, 128]"
                 v-model="grid_size"
             />
         </VBox>
