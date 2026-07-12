@@ -58,11 +58,20 @@ function createNoiseAlgorithm(name: string, dimension: string) {
         case 'Perlin':
             switch (dimension) {
                 case '2D':
-                    return Perlin2D
+                    return new Perlin2D()
                 case '3D':
-                    return Perlin3D
+                    return new Perlin3D()
                 default:
-                    return Perlin4D
+                    return new Perlin4D()
+            }
+        case 'Quadratic':
+            switch (dimension) {
+                case '2D':
+                    return new Perlin2D(true)
+                case '3D':
+                    return new Perlin3D(true)
+                default:
+                    return new Perlin4D(true)
             }
         case 'Cubic':
             switch (dimension) {
@@ -200,6 +209,7 @@ const available_transforms = computed(() =>
                     :options="[
                         'Simplex',
                         'Perlin',
+                        'Quadratic',
                         'Cubic',
                         'Value',
                         'Worley',
