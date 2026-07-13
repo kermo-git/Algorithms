@@ -11,6 +11,7 @@ import ColorPanel from './ColorPanel.vue'
 import NoiseScene, { defaultColorPoints } from './Scene'
 import type { DomainTransform, NoiseUniforms } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
+import { SimplexValue2D, SimplexValue3D, SimplexValue4D } from '@/Noise/Algorithms/SimplexValue.ts'
 import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
@@ -54,6 +55,15 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return Simplex3D
                 default:
                     return Simplex4D
+            }
+        case 'Simplex Value':
+            switch (dimension) {
+                case '2D':
+                    return SimplexValue2D
+                case '3D':
+                    return SimplexValue3D
+                default:
+                    return SimplexValue4D
             }
         case 'Perlin':
             switch (dimension) {
@@ -208,6 +218,7 @@ const available_transforms = computed(() =>
                     name="algorithm"
                     :options="[
                         'Simplex',
+                        'Simplex Value',
                         'Perlin',
                         'Quadratic',
                         'Cubic',
