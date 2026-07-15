@@ -13,7 +13,7 @@ import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { SimplexValue2D, SimplexValue3D } from '@/Noise/Algorithms/SimplexValue'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
-import { Worley2nd2D, Worley2nd3D } from '@/Noise/Algorithms/Worley2nd'
+import { WorleyF22D, WorleyF23D } from '@/Noise/Algorithms/WorleyF2'
 import { allFunctions } from '@/Noise/Algorithms/Common'
 
 function noiseFunctionShader(group: number) {
@@ -66,8 +66,8 @@ function noiseFunctionShader(group: number) {
         ${createNoiseFunctions(Worley2D, 'worley_2d')}
         ${createNoiseFunctions(Worley3D, 'worley_3d')}
 
-        ${createNoiseFunctions(Worley2nd2D, 'worley_2nd_2d')}
-        ${createNoiseFunctions(Worley2nd3D, 'worley_2nd_3d')}
+        ${createNoiseFunctions(WorleyF22D, 'worley_f2_2d')}
+        ${createNoiseFunctions(WorleyF23D, 'worley_f2_3d')}
     `
 }
 

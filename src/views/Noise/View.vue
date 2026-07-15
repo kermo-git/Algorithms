@@ -16,7 +16,7 @@ import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
-import { Worley2nd2D, Worley2nd3D, Worley2nd4D } from '@/Noise/Algorithms/Worley2nd'
+import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2.ts'
 
 const color_points = ref(defaultColorPoints)
 const algorithm = ref<string>('Simplex')
@@ -27,7 +27,7 @@ const n_main_octaves = ref(1)
 const persistence = ref(0.5)
 const z_coord = ref(0)
 const w_coord = ref(0)
-const warp_strength = ref(1)
+const warp_strength = ref(0.1)
 const n_warp_octaves = ref(1)
 const active_tab = ref('Configuration')
 
@@ -113,11 +113,11 @@ function createNoiseAlgorithm(name: string, dimension: string) {
         default:
             switch (dimension) {
                 case '2D':
-                    return Worley2nd2D
+                    return WorleyF22D
                 case '3D':
-                    return Worley2nd3D
+                    return WorleyF23D
                 default:
-                    return Worley2nd4D
+                    return WorleyF24D
             }
     }
 }
@@ -224,7 +224,7 @@ const available_transforms = computed(() =>
                         'Cubic',
                         'Value',
                         'Worley',
-                        'Worley (2nd closest)',
+                        'Worley F2 - F1',
                     ]"
                     v-model="algorithm"
                 />

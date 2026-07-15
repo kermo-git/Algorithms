@@ -1,7 +1,7 @@
 import type { NoiseAlgorithm, Config } from '../Types'
 import { pcd2d_2f, pcd3d_3f, pcd4d_4f, scramble_2d, scramble_3d, scramble_4d } from './Common'
 
-export const Worley2nd2D: NoiseAlgorithm = {
+export const WorleyF22D: NoiseAlgorithm = {
     pos_type: 'vec2f',
 
     createShaderDependencies() {
@@ -35,13 +35,13 @@ export const Worley2nd2D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp((sqrt(min_2nd_dist_sqr) - 0.07) * 0.79, 0, 1);
+                return 0.95*(sqrt(min_2nd_dist_sqr) - sqrt(min_dist_sqr));
             }
         `
     },
 }
 
-export const Worley2nd3D: NoiseAlgorithm = {
+export const WorleyF23D: NoiseAlgorithm = {
     pos_type: 'vec3f',
 
     createShaderDependencies: function (): string {
@@ -77,13 +77,13 @@ export const Worley2nd3D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.92, 0, 1);
+                return 1.1*(sqrt(min_2nd_dist_sqr) - sqrt(min_dist_sqr));
             }
         `
     },
 }
 
-export const Worley2nd4D: NoiseAlgorithm = {
+export const WorleyF24D: NoiseAlgorithm = {
     pos_type: 'vec4f',
 
     createShaderDependencies: function (): string {
@@ -121,7 +121,7 @@ export const Worley2nd4D: NoiseAlgorithm = {
                         }
                     }
                 }
-                return clamp((sqrt(min_2nd_dist_sqr) - 0.18) * 0.92, 0, 1);
+                return 1.1*(sqrt(min_2nd_dist_sqr) - sqrt(min_dist_sqr));
             }
         `
     },
