@@ -175,4 +175,25 @@ export const examples: Example[] = [
         },
         activation: invertedGaussian,
     },
+    {
+        name: 'Long bacteria',
+        color_0: '#000000',
+        color_1: '#aaff00',
+
+        kernel_radius: 1,
+        get_kernel: () => {
+            const X = -0.8
+            const Y = -0.5
+            const Z = 0.85
+
+            return new Float32Array(
+                [
+                    [Z, X, Z],
+                    [X, Y, X],
+                    [Z, X, Z],
+                ].flat(),
+            )
+        },
+        activation: invertedGaussian,
+    },
 ]
