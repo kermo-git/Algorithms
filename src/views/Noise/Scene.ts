@@ -134,7 +134,7 @@ export default class NoiseScene {
 
     render(): void {
         const texture = this.engine.getTexture()
-        const encoder = this.engine.beginPass()
+        const encoder = this.engine.beginComputePass()
 
         const canvas_bind_group = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
@@ -152,7 +152,7 @@ export default class NoiseScene {
         this.engine.encodeDraw(encoder, texture)
         encoder.end()
 
-        this.engine.endPass(encoder)
+        this.engine.endComputePass(encoder)
     }
 
     updateGridDimensions(n_columns: number, n_rows: number) {

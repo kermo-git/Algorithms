@@ -12,7 +12,14 @@ import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
-import { DEG_TO_RAD, rotateX, rotateZ, translate } from '@/WebGPU/Geometry'
+import {
+    DEG_TO_RAD,
+    perspectiveProjection,
+    rotateX,
+    rotateY,
+    rotateZ,
+    translate,
+} from '@/WebGPU/Geometry'
 
 import { examples, type Example } from './Examples'
 import TerrainScene from './Scene'
@@ -23,37 +30,45 @@ const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
-const grid_size = ref(4)
+const grid_size = ref(16)
 const noise_shader = ref(examples[0].elevation_shader)
 const color_shader = ref(examples[0].color_shader)
 
 const light_deg_x = ref(20)
-const light_deg_z = ref(0)
+const light_deg_y = ref(0)
 const ambient_intensity = ref(0.3)
 
 const render_3D = ref(false)
 const terrain_deg_x = ref(40)
-const terrain_deg_z = ref(70)
+const terrain_deg_y = ref(70)
 
 const light_dir = computed(() => {
     const rad_x = light_deg_x.value * DEG_TO_RAD
-    const rad_z = light_deg_z.value * DEG_TO_RAD
+    const rad_y = light_deg_y.value * DEG_TO_RAD
 
-    return rotateZ(rad_z).matmul(rotateX(rad_x)).matmul_vec([0, 0, 1])
+    return rotateY(rad_y).matmul(rotateX(rad_x)).matmul_vec([0, 1, 0])
 })
+
+const projection_matrix = perspectiveProjection(70, 1, 0.1, 1000)
 
 const camera = computed(() => {
     const size = grid_size.value
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
-    const rad_z = terrain_deg_z.value * DEG_TO_RAD
+    const rad_y = terrain_deg_y.value * DEG_TO_RAD
 
-    const move1 = translate(0, -size, 0)
-    const rotate = rotateZ(-rad_z).matmul(rotateX(-rad_x))
-    const move2 = translate(0.5 * size, 0.5 * size, 0)
+    const camera_pos = translate(0.5 * size, 0, -0.5 * size)
+        .matmul(rotateY(rad_y))
+        .matmul(rotateX(rad_x))
+        .matmul_vec([0, 0, size])
+
+    const view_matrix = translate(0, 0, -size)
+        .matmul(rotateX(-rad_x))
+        .matmul(rotateY(-rad_y))
+        .matmul(translate(-0.5 * size, 0, 0.5 * size))
 
     return {
-        pos: move2.matmul(rotate).matmul(move1).matmul_vec([0, 0, 0]),
-        rotation: rotate,
+        pos: camera_pos,
+        projectionView: projection_matrix.matmul(view_matrix),
     }
 })
 
@@ -69,7 +84,7 @@ async function initScene(grid_size: number) {
                 light_dir: light_dir.value,
                 ambient_intensity: ambient_intensity.value,
                 camera_pos: camera.value.pos,
-                camera_rotation: camera.value.rotation,
+                camera_projection_view: camera.value.projectionView,
                 render_3D: render_3D.value,
             },
             canvasRef.value,
@@ -89,11 +104,11 @@ async function canvasReady(canvas: HTMLCanvasElement) {
 }
 
 async function runNoise() {
-    shader_issues.value = await scene.value.updateNoiseShader(noise_shader.value)
+    shader_issues.value = await scene.value.updateNoiseShader(noise_shader.value, render_3D.value)
 }
 
 async function runColor() {
-    shader_issues.value = await scene.value.updateColorShader(color_shader.value)
+    shader_issues.value = await scene.value.updateColorShader(color_shader.value, render_3D.value)
 }
 
 watch(grid_size, async (new_grid_size) => {
@@ -101,19 +116,15 @@ watch(grid_size, async (new_grid_size) => {
 })
 
 watch([light_dir, ambient_intensity], (new_values) => {
-    scene.value.setLight(new_values[0], new_values[1])
+    scene.value.setLight(new_values[0], new_values[1], render_3D.value)
 })
 
 watch(render_3D, (new_render_3D) => {
-    if (new_render_3D) {
-        scene.value.setDisplay3D()
-    } else {
-        scene.value.setDisplay2D()
-    }
+    scene.value.renderDisplay(new_render_3D)
 })
 
 watch(camera, (new_camera) => {
-    scene.value.setCamera(new_camera.pos, new_camera.rotation)
+    scene.value.setCamera(new_camera.pos, new_camera.projectionView)
 })
 </script>
 
@@ -152,8 +163,8 @@ watch(camera, (new_camera) => {
                 <p>Light angle: {{ light_deg_x }}</p>
                 <RangeInput v-model="light_deg_x" :min="0" :max="90" :step="1" />
 
-                <p>Light direction: {{ light_deg_z }}</p>
-                <RangeInput v-model="light_deg_z" :min="-180" :max="180" :step="1" />
+                <p>Light direction: {{ light_deg_y }}</p>
+                <RangeInput v-model="light_deg_y" :min="-180" :max="180" :step="1" />
 
                 <HBox justify="left">
                     <Checkbox text="3D view" name="render_3D" v-model="render_3D" />
@@ -163,8 +174,8 @@ watch(camera, (new_camera) => {
                     <p>View angle: {{ terrain_deg_x }}</p>
                     <RangeInput v-model="terrain_deg_x" :min="0" :max="90" :step="1" />
 
-                    <p>View direction: {{ terrain_deg_z }}</p>
-                    <RangeInput v-model="terrain_deg_z" :min="-180" :max="180" :step="1" />
+                    <p>View direction: {{ terrain_deg_y }}</p>
+                    <RangeInput v-model="terrain_deg_y" :min="-180" :max="180" :step="1" />
                 </template>
             </VBox>
         </template>

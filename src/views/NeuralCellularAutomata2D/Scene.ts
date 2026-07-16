@@ -105,7 +105,7 @@ export class NeuralScene {
 
     redraw(): void {
         const texture = this.engine.getTexture()
-        const encoder = this.engine.beginPass()
+        const encoder = this.engine.beginComputePass()
 
         const canvas_bind_group = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
@@ -121,12 +121,12 @@ export class NeuralScene {
         encoder.setBindGroup(1, this.generation_bind_group)
         encoder.setBindGroup(2, this.static_bind_group)
         this.engine.encodeDraw(encoder, texture)
-        this.engine.endPass(encoder)
+        this.engine.endComputePass(encoder)
     }
 
     step(n_generations = 1): void {
         const texture = this.engine.getTexture()
-        const encoder = this.engine.beginPass()
+        const encoder = this.engine.beginComputePass()
 
         const canvas_bind_group = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
@@ -152,7 +152,7 @@ export class NeuralScene {
             encoder.setBindGroup(1, this.generation_bind_group)
             this.engine.encodeDraw(encoder, texture)
         }
-        this.engine.endPass(encoder)
+        this.engine.endComputePass(encoder)
     }
 
     updateColors(colors: FloatArray) {

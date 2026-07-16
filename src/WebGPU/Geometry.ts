@@ -22,8 +22,8 @@ export class Mat4x4 {
     matmul(other: Mat4x4): Mat4x4 {
         const res = new Mat4x4()
 
-        for (let col = 0; col < 4; col++) {
-            for (let row = 0; row < 4; row++) {
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
                 let value = 0
                 for (let common_dim = 0; common_dim < 4; common_dim++) {
                     value += this.get(row, common_dim) * other.get(common_dim, col)
@@ -49,12 +49,8 @@ export class Mat4x4 {
         return res
     }
 
-    toWebGPU_mat4x4() {
+    toWebGPU() {
         return new Float32Array(this.columns_flat)
-    }
-
-    toWebGPU_rotation_mat3x3() {
-        return new Float32Array(this.columns_flat.slice(0, 12))
     }
 }
 
@@ -104,5 +100,29 @@ export function translate(x: number, y: number, z: number): Mat4x4 {
         [0, 1, 0, 0],
         [0, 0, 1, 0],
         [x, y, z, 1]
+    ])
+}
+
+// // https://gamedev.stackexchange.com/questions/120338/what-does-a-perspective-projection-matrix-look-like-in-opengl
+export function perspectiveProjection(
+    degrees_FOV: number,
+    aspect_ratio: number,
+    near: number,
+    far: number,
+): Mat4x4 {
+    const fov = degrees_FOV * DEG_TO_RAD
+    const t = Math.tan(fov / 2)
+
+    const x = 1 / (aspect_ratio * t)
+    const y = 1 / t
+    const z = -((far + near) / (far - near))
+    const w = -((2 * far * near) / (far - near))
+
+    // prettier-ignore
+    return new Mat4x4([
+        [x, 0, 0, 0],
+        [0, y, 0, 0],
+        [0, 0, z, -1],
+        [0, 0, w, 0]
     ])
 }

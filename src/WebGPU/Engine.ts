@@ -24,13 +24,13 @@ export default class Engine {
     async init(canvas: HTMLCanvasElement) {
         const context = canvas.getContext('webgpu')
         if (!context) {
-            throw Error('HTML Canvas not found!')
+            throw Error('WebGPU not supported!')
         }
         this.context = context
 
         const adapter = await navigator.gpu.requestAdapter()
         if (!adapter) {
-            throw Error('WebGPU not supported!')
+            throw Error('WebGPU adapter not found!')
         }
         const has_bgra8unorm_storage = adapter.features.has('bgra8unorm-storage')
         this.device = await adapter.requestDevice({
@@ -43,7 +43,8 @@ export default class Engine {
         context.configure({
             device: this.device,
             format: this.canvas_color_format,
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+            alphaMode: 'opaque',
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
         })
     }
 
@@ -75,12 +76,12 @@ export default class Engine {
 
     cmd_encoder!: GPUCommandEncoder
 
-    beginPass(): GPUComputePassEncoder {
+    beginComputePass(): GPUComputePassEncoder {
         this.cmd_encoder = this.device.createCommandEncoder()
         return this.cmd_encoder.beginComputePass()
     }
 
-    endPass(encoder: GPUComputePassEncoder) {
+    endComputePass(encoder: GPUComputePassEncoder) {
         encoder.end()
         this.device.queue.submit([this.cmd_encoder.finish()])
     }

@@ -69,7 +69,40 @@ function terrainColorShader(
 }`
 }
 
+function noiseColorShader() {
+    return /* wgsl */ `fn color(pos: vec3f, 
+         gradient: vec2f) -> vec4f {
+    if pos.z <= 0 {
+        return vec4f(1, 0, 0, 1);
+    }
+    if pos.z <= 0.05 {
+        return vec4f(1, 1, 0, 1);
+    }
+    if pos.z >= 1 {
+        return vec4f(0, 0, 1, 1);
+    }
+    if pos.z >= 0.95 {
+        return vec4f(0, 1, 1, 1);
+    }
+    return vec4f(1, 1, 1, 1);
+}`
+}
+
 export const examples: Example[] = [
+    {
+        name: '3D noise',
+        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
+    return worley_f2_3d(vec3f(pos, 0.5), 0);
+}`,
+        color_shader: noiseColorShader(),
+    },
+    {
+        name: '2D noise',
+        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
+    return worley_f2_2d(pos, 0);
+}`,
+        color_shader: noiseColorShader(),
+    },
     {
         name: 'Mountains',
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {

@@ -16,6 +16,39 @@ import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D } from '@/Noise/Algorithms/WorleyF2'
 import { allFunctions } from '@/Noise/Algorithms/Common'
 
+export function vertexIndexShader(setup: Setup): string {
+    return /* wgsl */ `
+        @group(0) @binding(0) var<storage, read_write> vertex_index: array<u32>;
+
+        const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
+        
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+        fn main(
+            @builtin(global_invocation_id) pos: vec3u
+        ) {
+            if (pos.x >= terrain_dims.x - 1 || pos.y >= terrain_dims.y - 1) {
+                return;
+            }
+
+            let A = pos.y * terrain_dims.x + pos.x;
+            let B = pos.y * terrain_dims.x + pos.x + 1;
+            let C = (pos.y + 1) * terrain_dims.x + pos.x;
+            let D = (pos.y + 1) * terrain_dims.x + pos.x + 1;
+
+            const quad_dims_x = terrain_dims.x - 1;
+            let offset = 6 * (pos.y * quad_dims_x + pos.x);
+
+            vertex_index[offset + 0] = A;
+            vertex_index[offset + 1] = B;
+            vertex_index[offset + 2] = C;
+
+            vertex_index[offset + 3] = B;
+            vertex_index[offset + 4] = C;
+            vertex_index[offset + 5] = D;
+        }
+    `
+}
+
 function noiseFunctionShader(group: number) {
     function createNoiseFunctions(
         algorithm: NoiseAlgorithm,
@@ -79,7 +112,7 @@ export interface Setup {
     light_dir: number[]
     ambient_intensity: number
     camera_pos: number[]
-    camera_rotation: Mat4x4
+    camera_projection_view: Mat4x4
     render_3D: boolean
 }
 
@@ -97,15 +130,6 @@ const terrainStruct = /* wgsl */ `
     };
 `
 
-const terrainSampleStruct = /* wgsl */ `
-    struct TerrainSample {
-        altitude: f32,
-        gradient: vec2f,
-        hit: bool,
-        color: vec4f,
-    };
-`
-
 const lightStruct = /* wgsl */ `
     struct Light {
         dir: vec3f,
@@ -116,8 +140,8 @@ const lightStruct = /* wgsl */ `
 const cameraStruct = /* wgsl */ `
     struct Camera {
         pos: vec3f,
-        rotation: mat3x3f,
-    }
+        projection_view: mat4x4f,
+    };
 `
 
 export function noiseShader(setup: Setup): string {
@@ -243,7 +267,6 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
     return /* wgsl */ `
         ${terrainStruct}
         ${lightStruct}
-        ${cameraStruct}
 
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
 
@@ -268,41 +291,77 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
             let pixel = read_terrain[pixel_index];
 
             let a = light.ambient_intensity;
-            let normal = normalize(vec3f(-pixel.gradient.xy, 1));
-            let light_level = dot(normal, light.dir);
 
+            let normal = normalize(vec3f(-pixel.gradient.x, 1, -pixel.gradient.y));
+            let light_level = dot(normal, light.dir);
             let color = a * pixel.color + (1 - a) * pixel.color * light_level;
 
-            let canvas_pos = vec2u(pixel_pos.x, terrain_dims.y - 1 - pixel_pos.y);
-            textureStore(canvas, canvas_pos, color);
+            textureStore(canvas, pixel_pos, color);
         }
     `
 }
 
 export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
+    // TODO
     return /* wgsl */ `
         ${terrainStruct}
-        ${terrainSampleStruct}
         ${lightStruct}
         ${cameraStruct}
 
+        @group(0) @binding(0) var<storage, read> terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<uniform> light: Light;
+        @group(1) @binding(1) var<uniform> camera: Camera;
+
+        const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
+        const grid_dims = vec2f(${setup.grid_dims[0]}, ${setup.grid_dims[1]});
+
+        struct FragmentInput {
+            @builtin(position) screen_pos: vec4f,
+            @location(0) color: vec4f,
+        }
+
+        @vertex
+        fn vertex_main(
+            @builtin(vertex_index) index: u32
+        ) -> FragmentInput {
+            let terrain_data = terrain[index];
+
+            let pixel_pos = vec2u(index % terrain_dims.x, index / terrain_dims.x);
+            let world_pos_2d = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims);
+            let world_pos = vec4f(world_pos_2d.x, terrain_data.elevation, world_pos_2d.y, 1);
+
+            let gradient = terrain_data.gradient;
+            let normal = normalize(vec3f(-gradient.x, 1, -gradient.y));
+            let light_level = dot(normal, light.dir);
+            let a = light.ambient_intensity;
+
+            var output: FragmentInput;
+            output.screen_pos = camera.projection_view * world_pos;
+            output.color = a * terrain_data.color + (1 - a) * terrain_data.color * light_level;
+
+            return output;
+        }
+
+        @fragment
+        fn fragment_main(@location(0) color: vec4f) -> @location(0) vec4f {
+            return color;
+        }
+    `
+}
+
+function rayMarchingShader(box_dims: number[], canvas_color_format: GPUTextureFormat): string {
+    return /* wgsl */ `
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
+        @group(1) @binding(0) var<uniform> light: Light;
+        @group(1) @binding(1) var<uniform> camera: Camera;
 
-        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
-
-        @group(2) @binding(0) var<uniform> light: Light;
-        @group(2) @binding(1) var<uniform> camera: Camera;
-
-        const STEP_SCALE = 0.1;
-        const HIT_THRESHOLD = ${setup.grid_dims[0] / setup.terrain_dims[0]};
+        const STEP_SCALE = 1;
+        const HIT_THRESHOLD = 0.005;
 
         const CAMERA_FOV = radians(70);
         const IMAGE_WIDTH = 2 * tan(CAMERA_FOV / 2);
-
-        const terrain_dims = vec2i(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
-        const terrain_dims_f = vec2f(terrain_dims);
-        const box_dims = vec3f(${setup.grid_dims[0]}, ${setup.grid_dims[1]}, 3);
+        
+        const box_dims = vec3f(${box_dims[0]}, ${box_dims[1]}, ${box_dims[2]});
 
         fn find_box_distance(ray_origin: vec3f, ray_direction: vec3f) -> f32 {
             let t1 = -ray_origin / ray_direction;
@@ -329,90 +388,20 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
             return -1;
         }
 
-        fn find_box_normal(surface_point: vec3f) -> vec3f {
-            if (surface_point.x < 0 + HIT_THRESHOLD) {
-                return vec3f(-1, 0, 0);
-            }
-            if (surface_point.x > box_dims.x - HIT_THRESHOLD) {
-                return vec3f(1, 0, 0);
-            }
-            if (surface_point.y < 0 + HIT_THRESHOLD) {
-                return vec3f(0, -1, 0);
-            }
-            if (surface_point.y > box_dims.y - HIT_THRESHOLD) {
-                return vec3f(0, 1, 0);
-            }
-            if (surface_point.z < 0 + HIT_THRESHOLD) {
-                return vec3f(0, 0, -1);
-            }
-            return vec3f(0, 0, 1);
+        fn find_distance(pos: vec3f) -> f32 {
+            // TODO
+            return 0;
+        };
+
+        struct Surface {
+            normal: vec3f;
+            color: vec3f;
         }
-        
-        fn sample_terrain(pos: vec3f) -> TerrainSample {
-            const pixels_per_grid_cell = terrain_dims_f / box_dims.xy;
 
-            let pixel_pos_float = pos.xy * pixels_per_grid_cell;
-            let pixel_pos_floor = floor(pixel_pos_float);
-            let pixel_pos = vec2i(pixel_pos_floor);
-
-            let pixel_relative_pos = pixel_pos_float - pixel_pos_floor;
-            let pixel_center_offset = pixel_relative_pos - vec2f(0.5);
-            let mix_factor = abs(pixel_center_offset);
-
-            let not_min_edge = select(
-                vec2i(0), vec2i(1), pixel_pos > vec2i(0)
-            );
-            let not_max_edge = select(
-                vec2i(0), vec2i(1), 
-                pixel_pos < terrain_dims - vec2i(1)
-            );
-            let neighbor_pos = pixel_pos + select(
-                /* false */ 
-                vec2i(-1) * not_min_edge, 
-                /* true */ 
-                vec2i(1) * not_max_edge, 
-                /* condition */ 
-                pixel_center_offset >= vec2f(0)
-            );
-
-            let pixel = read_terrain[pixel_pos.y * terrain_dims.x + pixel_pos.x];
-            let neighbor_x = read_terrain[pixel_pos.y * terrain_dims.x + neighbor_pos.x];
-            let neighbor_y = read_terrain[neighbor_pos.y * terrain_dims.x + pixel_pos.x];
-            let neighbor_xy = read_terrain[neighbor_pos.y * terrain_dims.x + neighbor_pos.x];
-
-            let elevation = mix(
-                mix(pixel.elevation, neighbor_x.elevation, mix_factor.x),
-                mix(neighbor_y.elevation, neighbor_xy.elevation, mix_factor.x),
-                mix_factor.y
-            );
-            let gradient = mix(
-                mix(pixel.gradient, neighbor_x.gradient, mix_factor.x),
-                mix(neighbor_y.gradient, neighbor_xy.gradient, mix_factor.x),
-                mix_factor.y
-            );
-            let altitude = pos.z - elevation;
-
-            if abs(altitude) <= HIT_THRESHOLD {
-                let color = mix(
-                    mix(pixel.color, neighbor_x.color, mix_factor.x),
-                    mix(neighbor_y.color, neighbor_xy.color, mix_factor.x),
-                    mix_factor.y
-                );
-
-                return TerrainSample(
-                    altitude,
-                    gradient,
-                    true,
-                    color
-                );
-            } else {
-                return TerrainSample(
-                    altitude,
-                    gradient,
-                    false,
-                    vec4f(0)
-                );
-            }
+        fn get_surface_data(pos: vec3f) -> Surface {
+            var result: Surface;
+            // TODO
+            return result;
         }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
@@ -420,7 +409,7 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
             @builtin(global_invocation_id) gid: vec3u
         ) {
             let canvas_dims = textureDimensions(canvas);
-            let pixel_pos = vec2u(gid.x, canvas_dims.y - 1 - gid.y);
+            let pixel_pos = gid.xy;
 
             if (pixel_pos.x >= canvas_dims.x || pixel_pos.y < 0) {
                 return;
@@ -439,36 +428,26 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
             
             if current_distance > 0 {
                 var current_pos = camera.pos + current_distance * camera_ray;
-
-                var terrain = sample_terrain(current_pos);
                 let a = light.ambient_intensity;
 
-                if terrain.altitude < 0 {
-                    let normal = find_box_normal(current_pos);
-                    let light_level = dot(normal, light.dir);
-                    const box_color = vec4f(0.5, 0.5, 0.5, 1);
-                    let color = a * box_color + (1 - a) * box_color * light_level;
-                    textureStore(canvas, gid.xy, color);
-                } else {
-                    const MAX_STEPS = 1000;
-                    for (var s = 0; s < MAX_STEPS; s++) {
-                        current_distance += 0.1 * terrain.altitude;
-                        current_pos = camera.pos + current_distance * camera_ray;
-                        terrain = sample_terrain(current_pos);
+                const MAX_STEPS = 1000;
+                for (var s = 0; s < MAX_STEPS; s++) {
+                    let world_distance = find_distance(current_pos);
+                    current_distance += STEP_SCALE * world_distance;
+                    current_pos = camera.pos + current_distance * camera_ray;
 
-                        if terrain.hit {
-                            let normal = normalize(vec3f(-terrain.gradient.xy, 1));
-                            let light_level = dot(normal, light.dir);
-                            let color = a * terrain.color + (1 - a) * terrain.color * light_level;
-                            textureStore(canvas, gid.xy, color);
-                            break;
-                        } else if (
-                            any(current_pos <= vec3f(0)) || 
-                            any(current_pos >= box_dims)
-                        ) {
-                            textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
-                            break;
-                        }
+                    if world_distance < HIT_THRESHOLD {
+                        let surface = get_surface_data(current_pos);
+                        let light_level = dot(surface.normal, light.dir);
+                        let color = a * surface.color + (1 - a) * surface.color * light_level;
+                        textureStore(canvas, gid.xy, color);
+                        break;
+                    } else if (
+                        any(current_pos <= vec3f(0)) || 
+                        any(current_pos >= box_dims)
+                    ) {
+                        textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
+                        break;
                     }
                 }
             } else {

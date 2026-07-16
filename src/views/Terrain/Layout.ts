@@ -19,12 +19,26 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
     })
 }
 
+export function createIndexBufferLayout(device: GPUDevice): GPUBindGroupLayout {
+    return device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0, // vertex_index
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: {
+                    type: 'storage',
+                },
+            },
+        ],
+    })
+}
+
 export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
             {
                 binding: 0, // terrain A/B
-                visibility: GPUShaderStage.COMPUTE,
+                visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
                 buffer: {
                     type: 'read-only-storage',
                 },
@@ -45,14 +59,14 @@ export function createUniformsLayout(device: GPUDevice) {
         entries: [
             {
                 binding: 0, // struct Light: ambient_intensity, dir
-                visibility: GPUShaderStage.COMPUTE,
+                visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
                 buffer: {
                     type: 'uniform',
                 },
             },
             {
-                binding: 1, // struct Camera: pos, rotation
-                visibility: GPUShaderStage.COMPUTE,
+                binding: 1, // struct Camera: pos, projection_view
+                visibility: GPUShaderStage.VERTEX,
                 buffer: {
                     type: 'uniform',
                 },
