@@ -22,7 +22,8 @@ function terrainColorShader(
         return `vec3f(${red_norm}, ${green_norm}, ${blue_norm})`
     }
 
-    return /* wgsl */ `fn color(pos: vec3f, 
+    return /* wgsl */ `fn color(pos: vec2f, 
+         elevation: f32,
          gradient: vec2f) -> vec3f {
     const PI = radians(180);
 
@@ -43,12 +44,12 @@ function terrainColorShader(
 
     var ground_cover = bottom_color;
     
-    if pos.y > top_color_start {
+    if elevation > top_color_start {
         ground_cover = top_color;
-    } else if pos.y > bottom_color_end {
+    } else if elevation > bottom_color_end {
         ground_cover = mix(
             bottom_color, top_color,
-            (pos.y - bottom_color_end)/(
+            (elevation - bottom_color_end)/(
              top_color_start - bottom_color_end)
         );
     }
@@ -201,7 +202,8 @@ export const examples: Example[] = [
 
     return rivers + mountain_area* mountain_valleys*mountains + canyon_area* canyons;
 }`,
-        color_shader: /* wgsl */ `fn color(pos: vec3f, 
+        color_shader: /* wgsl */ `fn color(pos: vec2f, 
+         elevation: f32,
          gradient: vec2f) -> vec3f {
     const PI = radians(180);
 
@@ -222,12 +224,12 @@ export const examples: Example[] = [
 
     var ground_cover = bottom_color;
     
-    if pos.y > top_color_start {
+    if elevation > top_color_start {
         ground_cover = top_color;
-    } else if pos.y > bottom_color_end {
+    } else if elevation > bottom_color_end {
         ground_cover = mix(
             bottom_color, top_color,
-            (pos.y - bottom_color_end)/(
+            (elevation - bottom_color_end)/(
              top_color_start - bottom_color_end)
         );
     }
