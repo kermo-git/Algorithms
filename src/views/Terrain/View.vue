@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiPlay } from '@mdi/js'
-import { computed, ref, shallowRef, useTemplateRef, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
@@ -12,14 +12,7 @@ import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
-import {
-    DEG_TO_RAD,
-    perspectiveProjection,
-    rotateX,
-    rotateY,
-    rotateZ,
-    translate,
-} from '@/WebGPU/Geometry'
+import { DEG_TO_RAD, perspectiveProjection, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
 
 import { examples, type Example } from './Examples'
 import TerrainScene from './Scene'
@@ -30,7 +23,7 @@ const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const scene = shallowRef(new TerrainScene())
 
-const grid_size = ref(16)
+const grid_size = ref(4)
 const noise_shader = ref(examples[0].elevation_shader)
 const color_shader = ref(examples[0].color_shader)
 
@@ -39,7 +32,7 @@ const light_deg_y = ref(0)
 const ambient_intensity = ref(0.3)
 
 const render_3D = ref(false)
-const terrain_deg_x = ref(40)
+const terrain_deg_x = ref(-40)
 const terrain_deg_y = ref(70)
 
 const light_dir = computed(() => {
@@ -172,7 +165,7 @@ watch(camera, (new_camera) => {
 
                 <template v-if="render_3D">
                     <p>View angle: {{ terrain_deg_x }}</p>
-                    <RangeInput v-model="terrain_deg_x" :min="0" :max="90" :step="1" />
+                    <RangeInput v-model="terrain_deg_x" :max="0" :min="-90" :step="1" />
 
                     <p>View direction: {{ terrain_deg_y }}</p>
                     <RangeInput v-model="terrain_deg_y" :min="-180" :max="180" :step="1" />

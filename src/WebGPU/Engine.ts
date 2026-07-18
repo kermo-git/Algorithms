@@ -43,7 +43,6 @@ export default class Engine {
         context.configure({
             device: this.device,
             format: this.canvas_color_format,
-            alphaMode: 'opaque',
             usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
         })
     }
@@ -159,5 +158,34 @@ export default class Engine {
 
     updateBuffer(buffer: GPUBuffer, data: BufferData) {
         this.device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+    }
+
+    createDepthStencilState(): GPUDepthStencilState {
+        return {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: 'depth24plus-stencil8',
+        }
+    }
+
+    createDepthTexture(width: number, height: number): GPUTexture {
+        return this.device.createTexture({
+            size: { width, height },
+            dimension: '2d',
+            format: 'depth24plus-stencil8',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        })
+    }
+
+    createDepthStencilAttachment(depth_texture: GPUTexture): GPURenderPassDepthStencilAttachment {
+        return {
+            view: depth_texture.createView(),
+            depthClearValue: 1,
+            depthLoadOp: 'clear',
+            depthStoreOp: 'store',
+            stencilClearValue: 0,
+            stencilLoadOp: 'load',
+            stencilStoreOp: 'store',
+        }
     }
 }

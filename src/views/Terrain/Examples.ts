@@ -19,16 +19,16 @@ function terrainColorShader(
         const green_norm = (green / 255).toFixed(2)
         const blue_norm = (blue / 255).toFixed(2)
 
-        return `vec4f(${red_norm}, ${green_norm}, ${blue_norm}, 1)`
+        return `vec3f(${red_norm}, ${green_norm}, ${blue_norm})`
     }
 
     return /* wgsl */ `fn color(pos: vec3f, 
-         gradient: vec2f) -> vec4f {
+         gradient: vec2f) -> vec3f {
     const PI = radians(180);
 
     const bottom_color = ${hexColorToWGSL(bottom_color)};
     const top_color = ${hexColorToWGSL(top_color)};
-    const cliff = vec4f(0.5, 0.5, 0.5, 1);
+    const cliff = vec3f(0.5, 0.5, 0.5);
     const up = vec3f(0, 0, 1);
 
     const bottom_color_end = ${bottom_color_end};
@@ -43,12 +43,12 @@ function terrainColorShader(
 
     var ground_cover = bottom_color;
     
-    if pos.z > top_color_start {
+    if pos.y > top_color_start {
         ground_cover = top_color;
-    } else if pos.z > bottom_color_end {
+    } else if pos.y > bottom_color_end {
         ground_cover = mix(
             bottom_color, top_color,
-            (pos.z - bottom_color_end)/(
+            (pos.y - bottom_color_end)/(
              top_color_start - bottom_color_end)
         );
     }
@@ -69,40 +69,7 @@ function terrainColorShader(
 }`
 }
 
-function noiseColorShader() {
-    return /* wgsl */ `fn color(pos: vec3f, 
-         gradient: vec2f) -> vec4f {
-    if pos.z <= 0 {
-        return vec4f(1, 0, 0, 1);
-    }
-    if pos.z <= 0.05 {
-        return vec4f(1, 1, 0, 1);
-    }
-    if pos.z >= 1 {
-        return vec4f(0, 0, 1, 1);
-    }
-    if pos.z >= 0.95 {
-        return vec4f(0, 1, 1, 1);
-    }
-    return vec4f(1, 1, 1, 1);
-}`
-}
-
 export const examples: Example[] = [
-    {
-        name: '3D noise',
-        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
-    return worley_f2_3d(vec3f(pos, 0.5), 0);
-}`,
-        color_shader: noiseColorShader(),
-    },
-    {
-        name: '2D noise',
-        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
-    return worley_f2_2d(pos, 0);
-}`,
-        color_shader: noiseColorShader(),
-    },
     {
         name: 'Mountains',
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
@@ -235,12 +202,12 @@ export const examples: Example[] = [
     return rivers + mountain_area* mountain_valleys*mountains + canyon_area* canyons;
 }`,
         color_shader: /* wgsl */ `fn color(pos: vec3f, 
-         gradient: vec2f) -> vec4f {
+         gradient: vec2f) -> vec3f {
     const PI = radians(180);
 
-    const bottom_color = vec4f(0, 0, 1, 1);
-    const top_color = vec4f(0.08, 0.70, 0.26, 1);
-    const cliff = vec4f(0.5, 0.5, 0.5, 1);
+    const bottom_color = vec3f(0, 0, 1);
+    const top_color = vec3f(0.08, 0.70, 0.26);
+    const cliff = vec3f(0.5, 0.5, 0.5);
     const up = vec3f(0, 0, 1);
 
     const bottom_color_end = 0.03;
@@ -255,12 +222,12 @@ export const examples: Example[] = [
 
     var ground_cover = bottom_color;
     
-    if pos.z > top_color_start {
+    if pos.y > top_color_start {
         ground_cover = top_color;
-    } else if pos.z > bottom_color_end {
+    } else if pos.y > bottom_color_end {
         ground_cover = mix(
             bottom_color, top_color,
-            (pos.z - bottom_color_end)/(
+            (pos.y - bottom_color_end)/(
              top_color_start - bottom_color_end)
         );
     }

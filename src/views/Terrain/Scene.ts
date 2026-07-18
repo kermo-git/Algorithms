@@ -1,4 +1,5 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
+import type { Mat4x4 } from '@/WebGPU/Geometry'
 
 import {
     type Setup,
@@ -16,7 +17,6 @@ import {
     createIndexBufferLayout,
 } from './Layout'
 import { generateUnitVectors2D, generateUnitVectors3D } from '@/Noise/UnitVectors'
-import type { Mat4x4 } from '@/WebGPU/Geometry'
 
 export default class TerrainScene {
     setup!: Setup
@@ -241,17 +241,17 @@ export default class TerrainScene {
         const { module } = await this.engine.compileShader(
             display3DShader(this.setup, this.engine.canvas_color_format),
         )
+
         this.display_3D_pipeline = this.engine.device.createRenderPipeline({
             layout: this.engine.device.createPipelineLayout({
                 bindGroupLayouts: [this.terrain_layout, this.uniforms_layout],
             }),
+            depthStencil: this.engine.createDepthStencilState(),
             vertex: {
                 module: module,
-                entryPoint: 'vertex_main',
             },
             fragment: {
                 module: module,
-                entryPoint: 'vertex_main',
                 targets: [
                     {
                         format: this.engine.canvas_color_format,
@@ -304,15 +304,23 @@ export default class TerrainScene {
     }
 
     private display3DPass(encoder: GPUCommandEncoder, terrain_group: GPUBindGroup) {
+        const main_texture = this.engine.getTexture()
+        const depth_texture = this.engine.createDepthTexture(
+            main_texture.width,
+            main_texture.height,
+        )
+        const depth_attachment = this.engine.createDepthStencilAttachment(depth_texture)
+
         const pass_encoder = encoder.beginRenderPass({
             colorAttachments: [
                 {
-                    view: this.engine.getTexture().createView(),
+                    view: main_texture.createView(),
                     clearValue: [0, 0, 0, 1],
                     loadOp: 'clear',
                     storeOp: 'store',
                 },
             ],
+            depthStencilAttachment: depth_attachment,
         })
         pass_encoder.setPipeline(this.display_3D_pipeline)
         pass_encoder.setBindGroup(0, terrain_group)

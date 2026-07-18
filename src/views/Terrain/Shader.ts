@@ -31,12 +31,13 @@ export function vertexIndexShader(setup: Setup): string {
             }
 
             let A = pos.y * terrain_dims.x + pos.x;
+            // pos.x = A - pos.y * terrain_dims.x
+            // pos.y = (A - pos.x) / terrain_dims.x
             let B = pos.y * terrain_dims.x + pos.x + 1;
             let C = (pos.y + 1) * terrain_dims.x + pos.x;
             let D = (pos.y + 1) * terrain_dims.x + pos.x + 1;
 
-            const quad_dims_x = terrain_dims.x - 1;
-            let offset = 6 * (pos.y * quad_dims_x + pos.x);
+            let offset = 6 * (pos.y * (terrain_dims.x - 1) + pos.x);
 
             vertex_index[offset + 0] = A;
             vertex_index[offset + 1] = B;
@@ -118,15 +119,10 @@ export interface Setup {
 
 const terrainStruct = /* wgsl */ `
     struct TerrainUnit {
-        elevation: f32,
-        gradient: vec2f,
-
-        water: f32,
-        sediment: f32,
-        velocity: vec2f,
+        gradient: vec2f, velocity: vec2f,
         water_outflow_flux: vec4f,
-
-        color: vec4f,
+        surface_pos: vec3f, water: f32,
+        color: vec3f, sediment: f32,
     };
 `
 
@@ -167,10 +163,12 @@ export function noiseShader(setup: Setup): string {
             if (pixel_pos.x >= terrain_dims.x || pixel_pos.y >= terrain_dims.y) {
                 return;
             }
-            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims);
+            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims - 1);
             let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
 
-            write_terrain[pixel_index].elevation = elevation(noise_pos);
+            write_terrain[pixel_index].surface_pos = vec3f(
+                noise_pos.x, elevation(noise_pos), -noise_pos.y
+            );
         }
     `
 }
@@ -195,7 +193,7 @@ export function colorShader(setup: Setup): string {
 
         fn find_gradient(pixel_pos: vec2u) -> vec2f {
             let pixel_index = find_index(pixel_pos);
-            let current = read_terrain[pixel_index].elevation;
+            let current = read_terrain[pixel_index].surface_pos.y;
             let pixel_size = grid_dims.x / f32(terrain_dims.x);
 
             var gradient = vec2f(0);
@@ -207,10 +205,10 @@ export function colorShader(setup: Setup): string {
             let not_min_edge = pixel_pos > vec2u(0);
 
             if not_min_edge.x {
-                before.x = read_terrain[pixel_index - 1].elevation;
+                before.x = read_terrain[pixel_index - 1].surface_pos.y;
             }
             if not_max_edge.x {
-                after.x = read_terrain[pixel_index + 1].elevation;
+                after.x = read_terrain[pixel_index + 1].surface_pos.y;
             }
             if not_min_edge.x && not_max_edge.x {
                 delta_input.x = 2 * pixel_size;
@@ -219,12 +217,12 @@ export function colorShader(setup: Setup): string {
             if not_min_edge.y {
                 before.y = read_terrain[
                     pixel_index - terrain_dims.x
-                ].elevation;
+                ].surface_pos.y;
             }
             if not_max_edge.y {
                 after.y = read_terrain[
                     pixel_index + terrain_dims.x
-                ].elevation;
+                ].surface_pos.y;
             }
             if not_min_edge.y && not_max_edge.y {
                 delta_input.y = 2 * pixel_size;
@@ -243,14 +241,13 @@ export function colorShader(setup: Setup): string {
                 return;
             }
 
-            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims);
+            let noise_pos = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims - 1);
             let pixel_index = find_index(pixel_pos);
-            let elevation = read_terrain[pixel_index].elevation;
-            let surface_pos = vec3f(noise_pos, elevation);
+            let surface_pos = read_terrain[pixel_index].surface_pos;
             let gradient = find_gradient(pixel_pos);
             let terrain_color = color(surface_pos, gradient);
 
-            write_terrain[pixel_index].elevation = read_terrain[pixel_index].elevation;
+            write_terrain[pixel_index].surface_pos = surface_pos;
             write_terrain[pixel_index].gradient = gradient;
 
             write_terrain[pixel_index].water = read_terrain[pixel_index].water;
@@ -296,7 +293,7 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
             let light_level = dot(normal, light.dir);
             let color = a * pixel.color + (1 - a) * pixel.color * light_level;
 
-            textureStore(canvas, pixel_pos, color);
+            textureStore(canvas, pixel_pos, vec4f(color, 1));
         }
     `
 }
@@ -317,7 +314,7 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
 
         struct FragmentInput {
             @builtin(position) screen_pos: vec4f,
-            @location(0) color: vec4f,
+            @location(0) color: vec3f,
         }
 
         @vertex
@@ -326,25 +323,21 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
         ) -> FragmentInput {
             let terrain_data = terrain[index];
 
-            let pixel_pos = vec2u(index % terrain_dims.x, index / terrain_dims.x);
-            let world_pos_2d = grid_dims * vec2f(pixel_pos) / vec2f(terrain_dims);
-            let world_pos = vec4f(world_pos_2d.x, terrain_data.elevation, world_pos_2d.y, 1);
-
             let gradient = terrain_data.gradient;
             let normal = normalize(vec3f(-gradient.x, 1, -gradient.y));
             let light_level = dot(normal, light.dir);
             let a = light.ambient_intensity;
 
             var output: FragmentInput;
-            output.screen_pos = camera.projection_view * world_pos;
+            output.screen_pos = camera.projection_view * vec4f(terrain_data.surface_pos, 1);
             output.color = a * terrain_data.color + (1 - a) * terrain_data.color * light_level;
 
             return output;
         }
 
         @fragment
-        fn fragment_main(@location(0) color: vec4f) -> @location(0) vec4f {
-            return color;
+        fn fragment_main(@location(0) color: vec3f) -> @location(0) vec4f {
+            return vec4f(color, 1);
         }
     `
 }
