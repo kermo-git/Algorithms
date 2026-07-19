@@ -15,14 +15,14 @@ import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 
-import { type DistanceMeasure, type UniformData } from './Shader'
+import { type DistanceMeasure } from './Shader'
 import VoronoiScene from './Scene'
 
 const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const voronoi_colors = ref(['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB'])
-const voronoi_grid_size = ref(16)
+const voronoi_n_columns = ref(16)
 
 const noise_algorithm = ref<string>('Simplex')
 const noise_dimension = ref<'2D' | '3D'>('2D')
@@ -32,30 +32,25 @@ const noise_persistence = ref(0.5)
 const noise_warp_strength = ref(0)
 const noise_z = ref(0)
 
-const scene = shallowRef(
-    markRaw(
-        new VoronoiScene({
-            distance_measure: voronoi_distance.value,
-            warp_algorithm: Simplex2D,
-        }),
-    ),
-)
-const renderer = shallowRef(markRaw(new Engine()))
+const scene = shallowRef(new VoronoiScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    const init_params: UniformData = {
-        voronoi_n_columns: voronoi_grid_size.value,
-        voronoi_n_rows: voronoi_grid_size.value,
-        voronoi_colors: shaderColorArray(voronoi_colors.value),
-        noise_scale: noise_scale.value,
-        noise_warp_strength: noise_warp_strength.value,
-        noise_z: noise_z.value,
-        noise_n_octaves: noise_n_octaves.value,
-        noise_persistence: noise_persistence.value,
-    }
-    await scene.value.init(init_params, canvas)
+    await scene.value.init(
+        {
+            distance_measure: voronoi_distance.value,
+            voronoi_n_columns: voronoi_n_columns.value,
+            voronoi_colors: shaderColorArray(voronoi_colors.value),
+            warp_algorithm: createNoiseAlgorithm(noise_algorithm.value, noise_dimension.value),
+            noise_scale: noise_scale.value,
+            noise_warp_strength: noise_warp_strength.value,
+            noise_z: noise_z.value,
+            noise_n_octaves: noise_n_octaves.value,
+            noise_persistence: noise_persistence.value,
+        },
+        canvas,
+    )
 }
 
 function createNoiseAlgorithm(name: string, dimension: string) {
@@ -74,50 +69,27 @@ function createNoiseAlgorithm(name: string, dimension: string) {
 watch(
     [voronoi_distance, noise_algorithm, noise_dimension],
     ([new_measure, new_algorithm, new_dimension]) => {
-        scene.value.cleanup()
-        renderer.value.cleanup()
-
-        scene.value = new VoronoiScene({
-            distance_measure: new_measure,
-            warp_algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
-        })
         if (canvasRef.value) {
-            initScene(canvasRef.value)
+            scene.value.cleanup()
+            scene.value.init(
+                {
+                    distance_measure: new_measure,
+                    voronoi_n_columns: voronoi_n_columns.value,
+                    voronoi_colors: shaderColorArray(voronoi_colors.value),
+                    warp_algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
+                    noise_scale: noise_scale.value,
+                    noise_warp_strength: noise_warp_strength.value,
+                    noise_z: noise_z.value,
+                    noise_n_octaves: noise_n_octaves.value,
+                    noise_persistence: noise_persistence.value,
+                },
+                canvasRef.value,
+            )
         }
     },
 )
 
-watch(voronoi_grid_size, (new_grid_size) => {
-    scene.value.updateVoronoiGridDimensions(new_grid_size, new_grid_size)
-})
-
-watch(voronoi_colors, (new_colors) => {
-    const shader_colors = shaderColorArray(new_colors)
-    scene.value.updateVoronoiColors(shader_colors)
-})
-
-watch(noise_scale, (new_scale) => {
-    scene.value.updateNoiseScale(new_scale)
-})
-
-watch(noise_warp_strength, (new_warp_strength) => {
-    scene.value.updateNoiseWarpStrength(new_warp_strength)
-})
-
-watch(noise_n_octaves, (new_n_octaves) => {
-    scene.value.updateNoiseOctaves(new_n_octaves)
-})
-
-watch(noise_persistence, (new_persistence) => {
-    scene.value.updateNoisePersistence(new_persistence)
-})
-
-watch(noise_z, (new_z_coord) => {
-    scene.value.updateNoiseZ(new_z_coord)
-})
-
 onBeforeUnmount(() => {
-    renderer.value.cleanup()
     scene.value.cleanup()
 })
 </script>
@@ -134,7 +106,8 @@ onBeforeUnmount(() => {
                     text="Grid size"
                     name="n_grid_columns"
                     :options="[4, 8, 16, 32, 64]"
-                    v-model="voronoi_grid_size"
+                    v-model="voronoi_n_columns"
+                    @update:model-value="(value) => scene.updateVoronoiNColumns(value)"
                 />
                 <TextSingleSelect
                     text="Distance measure"
@@ -144,7 +117,13 @@ onBeforeUnmount(() => {
                 />
 
                 <p>Noise strength: {{ noise_warp_strength }}</p>
-                <RangeInput :min="0" :max="5" :step="0.01" v-model="noise_warp_strength" />
+                <RangeInput
+                    :min="0"
+                    :max="5"
+                    :step="0.01"
+                    v-model="noise_warp_strength"
+                    @animation="(value) => scene.updateNoiseWarpStrength(value)"
+                />
 
                 <TextSingleSelect
                     text="Noise algorithm"
@@ -162,7 +141,13 @@ onBeforeUnmount(() => {
 
                 <template v-if="noise_dimension !== '2D'">
                     <p>Noise Z coordinate: {{ noise_z }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_z" />
+                    <RangeInput
+                        :min="0"
+                        :max="1"
+                        :step="0.01"
+                        v-model="noise_z"
+                        @animation="(value) => scene.updateNoiseZCoord(value)"
+                    />
                 </template>
 
                 <NumberSingleSelect
@@ -170,18 +155,39 @@ onBeforeUnmount(() => {
                     name="noise_n_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="noise_n_octaves"
+                    @update:model-value="(value) => scene.updateNoiseNOctaves(value)"
                 />
 
                 <template v-if="noise_n_octaves > 1">
                     <p>Noise persistence: {{ noise_persistence }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="noise_persistence" />
+                    <RangeInput
+                        :min="0"
+                        :max="1"
+                        :step="0.01"
+                        v-model="noise_persistence"
+                        @animation="(value) => scene.updateNoisePersistence(value)"
+                    />
                 </template>
 
                 <p>Noise scale relative to Voronoi cells: {{ noise_scale }}</p>
-                <RangeInput :min="0.1" :max="5" :step="0.01" v-model="noise_scale" />
+                <RangeInput
+                    :min="0.1"
+                    :max="5"
+                    :step="0.01"
+                    v-model="noise_scale"
+                    @animation="(value) => scene.updateNoiseScale(value)"
+                />
             </template>
             <template v-else>
-                <ColorPanel v-model="voronoi_colors" />
+                <ColorPanel
+                    v-model="voronoi_colors"
+                    @update:model-value="
+                        (new_colors) => {
+                            const shader_data = shaderColorArray(new_colors!)
+                            scene.updateVoronoiColors(shader_data)
+                        }
+                    "
+                />
             </template>
         </VBox>
     </SidePanelCanvas>

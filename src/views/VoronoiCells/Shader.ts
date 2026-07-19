@@ -8,11 +8,7 @@ export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 export interface Setup {
     distance_measure: DistanceMeasure
     warp_algorithm: NoiseAlgorithm
-}
-
-export interface UniformData {
     voronoi_n_columns?: number
-    voronoi_n_rows?: number
     voronoi_colors?: FloatArray
     noise_scale?: number
     noise_warp_strength?: number
@@ -53,7 +49,7 @@ export function createShader(
 
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         
-        @group(1) @binding(0) var<uniform> voronoi_grid_dims: vec2f;
+        @group(1) @binding(0) var<uniform> voronoi_n_columns: f32;
         @group(1) @binding(1) var<uniform> noise_scale: f32;
         @group(1) @binding(2) var<uniform> noise_n_octaves: u32;
         @group(1) @binding(3) var<uniform> noise_persistence: f32;
@@ -124,7 +120,11 @@ export function createShader(
             if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
             }
-            let norm_canvas_pos = vec2f(canvas_pos) / vec2f(canvas_dims);
+            let canvas_dims_f = vec2f(canvas_dims);
+            let voronoi_n_rows = voronoi_n_columns * canvas_dims_f.y / canvas_dims_f.x;
+            let voronoi_grid_dims = vec2f(voronoi_n_columns, voronoi_n_rows);
+
+            let norm_canvas_pos = vec2f(canvas_pos) / canvas_dims_f;
             let unwarped_voronoi_pos = voronoi_grid_dims * norm_canvas_pos;
             let noise_pos = unwarped_voronoi_pos * noise_scale;
             let voronoi_pos = warp_pos(unwarped_voronoi_pos, ${pos_expr});

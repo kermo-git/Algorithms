@@ -52,16 +52,31 @@ export default class Engine {
         this.observer?.disconnect()
     }
 
+    pending_resize = {
+        width: 0,
+        height: 0,
+    }
+    raf_id: number | null = null
+
     initObserver(canvas: HTMLCanvasElement, render_callback: () => void) {
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
+                const box_width = entry.contentBoxSize[0].inlineSize
+                const box_height = entry.contentBoxSize[0].blockSize
                 const max_size = this.device.limits.maxTextureDimension2D
-                const width = entry.contentBoxSize[0].inlineSize
-                const height = entry.contentBoxSize[0].blockSize
 
-                canvas.width = Math.min(width, max_size)
-                canvas.height = Math.min(height, max_size)
-                render_callback()
+                this.pending_resize = {
+                    width: Math.min(box_width * devicePixelRatio, max_size),
+                    height: Math.min(box_height * devicePixelRatio, max_size),
+                }
+                if (!this.raf_id) {
+                    this.raf_id = requestAnimationFrame(() => {
+                        this.raf_id = null
+                        canvas.width = this.pending_resize.width
+                        canvas.height = this.pending_resize.height
+                        render_callback()
+                    })
+                }
             })
         })
         this.observer.observe(canvas.parentElement!)
