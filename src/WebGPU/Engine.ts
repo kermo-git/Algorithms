@@ -55,18 +55,16 @@ export default class Engine {
     initObserver(canvas: HTMLCanvasElement, render_callback: () => void) {
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
+                const max_size = this.device.limits.maxTextureDimension2D
                 const width = entry.contentBoxSize[0].inlineSize
                 const height = entry.contentBoxSize[0].blockSize
-                const canvas = entry.target as HTMLCanvasElement
 
-                const max_size = this.device.limits.maxTextureDimension2D
                 canvas.width = Math.min(width, max_size)
                 canvas.height = Math.min(height, max_size)
-
                 render_callback()
             })
         })
-        this.observer.observe(canvas)
+        this.observer.observe(canvas.parentElement!)
     }
 
     getTexture(): GPUTexture {
@@ -85,11 +83,8 @@ export default class Engine {
         this.device.queue.submit([this.cmd_encoder.finish()])
     }
 
-    encodeDraw(encoder: GPUComputePassEncoder, texture: GPUTexture) {
-        encoder.dispatchWorkgroups(
-            Math.ceil(texture.width / WG_DIM),
-            Math.ceil(texture.height / WG_DIM),
-        )
+    encodeCompute(encoder: GPUComputePassEncoder, width: number, height: number) {
+        encoder.dispatchWorkgroups(Math.ceil(width / WG_DIM), Math.ceil(height / WG_DIM))
     }
 
     async compileShader(shader_code: string): Promise<ShaderCompilationResult> {

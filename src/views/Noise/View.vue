@@ -9,7 +9,7 @@ import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
 import NoiseScene, { defaultColorPoints } from './Scene'
-import type { DomainTransform, NoiseUniforms } from './Shader'
+import type { DomainTransform, Setup } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
 import { SimplexValue2D, SimplexValue3D, SimplexValue4D } from '@/Noise/Algorithms/SimplexValue.ts'
 import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
@@ -22,7 +22,7 @@ const color_points = ref(defaultColorPoints)
 const algorithm = ref<string>('Simplex')
 const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
-const grid_size = ref(16)
+const n_grid_columns = ref(16)
 const n_main_octaves = ref(1)
 const persistence = ref(0.5)
 const z_coord = ref(0)
@@ -30,20 +30,8 @@ const w_coord = ref(0)
 const warp_strength = ref(0.1)
 const n_warp_octaves = ref(1)
 const active_tab = ref('Configuration')
-
-function getNoiseParams(): NoiseUniforms {
-    return {
-        n_grid_columns: grid_size.value,
-        n_grid_rows: grid_size.value,
-        n_main_octaves: n_main_octaves.value,
-        persistence: persistence.value,
-        z_coord: z_coord.value,
-        w_coord: w_coord.value,
-        n_warp_octaves: n_warp_octaves.value,
-        warp_strength: warp_strength.value,
-        color_points: color_points.value,
-    }
-}
+const scene = shallowRef(new NoiseScene())
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function createNoiseAlgorithm(name: string, dimension: string) {
     switch (name) {
@@ -122,47 +110,24 @@ function createNoiseAlgorithm(name: string, dimension: string) {
     }
 }
 
-const scene = shallowRef(
-    new NoiseScene({
-        algorithm: createNoiseAlgorithm(algorithm.value, dimension.value),
-        transform: domain_transform.value,
-    }),
-)
-
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    await scene.value.init(getNoiseParams(), canvas)
+    await scene.value.init(
+        {
+            algorithm: createNoiseAlgorithm(algorithm.value, dimension.value),
+            transform: domain_transform.value,
+            n_grid_columns: n_grid_columns.value,
+            n_main_octaves: n_main_octaves.value,
+            persistence: persistence.value,
+            z_coord: z_coord.value,
+            w_coord: w_coord.value,
+            n_warp_octaves: n_warp_octaves.value,
+            warp_strength: warp_strength.value,
+            color_points: color_points.value,
+        },
+        canvas,
+    )
 }
-
-watch(grid_size, (new_grid_size) => {
-    scene.value.updateGridDimensions(new_grid_size, new_grid_size)
-})
-
-watch(n_main_octaves, (new_n_octaves) => {
-    scene.value.updateNMainOctaves(new_n_octaves)
-})
-
-watch(persistence, (new_persistence) => {
-    scene.value.updatePersistence(new_persistence)
-})
-
-watch(z_coord, (new_z_coord) => {
-    scene.value.updateZCoord(new_z_coord)
-})
-
-watch(w_coord, (new_w_coord) => {
-    scene.value.updateWCoord(new_w_coord)
-})
-
-watch(n_warp_octaves, (new_n_octaves) => {
-    scene.value.updateNWarpOctaves(new_n_octaves)
-})
-
-watch(warp_strength, (new_warp_strength) => {
-    scene.value.updateWarpStrength(new_warp_strength)
-})
 
 watch(color_points, (new_color_points) => {
     scene.value.updateColorPoints(new_color_points)
@@ -180,14 +145,23 @@ watch(dimension, (new_dimension) => {
 watch(
     [algorithm, dimension, domain_transform],
     ([new_algorithm, new_dimension, new_domain_transform]) => {
-        scene.value.cleanup()
-        scene.value = new NoiseScene({
-            algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
-            transform: new_domain_transform,
-        })
-
         if (canvasRef.value) {
-            initScene(canvasRef.value)
+            scene.value.cleanup()
+            scene.value.init(
+                {
+                    algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
+                    transform: new_domain_transform,
+                    n_grid_columns: n_grid_columns.value,
+                    n_main_octaves: n_main_octaves.value,
+                    persistence: persistence.value,
+                    z_coord: z_coord.value,
+                    w_coord: w_coord.value,
+                    n_warp_octaves: n_warp_octaves.value,
+                    warp_strength: warp_strength.value,
+                    color_points: color_points.value,
+                },
+                canvasRef.value,
+            )
         }
     },
 )
@@ -238,11 +212,23 @@ const available_transforms = computed(() =>
 
                 <template v-if="dimension !== '2D'">
                     <p>Z coordinate: {{ z_coord }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord" />
+                    <RangeInput
+                        :min="0"
+                        :max="1"
+                        :step="0.01"
+                        v-model="z_coord"
+                        @animation="(value) => scene.updateZCoord(value)"
+                    />
 
                     <template v-if="dimension === '4D'">
                         <p>W coordinate: {{ w_coord }}</p>
-                        <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord" />
+                        <RangeInput
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            v-model="w_coord"
+                            @animation="(value) => scene.updateWCoord(value)"
+                        />
                     </template>
                 </template>
 
@@ -255,14 +241,21 @@ const available_transforms = computed(() =>
 
                 <template v-if="domain_transform.startsWith('Warp')">
                     <p>Warp strength: {{ warp_strength }}</p>
-                    <RangeInput :min="0.01" :max="1" :step="0.01" v-model="warp_strength" />
+                    <RangeInput
+                        :min="0.01"
+                        :max="1"
+                        :step="0.01"
+                        v-model="warp_strength"
+                        @animation="(value) => scene.updateWarpStrength(value)"
+                    />
                 </template>
 
                 <NumberSingleSelect
                     text="Grid size"
                     name="grid_size"
                     :options="[4, 8, 16, 32, 64]"
-                    v-model="grid_size"
+                    v-model="n_grid_columns"
+                    @update:model-value="(value) => scene.updateGridDimensions(value)"
                 />
 
                 <NumberSingleSelect
@@ -271,6 +264,7 @@ const available_transforms = computed(() =>
                     name="n_warp_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_warp_octaves"
+                    @update:model-value="(value) => scene.updateNWarpOctaves(value)"
                 />
 
                 <NumberSingleSelect
@@ -278,6 +272,7 @@ const available_transforms = computed(() =>
                     name="n_main_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_main_octaves"
+                    @update:model-value="(value) => scene.updateNMainOctaves(value)"
                 />
 
                 <template
@@ -287,7 +282,13 @@ const available_transforms = computed(() =>
                     "
                 >
                     <p>Persistence: {{ persistence }}</p>
-                    <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence" />
+                    <RangeInput
+                        :min="0"
+                        :max="1"
+                        :step="0.01"
+                        v-model="persistence"
+                        @animation="(value) => scene.updatePersistence(value)"
+                    />
                 </template>
             </template>
             <template v-else>

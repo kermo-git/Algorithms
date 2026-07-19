@@ -4,9 +4,24 @@ import HBox from './HBox.vue'
 defineOptions({ inheritAttrs: false })
 const model = defineModel<number>()
 
+interface Emits {
+    (e: 'animation', value: number): void
+}
+const emit = defineEmits<Emits>()
+
+let frame_requested = false
+
 function onInput(event: Event) {
     const element = event.target as HTMLInputElement
     model.value = Number(element.value)
+
+    if (!frame_requested) {
+        frame_requested = true
+        requestAnimationFrame(() => {
+            emit('animation', model.value!)
+            frame_requested = false
+        })
+    }
 }
 </script>
 

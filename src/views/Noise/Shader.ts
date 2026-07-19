@@ -14,11 +14,7 @@ export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 export interface Setup {
     algorithm: NoiseAlgorithm
     transform: DomainTransform
-}
-
-export interface NoiseUniforms {
     n_grid_columns?: number
-    n_grid_rows?: number
     n_main_octaves?: number
     persistence?: number
     z_coord?: number
@@ -126,16 +122,16 @@ function noisePosCode(algorithm: NoiseAlgorithm) {
     switch (algorithm.pos_type) {
         case 'vec2f':
             return /* wgsl */ `
-                let noise_pos = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
+                let noise_pos = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
             `
         case 'vec3f':
             return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
+                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
                 let noise_pos = vec3f(noise_pos_2D, z_coordinate);
             `
         case 'vec4f':
             return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / vec2f(canvas_dims);
+                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
                 let noise_pos = vec4f(noise_pos_2D, z_coordinate, w_coordinate);
             `
     }
@@ -156,7 +152,7 @@ export default function createNoiseShader(
     return /* wgsl */ `
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         
-        @group(1) @binding(0) var<uniform> grid_dims: vec2f;
+        @group(1) @binding(0) var<uniform> n_grid_columns: f32;
         @group(1) @binding(1) var<uniform> n_main_octaves: u32;
         @group(1) @binding(2) var<uniform> persistence: f32;
         
@@ -182,6 +178,10 @@ export default function createNoiseShader(
             if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
             }
+            let canvas_dims_f = vec2f(canvas_dims);
+            let n_grid_rows = n_grid_columns * canvas_dims_f.y / canvas_dims_f.x;
+            let grid_dims = vec2f(n_grid_columns, n_grid_rows);
+            
             ${noisePosCode(algorithm)}
             let noise_value = ${noise_expr};
             let color = interpolate_color(noise_value);
