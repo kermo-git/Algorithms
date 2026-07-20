@@ -9,17 +9,18 @@ interface Emits {
 }
 const emit = defineEmits<Emits>()
 
-let frame_requested = false
+let raw_value = model.value || 0
+let frame_id = 0
 
 function onInput(event: Event) {
     const element = event.target as HTMLInputElement
-    model.value = Number(element.value)
+    raw_value = Number(element.value)
 
-    if (!frame_requested) {
-        frame_requested = true
-        requestAnimationFrame(() => {
-            emit('animation', model.value!)
-            frame_requested = false
+    if (!frame_id) {
+        frame_id = requestAnimationFrame(() => {
+            emit('animation', raw_value)
+            model.value = raw_value
+            frame_id = 0
         })
     }
 }

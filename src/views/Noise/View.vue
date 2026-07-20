@@ -8,7 +8,7 @@ import RangeInput from '@/components/RangeInput.vue'
 import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
-import NoiseScene, { defaultColorPoints } from './Scene'
+import NoiseScene from './Scene'
 import type { DomainTransform, Setup } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
 import { SimplexValue2D, SimplexValue3D, SimplexValue4D } from '@/Noise/Algorithms/SimplexValue.ts'
@@ -18,7 +18,8 @@ import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2.ts'
 
-const color_points = ref(defaultColorPoints)
+const colors = ref(['#000000', '#FFFFFF'])
+const color_points = ref([0, 1])
 const algorithm = ref<string>('Simplex')
 const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
@@ -123,15 +124,12 @@ async function initScene(canvas: HTMLCanvasElement) {
             w_coord: w_coord.value,
             n_warp_octaves: n_warp_octaves.value,
             warp_strength: warp_strength.value,
+            colors: colors.value,
             color_points: color_points.value,
         },
         canvas,
     )
 }
-
-watch(color_points, (new_color_points) => {
-    scene.value.updateColorPoints(new_color_points)
-})
 
 watch(dimension, (new_dimension) => {
     if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
@@ -158,6 +156,7 @@ watch(
                     w_coord: w_coord.value,
                     n_warp_octaves: n_warp_octaves.value,
                     warp_strength: warp_strength.value,
+                    colors: colors.value,
                     color_points: color_points.value,
                 },
                 canvasRef.value,
@@ -292,7 +291,15 @@ const available_transforms = computed(() =>
                 </template>
             </template>
             <template v-else>
-                <ColorPanel v-model="color_points" />
+                <ColorPanel
+                    v-model:colors="colors"
+                    v-model:points="color_points"
+                    @change-single-color="(index, color) => scene.updateColor(index, color)"
+                    @change-single-point="(index, value) => scene.updateColorPoint(index, value)"
+                    @change-all-color-points="
+                        (colors, points) => scene.updateColorData(colors, points)
+                    "
+                />
             </template>
         </VBox>
     </SidePanelCanvas>

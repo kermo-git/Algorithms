@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { mdiDelete, mdiPlus } from '@mdi/js'
 
+import { COLOR_PALETTES, toHexColor } from '@/utils/Colors'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
-import { COLOR_PALETTES, toHexColor } from '@/utils/Colors'
 
-const colors = defineModel<string[]>()
+interface Emits {
+    (e: 'changeSingleColor', index: number, value: string): void
+    (e: 'changeAllColors', colors: string[]): void
+}
+const emit = defineEmits<Emits>()
+
+const colors = defineModel<string[]>({ default: ['#000000'] })
 </script>
 
 <template>
@@ -15,7 +21,7 @@ const colors = defineModel<string[]>()
                 :mdi-path="mdiPlus"
                 @click="
                     () => {
-                        const colors_copy = colors!.slice()
+                        const colors_copy = colors.slice()
                         colors_copy.unshift(
                             toHexColor({
                                 red: Math.floor(Math.random() * 255),
@@ -23,33 +29,27 @@ const colors = defineModel<string[]>()
                                 blue: Math.floor(Math.random() * 255),
                             }),
                         )
-
+                        emit('changeAllColors', colors_copy)
                         colors = colors_copy
                     }
                 "
             />
-            <div v-for="(hex_color, i) in colors" :key="i" class="color-unit">
+            <div v-for="(_, i) in colors" :key="i" class="color-unit">
                 <PanelButton
                     v-if="colors!.length > 2"
                     :mdi-path="mdiDelete"
                     @click="
                         () => {
-                            const colors_copy = colors!.slice()
+                            const colors_copy = colors.slice()
                             colors_copy.splice(i, 1)
+                            emit('changeAllColors', colors_copy)
                             colors = colors_copy
                         }
                     "
                 />
                 <ColorInput
-                    :model-value="hex_color"
-                    :data-index="i"
-                    @update:model-value="
-                        (new_color?: string) => {
-                            const colors_copy = colors!.slice()
-                            colors_copy.splice(i, 1, new_color!)
-                            colors = colors_copy
-                        }
-                    "
+                    v-model="colors[i]"
+                    @animation="(value) => emit('changeSingleColor', i, value)"
                 />
             </div>
         </div>
@@ -60,6 +60,7 @@ const colors = defineModel<string[]>()
                 :text="name"
                 @click="
                     () => {
+                        emit('changeAllColors', hex_colors)
                         colors = hex_colors
                     }
                 "

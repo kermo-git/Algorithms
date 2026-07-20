@@ -5,11 +5,9 @@ import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
-import ColorPanel from '@/components/ColorPalette.vue'
+import ColorPalette from '@/components/ColorPalette.vue'
 import VBox from '@/components/VBox.vue'
 
-import { shaderColorArray } from '@/utils/Colors'
-import Engine from '@/WebGPU/Engine'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
@@ -41,7 +39,7 @@ async function initScene(canvas: HTMLCanvasElement) {
         {
             distance_measure: voronoi_distance.value,
             voronoi_n_columns: voronoi_n_columns.value,
-            voronoi_colors: shaderColorArray(voronoi_colors.value),
+            voronoi_colors: voronoi_colors.value,
             warp_algorithm: createNoiseAlgorithm(noise_algorithm.value, noise_dimension.value),
             noise_scale: noise_scale.value,
             noise_warp_strength: noise_warp_strength.value,
@@ -75,7 +73,7 @@ watch(
                 {
                     distance_measure: new_measure,
                     voronoi_n_columns: voronoi_n_columns.value,
-                    voronoi_colors: shaderColorArray(voronoi_colors.value),
+                    voronoi_colors: voronoi_colors.value,
                     warp_algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
                     noise_scale: noise_scale.value,
                     noise_warp_strength: noise_warp_strength.value,
@@ -179,14 +177,10 @@ onBeforeUnmount(() => {
                 />
             </template>
             <template v-else>
-                <ColorPanel
+                <ColorPalette
                     v-model="voronoi_colors"
-                    @update:model-value="
-                        (new_colors) => {
-                            const shader_data = shaderColorArray(new_colors!)
-                            scene.updateVoronoiColors(shader_data)
-                        }
-                    "
+                    @change-single-color="(index, value) => scene.updateSingleColor(index, value)"
+                    @change-all-colors="(colors) => scene.updateAllColors(colors)"
                 />
             </template>
         </VBox>

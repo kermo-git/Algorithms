@@ -9,7 +9,7 @@ export interface Setup {
     distance_measure: DistanceMeasure
     warp_algorithm: NoiseAlgorithm
     voronoi_n_columns?: number
-    voronoi_colors?: FloatArray
+    voronoi_colors?: string[]
     noise_scale?: number
     noise_warp_strength?: number
     noise_n_octaves?: number
@@ -58,6 +58,7 @@ export function createShader(
         ${noise_data} @group(1) @binding(6) var<storage> noise_data: ${warp_algorithm.extra_data_type};
 
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
+        @group(2) @binding(1) var<uniform> n_colors: u32;
 
         fn voronoi_point(coords: vec2i) -> vec2f {
             var h = bitcast<vec2u>(coords) + voronoi_channel * 0x9e3779b9;
@@ -86,7 +87,7 @@ export function createShader(
             var x = h.x + h.y * 1664525u;
             x ^= (x >> 16u);
             
-            return voronoi_colors[x % arrayLength(&voronoi_colors)];
+            return voronoi_colors[x % n_colors];
         }
 
         ${warp_algorithm.createShaderDependencies()}

@@ -1,8 +1,29 @@
 <script setup lang="ts">
-const value = defineModel<string>()
+const model = defineModel<string>()
+
+interface Emits {
+    (e: 'animation', value: string): void
+}
+const emit = defineEmits<Emits>()
+
+let frame_id = 0
+let raw_value = model.value || '#000000'
+
+function onInput(event: Event) {
+    const element = event.target as HTMLInputElement
+    raw_value = element.value
+
+    if (!frame_id) {
+        frame_id = requestAnimationFrame(() => {
+            emit('animation', raw_value)
+            model.value = raw_value
+            frame_id = 0
+        })
+    }
+}
 </script>
 <template>
-    <input type="color" :style="`background-color: ${value}`" v-model="value" />
+    <input type="color" :style="`background-color: ${model}`" :value="model" @input="onInput" />
 </template>
 
 <style scoped>

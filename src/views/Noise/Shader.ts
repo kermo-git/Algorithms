@@ -1,6 +1,5 @@
-import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
+import { WG_DIM } from '@/WebGPU/Engine'
 import {
-    interpolateColorShader,
     rotate3DShader,
     rotate4DShader,
     octaveNoiseShader,
@@ -21,7 +20,8 @@ export interface Setup {
     w_coord?: number
     n_warp_octaves?: number
     warp_strength?: number
-    color_points?: FloatArray
+    colors?: string[]
+    color_points?: number[]
 }
 
 function warp2DShader() {
@@ -163,10 +163,34 @@ export default function createNoiseShader(
         ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
         
         @group(2) @binding(0) var<storage> color_points: array<vec4f>;
+        @group(2) @binding(1) var<uniform> n_colors: u32;
 
         ${noise_functions}
 
-        ${interpolateColorShader}
+        fn interpolate_color(noise_value: f32) -> vec4f {
+            if noise_value <= color_points[0].w {
+                return vec4f(color_points[0].xyz, 1);
+            } else if noise_value > color_points[n_colors - 1].w {
+                return vec4f(color_points[n_colors - 1].xyz, 1);
+            } else {
+                var prev_color = color_points[0].xyz;
+                var prev_point = color_points[0].w;
+
+                for (var i = 1u; i < n_colors; i++) {
+                    var current_color = color_points[i].xyz;
+                    var current_point = color_points[i].w;
+
+                    if noise_value <= current_point {
+                        let blend_factor = (noise_value - prev_point) / (current_point - prev_point);
+                        let color = mix(prev_color, current_color, blend_factor);
+                        return vec4f(color, 1);
+                    }
+                    prev_color = current_color;
+                    prev_point = current_point;
+                }
+            }
+            return vec4f(vec3f(noise_value), 1);
+        }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(

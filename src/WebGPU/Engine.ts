@@ -56,7 +56,7 @@ export default class Engine {
         width: 0,
         height: 0,
     }
-    raf_id: number | null = null
+    frame_id: number = 0
 
     initObserver(canvas: HTMLCanvasElement, render_callback: () => void) {
         this.observer = new ResizeObserver((entries) => {
@@ -69,9 +69,9 @@ export default class Engine {
                     width: Math.min(box_width * devicePixelRatio, max_size),
                     height: Math.min(box_height * devicePixelRatio, max_size),
                 }
-                if (!this.raf_id) {
-                    this.raf_id = requestAnimationFrame(() => {
-                        this.raf_id = null
+                if (!this.frame_id) {
+                    this.frame_id = requestAnimationFrame(() => {
+                        this.frame_id = 0
                         canvas.width = this.pending_resize.width
                         canvas.height = this.pending_resize.height
                         render_callback()
@@ -166,8 +166,8 @@ export default class Engine {
         return buffer
     }
 
-    updateBuffer(buffer: GPUBuffer, data: BufferData) {
-        this.device.queue.writeBuffer(buffer, 0, data, 0, data.length)
+    updateBuffer(buffer: GPUBuffer, data: BufferData, offset = 0) {
+        this.device.queue.writeBuffer(buffer, offset, data, 0, data.length)
     }
 
     createDepthStencilState(): GPUDepthStencilState {

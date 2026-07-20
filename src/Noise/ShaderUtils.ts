@@ -89,32 +89,3 @@ export const rotate4DShader = /* wgsl */ `
         return vec4f(xr, yr, zr, wr);
     }
 `
-
-export const interpolateColorShader = /* wgsl */ `
-    fn interpolate_color(noise_value: f32) -> vec4f {
-        let n_colors = arrayLength(&color_points);
-
-        if noise_value <= color_points[0].w {
-            return vec4f(color_points[0].xyz, 1);
-        } else if noise_value > color_points[n_colors - 1].w {
-            return vec4f(color_points[n_colors - 1].xyz, 1);
-        } else {
-            var prev_color = color_points[0].xyz;
-            var prev_point = color_points[0].w;
-
-            for (var i = 1u; i < n_colors; i++) {
-                var current_color = color_points[i].xyz;
-                var current_point = color_points[i].w;
-
-                if noise_value <= current_point {
-                    let blend_factor = (noise_value - prev_point) / (current_point - prev_point);
-                    let color = mix(prev_color, current_color, blend_factor);
-                    return vec4f(color, 1);
-                }
-                prev_color = current_color;
-                prev_point = current_point;
-            }
-        }
-        return vec4f(vec3f(noise_value), 1);
-    }
-`

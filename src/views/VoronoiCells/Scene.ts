@@ -1,6 +1,7 @@
 import Engine, { type FloatArray } from '@/WebGPU/Engine'
 
 import { type Setup, createShader } from './Shader'
+import { parseHexColor, shaderColorArray } from '@/utils/Colors'
 
 export default class VoronoiScene {
     setup!: Setup
@@ -10,7 +11,7 @@ export default class VoronoiScene {
 
     voronoi_n_columns!: GPUBuffer
     voronoi_colors!: GPUBuffer
-    n_colors: number = 0
+    n_colors!: GPUBuffer
 
     noise_scale!: GPUBuffer
     noise_data!: GPUBuffer
@@ -94,8 +95,11 @@ export default class VoronoiScene {
             entries: bind_group_entries,
         })
 
-        this.n_colors = setup.voronoi_colors!.length / 4
-        this.voronoi_colors = this.engine.createStorageBuffer(setup.voronoi_colors!, 256)
+        this.voronoi_colors = this.engine.createStorageBuffer(
+            shaderColorArray(setup.voronoi_colors!),
+            256,
+        )
+        this.n_colors = this.engine.createIntUniform(setup.voronoi_colors!.length)
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -104,7 +108,12 @@ export default class VoronoiScene {
                     binding: 0,
                     resource: {
                         buffer: this.voronoi_colors,
-                        size: setup.voronoi_colors!.byteLength,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: this.n_colors,
                     },
                 },
             ],
@@ -142,26 +151,18 @@ export default class VoronoiScene {
         this.render()
     }
 
-    updateVoronoiColors(value: FloatArray) {
-        this.engine.updateBuffer(this.voronoi_colors, value)
-        const new_n_colors = value.length / 4
+    updateSingleColor(index: number, hex_color: string) {
+        const { red, green, blue } = parseHexColor(hex_color)
+        const bytes = new Float32Array([red / 255, green / 255, blue / 255, 1])
 
-        if (new_n_colors != this.n_colors) {
-            this.n_colors = new_n_colors
+        const offset = 16 * index
+        this.engine.updateBuffer(this.voronoi_colors, bytes, offset)
+        this.render()
+    }
 
-            this.color_bind_group = this.engine.device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(2),
-                entries: [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: this.voronoi_colors,
-                            size: value.byteLength,
-                        },
-                    },
-                ],
-            })
-        }
+    updateAllColors(hex_colors: string[]) {
+        this.engine.updateBuffer(this.voronoi_colors, shaderColorArray(hex_colors))
+        this.engine.updateIntUniform(this.n_colors, hex_colors.length)
         this.render()
     }
 
@@ -195,6 +196,7 @@ export default class VoronoiScene {
 
         this.voronoi_n_columns?.destroy()
         this.voronoi_colors?.destroy()
+        this.n_colors?.destroy()
 
         this.noise_data?.destroy()
         this.noise_scale?.destroy()
