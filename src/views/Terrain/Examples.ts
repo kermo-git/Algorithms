@@ -166,41 +166,53 @@ export const examples: Example[] = [
         name: 'Canyons & Mountains',
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     let pos3 = vec3f(pos, 0);
+    let warp = unit_vector_2d(
+        perlin_2d(pos*3, 0)
+    )*0.05;
+    let warp3 = vec3f(warp, 0);
 
     var plains = simplex_2d_octaves(
         pos*0.05, 1, 3, 0.5
     );
     var rivers = abs(plains*2 - 1); 
 
-    var mountain_area = smoothstep(0.6, 1, plains);
-    var canyon_area = smoothstep(0.4, 0, plains);
-
+    var mountain_area = smoothstep(
+        0.6, 1, plains
+    );
     var mountains = simplex_3d_octaves(
-        pos3*0.2, 0, 3, 0.5
+        (pos3 + warp3)*0.2, 0, 3, 0.5
     );
     mountains = 2*smoothstep(0, 1,
         1 - abs(mountains*2 - 1)
     );
-
     var mountain_valleys = simplex_2d(
         pos*0.4, 0
     );
     
+    var canyon_area = smoothstep(
+        0.4, 0, plains
+    );
     var canyon_border = perlin_2d_octaves(
        pos*0.1, 1, 1, 0.5
     );
-    canyon_border = smoothstep(0, 0.9,
-        canyon_border
+    canyon_border = smoothstep(
+        0, 0.9, canyon_border
     );
-
-    var canyons = perlin_2d(pos*0.7, 0);
+    var canyons = perlin_2d(
+        (pos+ warp)*0.7, 0
+    );
     canyons = min(
-        abs(canyons*2 - 1) + 0.7*canyon_border, 
+        abs(canyons*2 - 1) +
+        0.7*canyon_border, 
         0.5
     );
     canyons = smoothstep(0.2, 1, canyons);
 
-    return rivers + mountain_area* mountain_valleys*mountains + canyon_area* canyons;
+    return rivers + 
+        mountain_area*
+        mountain_valleys*
+        mountains + 
+        canyon_area*canyons;
 }`,
         color_shader: /* wgsl */ `fn color(pos: vec2f, 
          elevation: f32,
