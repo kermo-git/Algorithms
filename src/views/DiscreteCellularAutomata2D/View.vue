@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
+import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import CACodeEditor from '@/components/CACodeEditor.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -8,9 +9,6 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import VBox from '@/components/VBox.vue'
-
-import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
-import { type ShaderIssue } from '@/WebGPU/Engine'
 
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
@@ -22,7 +20,7 @@ const grid_size = ref(256)
 const colors = ref(default_example.colors)
 const n_states = ref(default_example.nStates)
 
-const update_shader = ref<string>(default_example.updateShader)
+const update_shader = ref(default_example.updateShader)
 const editor_code = ref(default_example.updateShader)
 const is_running = ref(false)
 const skip_frames = ref(false)
@@ -31,18 +29,26 @@ const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const scene = shallowRef(
-    new AutomatonScene({
-        n_states: n_states.value,
-        update_shader: update_shader.value,
-        canvas_dims: [grid_size.value, grid_size.value],
-    }),
-)
+const scene = shallowRef(new AutomatonScene())
 
-async function initScene(canvas: HTMLCanvasElement) {
+async function initScene() {
+    if (canvasRef.value) {
+        scene.value.cleanup()
+        shader_issues.value = await scene.value.init(
+            {
+                n_states: n_states.value,
+                hex_colors: colors.value,
+                update_shader: update_shader.value,
+                canvas_width: grid_size.value,
+            },
+            canvasRef.value,
+        )
+    }
+}
+
+async function onCanvasReady(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    const shader_colors = shaderColorArray(lerpColorArray(colors.value, n_states.value))
-    shader_issues.value = await scene.value.init(shader_colors, canvas)
+    initScene()
 }
 
 function setExample(example: Example) {
@@ -50,23 +56,34 @@ function setExample(example: Example) {
     n_states.value = example.nStates
     update_shader.value = example.updateShader
     editor_code.value = example.updateShader
+    initScene()
 }
 
 function reset() {
     if (editor_code.value != update_shader.value) {
         update_shader.value = editor_code.value
+        initScene()
     } else {
         scene.value.reset()
     }
 }
 
 function step() {
-    scene.value.step(skip_frames.value ? 2 : 1)
+    if (editor_code.value != update_shader.value) {
+        update_shader.value = editor_code.value
+        initScene()
+    } else {
+        scene.value.step(skip_frames.value ? 2 : 1)
+    }
 }
 
 function run() {
+    if (editor_code.value != update_shader.value) {
+        update_shader.value = editor_code.value
+        initScene()
+    }
     const fps = 60
-    interval_ref.value = setInterval(step, 1000 / fps)
+    interval_ref.value = setInterval(() => scene.value.step(skip_frames.value ? 2 : 1), 1000 / fps)
 }
 
 function pause() {
@@ -75,30 +92,6 @@ function pause() {
     }
     interval_ref.value = null
 }
-
-watch(colors, (new_colors) => {
-    const lerp_colors = lerpColorArray(new_colors, n_states.value)
-    scene.value.updateColors(shaderColorArray(lerp_colors))
-})
-
-watch([grid_size, n_states, update_shader], ([new_grid_size, new_n_states, new_update_shader]) => {
-    pause()
-    scene.value.cleanup()
-
-    scene.value = new AutomatonScene({
-        n_states: new_n_states,
-        update_shader: new_update_shader,
-        canvas_dims: [new_grid_size, new_grid_size],
-    })
-
-    if (canvasRef.value) {
-        initScene(canvasRef.value)
-    }
-
-    if (is_running.value) {
-        run()
-    }
-})
 
 onBeforeUnmount(() => {
     pause()
@@ -111,7 +104,7 @@ onBeforeUnmount(() => {
         :tab-captions="['Configuration', 'Colors', 'Examples']"
         :issues="shader_issues"
         v-model="activeTab"
-        @canvas-ready="initScene"
+        @canvas-ready="onCanvasReady"
     >
         <CACodeEditor
             v-if="activeTab === 'Configuration'"
@@ -133,16 +126,36 @@ onBeforeUnmount(() => {
         <VBox>
             <template v-if="activeTab === 'Configuration'">
                 <p>Number of states: {{ n_states }}</p>
-                <RangeInput :min="2" :max="32" :step="1" v-model="n_states" />
+                <RangeInput
+                    :min="2"
+                    :max="32"
+                    :step="1"
+                    v-model="n_states"
+                    @update:model-value="
+                        (new_n_states) => {
+                            scene.setNStates(new_n_states)
+                            scene.reset()
+                        }
+                    "
+                />
                 <NumberSingleSelect
                     text="Grid size"
                     name="grid-size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
+                    @update:model-value="
+                        (new_grid_size) => {
+                            scene.resizeCanvas(new_grid_size)
+                            scene.reset()
+                        }
+                    "
                 />
             </template>
             <template v-else-if="activeTab === 'Colors'">
-                <ColorPalette v-model="colors" />
+                <ColorPalette
+                    v-model="colors"
+                    @update:model-value="(new_colors) => scene.updateColors(new_colors)"
+                />
             </template>
             <template v-else>
                 <MenuItem

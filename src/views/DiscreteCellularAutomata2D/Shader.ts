@@ -13,6 +13,7 @@ fn activate(x: f32) -> f32 {
 
 export interface Setup {
     n_states: number
+    hex_colors: string[]
     /**
      * A WGSL (WebGPU shading language) function that takes a cell's state in the current generation and returns its state in the next generation
      *
@@ -23,7 +24,7 @@ export interface Setup {
      * ```
      */
     update_shader: string
-    canvas_dims: number[]
+    canvas_width: number
 }
 
 export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
@@ -33,11 +34,10 @@ export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat
         @group(1) @binding(0) var<storage, read> current_generation: array<u32>;
         @group(1) @binding(1) var<storage, read_write> next_generation: array<u32>;
         @group(2) @binding(0) var<storage> colors: array<vec4f>;
-        
-        const canvas_dims = vec2u(${setup.canvas_dims[0]}, ${setup.canvas_dims[1]});
-        const n_states = ${setup.n_states};
+        @group(2) @binding(1) var<uniform> n_states: u32;
 
         fn neighbor(center_pos: vec2u, offset_x: i32, offset_y: i32) -> u32 {
+            let canvas_dims = textureDimensions(canvas);
             let canvas_x = (i32(center_pos.x) + offset_x) % i32(canvas_dims.x);
             let canvas_y = (i32(center_pos.y) + offset_y) % i32(canvas_dims.y);
             let canvas_i = canvas_y * i32(canvas_dims.x) + canvas_x;
@@ -45,10 +45,11 @@ export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat
         }
 
         fn shift(state: u32, shift: i32) -> u32 {
-            return u32((i32(state) + n_states + shift) % n_states);
+            return u32(i32(state + n_states) + shift) % n_states;
         }
 
         fn count(center_pos: vec2u, neighborhood_radius: u32, state: u32) -> u32 {
+            let canvas_dims = textureDimensions(canvas);
             let neighborhood_size = 2 * neighborhood_radius + 1;
             let start_pos = center_pos - vec2u(neighborhood_radius);
             var result: u32 = 0;
@@ -74,6 +75,7 @@ export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat
             @builtin(global_invocation_id) gid: vec3u
         ) {
             let canvas_pos = gid.xy;
+            let canvas_dims = textureDimensions(canvas);
 
             if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
