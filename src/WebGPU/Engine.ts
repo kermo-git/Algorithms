@@ -63,7 +63,7 @@ export default class Engine {
     }
     frame_id: number = 0
 
-    initObserver(canvas: HTMLCanvasElement, render_callback: () => void) {
+    onResize(render_callback: () => void) {
         this.observer = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
                 const box_width = entry.contentBoxSize[0].inlineSize
@@ -77,14 +77,24 @@ export default class Engine {
                 if (!this.frame_id) {
                     this.frame_id = requestAnimationFrame(() => {
                         this.frame_id = 0
-                        canvas.width = this.pending_resize.width
-                        canvas.height = this.pending_resize.height
+                        this.canvas.width = this.pending_resize.width
+                        this.canvas.height = this.pending_resize.height
                         render_callback()
                     })
                 }
             })
         })
-        this.observer.observe(canvas.parentElement!)
+        this.observer.observe(this.canvas.parentElement!)
+    }
+
+    setCanvasWidth(n_pixels: number) {
+        const aspect_ratio = this.canvas.clientHeight / this.canvas.clientWidth
+        const canvas_height = Math.ceil(n_pixels * aspect_ratio)
+
+        this.canvas.width = n_pixels
+        this.canvas.height = canvas_height
+
+        return canvas_height
     }
 
     getTexture(): GPUTexture {

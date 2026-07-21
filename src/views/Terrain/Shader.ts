@@ -31,8 +31,6 @@ export function vertexIndexShader(setup: Setup): string {
             }
 
             let A = pos.y * terrain_dims.x + pos.x;
-            // pos.x = A - pos.y * terrain_dims.x
-            // pos.y = (A - pos.x) / terrain_dims.x
             let B = pos.y * terrain_dims.x + pos.x + 1;
             let C = (pos.y + 1) * terrain_dims.x + pos.x;
             let D = (pos.y + 1) * terrain_dims.x + pos.x + 1;

@@ -28,8 +28,6 @@ export default class VoronoiScene {
         this.engine = new Engine()
 
         await this.engine.init(canvas)
-        canvas.width = 1
-        canvas.height = 1
 
         const { device, canvas_color_format } = this.engine
         const { warp_algorithm } = this.setup
@@ -118,9 +116,7 @@ export default class VoronoiScene {
                 },
             ],
         })
-        this.engine.initObserver(canvas, () => {
-            this.render()
-        })
+        this.engine.onResize(() => this.render())
     }
 
     render(): void {

@@ -2,7 +2,7 @@
 import HBox from './HBox.vue'
 
 defineOptions({ inheritAttrs: false })
-const model = defineModel<number>()
+const model = defineModel<number>({ default: 0 })
 
 interface Emits {
     (e: 'animation', value: number): void

@@ -1,4 +1,4 @@
-import Engine, { type FloatArray } from '@/WebGPU/Engine'
+import Engine from '@/WebGPU/Engine'
 
 import createNoiseShader, { type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
@@ -27,8 +27,6 @@ export default class NoiseScene {
         this.setup = setup
         this.engine = new Engine()
         await this.engine.init(canvas)
-        canvas.width = 1
-        canvas.height = 1
 
         const { device, canvas_color_format } = this.engine
         const { algorithm, transform } = this.setup
@@ -129,9 +127,7 @@ export default class NoiseScene {
                 },
             ],
         })
-        this.engine.initObserver(canvas, () => {
-            this.render()
-        })
+        this.engine.onResize(() => this.render())
     }
 
     render(): void {
