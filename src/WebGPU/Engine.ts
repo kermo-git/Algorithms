@@ -17,15 +17,20 @@ export interface ShaderCompilationResult {
 
 export default class Engine {
     device!: GPUDevice
+    canvas!: HTMLCanvasElement
     context!: GPUCanvasContext
     observer!: ResizeObserver
     canvas_color_format!: GPUTextureFormat
 
-    async init(canvas: HTMLCanvasElement) {
+    async init(
+        canvas: HTMLCanvasElement,
+        canvas_usage: GPUFlagsConstant = GPUTextureUsage.STORAGE_BINDING,
+    ) {
         const context = canvas.getContext('webgpu')
         if (!context) {
             throw Error('WebGPU not supported!')
         }
+        this.canvas = canvas
         this.context = context
 
         const adapter = await navigator.gpu.requestAdapter()
@@ -43,7 +48,7 @@ export default class Engine {
         context.configure({
             device: this.device,
             format: this.canvas_color_format,
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+            usage: canvas_usage,
         })
     }
 

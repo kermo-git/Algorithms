@@ -62,7 +62,10 @@ export default class TerrainScene {
 
         const engine = new Engine()
         this.engine = engine
-        await engine.init(canvas)
+        await engine.init(
+            canvas,
+            GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        )
 
         this.noise_layout = createNoiseLayout(engine.device)
         this.terrain_layout = createTerrainLayout(engine.device)
