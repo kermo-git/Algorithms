@@ -10,7 +10,6 @@ import MenuItem from '@/components/MenuItem.vue'
 import HBox from '@/components/HBox.vue'
 import VBox from '@/components/VBox.vue'
 
-import { shaderColorArray } from '@/utils/Colors'
 import type { FloatArray } from '@/WebGPU/Engine'
 import { type ShaderIssue } from '@/WebGPU/Engine'
 
@@ -24,9 +23,8 @@ const grid_size = ref(256)
 const color_0 = ref(default_example.color_0)
 const color_1 = ref(default_example.color_1)
 const kernel_radius = ref(default_example.kernel_radius)
-const kernel = ref<FloatArray>(default_example.get_kernel())
+const kernel = ref<number[]>(default_example.get_kernel())
 
-const activation_shader = ref(default_example.activation)
 const editor_code = ref(default_example.activation)
 const is_running = ref(false)
 const skip_frames = ref(false)
@@ -35,19 +33,48 @@ const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const scene = shallowRef(
-    new NeuralScene({
-        activation_shader: activation_shader.value,
-        canvas_dims: [grid_size.value, grid_size.value],
-        kernel_radius: kernel_radius.value,
-        kernel: kernel.value,
-    }),
-)
+const scene = shallowRef(new NeuralScene())
 
-async function initScene(canvas: HTMLCanvasElement) {
+let activation_shader = default_example.activation
+let kernel_changed = false
+
+function setupChanged() {
+    return editor_code.value != activation_shader || kernel_changed
+}
+
+function onKernelRadiusChange(new_radius: number) {
+    const new_size = 2 * new_radius + 1
+    kernel.value = new Array(new_size * new_size).fill(0)
+    kernel_changed = true
+}
+
+function onKernelEdit() {
+    kernel_changed = true
+}
+
+async function initScene() {
+    if (canvasRef.value) {
+        activation_shader = editor_code.value
+        kernel_changed = false
+
+        scene.value.cleanup()
+        shader_issues.value = await scene.value.init(
+            {
+                activation_shader: activation_shader,
+                canvas_width: grid_size.value,
+                kernel_radius: kernel_radius.value,
+                kernel: new Float32Array(kernel.value),
+                color_1: color_0.value,
+                color_2: color_1.value,
+            },
+            canvasRef.value,
+        )
+    }
+}
+
+async function onCanvasReady(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    const colors = shaderColorArray([color_0.value, color_1.value])
-    shader_issues.value = await scene.value.init(colors, canvas)
+    initScene()
 }
 
 function setExample(example: Example) {
@@ -55,25 +82,33 @@ function setExample(example: Example) {
     color_1.value = example.color_1
     kernel_radius.value = example.kernel_radius
     kernel.value = example.get_kernel()
-    activation_shader.value = example.activation
+    activation_shader = example.activation
     editor_code.value = example.activation
+    initScene()
 }
 
 function reset() {
-    if (editor_code.value != activation_shader.value) {
-        activation_shader.value = editor_code.value
+    if (setupChanged()) {
+        initScene()
     } else {
         scene.value.reset()
     }
 }
 
 function step() {
-    scene.value.step(skip_frames.value ? 2 : 1)
+    if (setupChanged()) {
+        initScene()
+    } else {
+        scene.value.step(skip_frames.value ? 2 : 1)
+    }
 }
 
 function run() {
+    if (setupChanged()) {
+        initScene()
+    }
     const fps = 60
-    interval_ref.value = setInterval(step, 1000 / fps)
+    interval_ref.value = setInterval(() => scene.value.step(skip_frames.value ? 2 : 1), 1000 / fps)
 }
 
 function pause() {
@@ -82,39 +117,6 @@ function pause() {
     }
     interval_ref.value = null
 }
-
-function onKernelRadiusChange(new_radius: number) {
-    const new_size = 2 * new_radius + 1
-    kernel.value = new Float32Array(new_size * new_size)
-}
-
-watch([color_0, color_1], ([new_color_0, new_color_1]) => {
-    const colors = shaderColorArray([new_color_0, new_color_1])
-    scene.value.updateColors(colors)
-})
-
-watch(
-    [grid_size, activation_shader, kernel_radius, kernel],
-    ([new_grid_size, new_activation, new_kernel_size, new_kernel]) => {
-        pause()
-
-        scene.value.cleanup()
-        scene.value = new NeuralScene({
-            activation_shader: new_activation,
-            canvas_dims: [new_grid_size, new_grid_size],
-            kernel_radius: new_kernel_size,
-            kernel: new_kernel,
-        })
-
-        if (canvasRef.value) {
-            initScene(canvasRef.value)
-        }
-
-        if (is_running.value) {
-            run()
-        }
-    },
-)
 
 onBeforeUnmount(() => {
     pause()
@@ -127,7 +129,7 @@ onBeforeUnmount(() => {
         :tab-captions="['Configuration', 'Style & Examples']"
         :issues="shader_issues"
         v-model="active_tab"
-        @canvas-ready="initScene"
+        @canvas-ready="onCanvasReady"
     >
         <SimulationCodeEditor
             v-if="active_tab === 'Configuration'"
@@ -155,13 +157,23 @@ onBeforeUnmount(() => {
                     v-model="kernel_radius"
                     @update:model-value="onKernelRadiusChange"
                 />
-                <MatrixEditor :matrix-size="2 * kernel_radius + 1" v-model:matrix="kernel" />
+                <MatrixEditor
+                    :matrix-size="2 * kernel_radius + 1"
+                    v-model:matrix="kernel"
+                    @update:matrix="onKernelEdit"
+                />
             </template>
             <template v-else>
                 <HBox>
-                    <ColorInput v-model="color_0" />
+                    <ColorInput
+                        v-model="color_0"
+                        @animation="(hex_color) => scene.updateColor1(hex_color)"
+                    />
                     <p>Select colors</p>
-                    <ColorInput v-model="color_1" />
+                    <ColorInput
+                        v-model="color_1"
+                        @animation="(hex_color) => scene.updateColor2(hex_color)"
+                    />
                 </HBox>
 
                 <NumberSingleSelect
@@ -169,6 +181,12 @@ onBeforeUnmount(() => {
                     name="grid-size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
+                    @update:model-value="
+                        (new_grid_size) => {
+                            scene.resizeCanvas(new_grid_size)
+                            scene.reset()
+                        }
+                    "
                 />
                 <MenuItem
                     v-for="example in examples"

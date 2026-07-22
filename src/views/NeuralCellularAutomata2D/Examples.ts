@@ -6,11 +6,11 @@ export interface Example {
     color_0: string
     color_1: string
     kernel_radius: number
-    get_kernel: () => FloatArray
+    get_kernel: () => number[]
     activation: string
 }
 
-function normalizeKernel(kernel: FloatArray) {
+function normalizeKernel(kernel: number[]) {
     let n_nagative = 0
     let n_positive = 0
 
@@ -38,21 +38,19 @@ function mazeKernel() {
     const P = 1
 
     return normalizeKernel(
-        new Float32Array(
-            [
-                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                [0, N, N, N, N, N, N, N, N, N, 0],
-                [0, N, N, N, P, P, P, N, N, N, 0],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [N, N, N, P, P, P, P, P, N, N, N],
-                [0, N, N, N, P, P, P, N, N, N, 0],
-                [0, N, N, N, N, N, N, N, N, N, 0],
-                [0, 0, N, N, N, N, N, N, N, 0, 0],
-                [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-            ].flat(),
-        ),
+        [
+            [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+            [0, 0, N, N, N, N, N, N, N, 0, 0],
+            [0, N, N, N, N, N, N, N, N, N, 0],
+            [0, N, N, N, P, P, P, N, N, N, 0],
+            [N, N, N, P, P, P, P, P, N, N, N],
+            [N, N, N, P, P, P, P, P, N, N, N],
+            [N, N, N, P, P, P, P, P, N, N, N],
+            [0, N, N, N, P, P, P, N, N, N, 0],
+            [0, N, N, N, N, N, N, N, N, N, 0],
+            [0, 0, N, N, N, N, N, N, N, 0, 0],
+            [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
+        ].flat(),
     )
 }
 
@@ -93,19 +91,17 @@ export const examples: Example[] = [
             const P = 1
 
             return normalizeKernel(
-                new Float32Array(
-                    [
-                        [0, 0, N, N, P, N, N, 0, 0],
-                        [0, N, N, P, P, P, N, N, 0],
-                        [N, N, N, P, P, P, N, N, N],
-                        [N, N, P, P, P, P, P, N, N],
-                        [N, N, P, P, P, P, P, N, N],
-                        [N, N, P, P, P, P, P, N, N],
-                        [N, N, N, P, P, P, N, N, N],
-                        [0, N, N, P, P, P, N, N, 0],
-                        [0, 0, N, N, P, N, N, 0, 0],
-                    ].flat(),
-                ),
+                [
+                    [0, 0, N, N, P, N, N, 0, 0],
+                    [0, N, N, P, P, P, N, N, 0],
+                    [N, N, N, P, P, P, N, N, N],
+                    [N, N, P, P, P, P, P, N, N],
+                    [N, N, P, P, P, P, P, N, N],
+                    [N, N, P, P, P, P, P, N, N],
+                    [N, N, N, P, P, P, N, N, N],
+                    [0, N, N, P, P, P, N, N, 0],
+                    [0, 0, N, N, P, N, N, 0, 0],
+                ].flat(),
             )
         },
         activation: sigmoid,
@@ -121,13 +117,11 @@ export const examples: Example[] = [
             const Y = 0.2
             const Z = 0.35
 
-            return new Float32Array(
-                [
-                    [Z, X, Z],
-                    [X, Y, X],
-                    [Z, X, Z],
-                ].flat(),
-            )
+            return [
+                [Z, X, Z],
+                [X, Y, X],
+                [Z, X, Z],
+            ].flat()
         },
         activation: invertedGaussian,
     },
@@ -143,13 +137,11 @@ export const examples: Example[] = [
             const Y = -0.2
             const Z = 0.8
 
-            return new Float32Array(
-                [
-                    [Z, X, Z],
-                    [X, Y, X],
-                    [Z, X, Z],
-                ].flat(),
-            )
+            return [
+                [Z, X, Z],
+                [X, Y, X],
+                [Z, X, Z],
+            ].flat()
         },
         activation: invertedGaussian,
     },
@@ -165,13 +157,11 @@ export const examples: Example[] = [
             const Y = 0.4
             const Z = -0.939
 
-            return new Float32Array(
-                [
-                    [Z, X, Z],
-                    [X, Y, X],
-                    [Z, X, Z],
-                ].flat(),
-            )
+            return [
+                [Z, X, Z],
+                [X, Y, X],
+                [Z, X, Z],
+            ].flat()
         },
         activation: invertedGaussian,
     },
@@ -186,13 +176,11 @@ export const examples: Example[] = [
             const Y = -0.5
             const Z = 0.85
 
-            return new Float32Array(
-                [
-                    [Z, X, Z],
-                    [X, Y, X],
-                    [Z, X, Z],
-                ].flat(),
-            )
+            return [
+                [Z, X, Z],
+                [X, Y, X],
+                [Z, X, Z],
+            ].flat()
         },
         activation: invertedGaussian,
     },

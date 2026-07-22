@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import type { FloatArray } from '@/WebGPU/Engine'
-
 interface Props {
     matrixSize: number
 }
 const props = defineProps<Props>()
-const matrix = defineModel<FloatArray>('matrix')
+const matrix = defineModel<number[]>('matrix', { default: [] })
 
 function onCellClick(ev: Event) {
     const element = ev.target as HTMLInputElement
@@ -21,9 +19,8 @@ function onInput(ev: Event) {
     const col = Number(data.col)
     const value = Number(element.value)
 
-    const copy = matrix.value!.subarray()
-    copy[row * props.matrixSize + col] = value
-    matrix.value! = copy
+    matrix.value[row * props.matrixSize + col] = value
+    matrix.value = matrix.value.slice()
 }
 </script>
 
@@ -43,7 +40,7 @@ function onInput(ev: Event) {
                 :data-row="row - 1"
                 :data-col="col - 1"
                 type="number"
-                :value="matrix![matrixSize * (row - 1) + (col - 1)].toFixed(2)"
+                :value="matrix[matrixSize * (row - 1) + (col - 1)].toFixed(2)"
                 @click="onCellClick"
                 @change="onInput"
                 :style="{

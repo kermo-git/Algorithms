@@ -13,9 +13,11 @@ fn activate(x: f32) -> f32 {
 
 export interface Setup {
     activation_shader: string
-    canvas_dims: number[]
+    canvas_width: number
     kernel_radius: number
     kernel: FloatArray
+    color_1: string
+    color_2: string
 }
 
 export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
@@ -35,7 +37,6 @@ export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat
 
         const kernel_radius = ${setup.kernel_radius};
         const kernel_size = 2 * kernel_radius + 1;
-        const canvas_dims = vec2u(${setup.canvas_dims[0]}, ${setup.canvas_dims[1]});
 
         ${setup.activation_shader}
         
@@ -44,6 +45,7 @@ export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat
             @builtin(global_invocation_id) gid: vec3u
         ) {
             let canvas_pos = gid.xy;
+            let canvas_dims = textureDimensions(canvas);
 
             if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
                 return;
