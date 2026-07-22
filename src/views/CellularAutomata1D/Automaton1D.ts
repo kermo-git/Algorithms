@@ -1,3 +1,4 @@
+import { parseHexColor, type Color } from '@/utils/Colors'
 import type { Matrix } from '@/utils/Matrix'
 
 type numberArray = Uint8Array | number[]
@@ -42,6 +43,10 @@ export class Automaton1D {
             }
         }
         this.new_center[0] = 0
+    }
+
+    chooseRandomState() {
+        return Math.floor(Math.random() * this.n_states)
     }
 
     getRuleNumber(): bigint {
@@ -112,52 +117,80 @@ export function createRule(
     return automaton
 }
 
-export type FirstGenType = 'Center' | 'Random'
-
-export function generatePattern(matrix: Matrix, first_gen: FirstGenType, automaton: Automaton1D) {
-    const max_col = matrix.n_cols - 1
-
-    if (first_gen == 'Random') {
-        for (let col = 0; col < matrix.n_cols; col++) {
-            const state = Math.floor(Math.random() * automaton.n_states)
-            matrix.set(0, col, state)
-        }
-    } else {
-        for (let col = 0; col < matrix.n_cols; col++) {
-            matrix.set(0, col, 0)
-        }
-        const center_col = Math.floor(max_col / 2)
-        matrix.set(0, center_col, 1)
-    }
-    const radius = automaton.neighborhood_radius
-
-    for (let row = 1; row < matrix.n_rows; row++) {
-        for (let col = 0; col < matrix.n_cols; col++) {
-            const neighborhood = getNeighborhood(matrix, row - 1, col, radius)
-            const new_center = automaton.get(neighborhood)
-            matrix.set(row, col, new_center)
-        }
-    }
-}
-
-function getNeighborhood(
-    matrix: Matrix,
-    row: number,
-    center_col: number,
-    radius: number,
-): Uint8Array {
+function getNeighborhood(generation: number[], center_col: number, radius: number): number[] {
     const start_col = center_col - radius
-    const n_cols = matrix.n_cols
-    const result = new Uint8Array(getNumNeighbors(radius))
+    const result = new Array(2 * radius + 1)
 
     for (let i = 0; i < result.length; i++) {
-        let col = i + start_col
+        let col = start_col + i
         if (col < 0) {
-            col = n_cols + col
-        } else if (col >= n_cols) {
-            col = col - n_cols
+            col += generation.length
+        } else if (col >= generation.length) {
+            col -= generation.length
         }
-        result[i] = matrix.get(row, col)
+        result[i] = generation[col]
     }
     return result
+}
+
+export type FirstGenType = 'Center' | 'Random'
+
+export function generatePattern(
+    canvas: HTMLCanvasElement,
+    first_gen: FirstGenType,
+    hex_colors: string[],
+    automaton: Automaton1D,
+) {
+    const ctx = canvas.getContext('2d')
+
+    if (ctx) {
+        const n_cols = canvas.width
+        const n_rows = canvas.height
+
+        let prev_gen: number[] = new Array(n_cols)
+        const current_gen: number[] = new Array(n_cols)
+
+        const image_data = ctx.createImageData(n_cols, n_rows)
+        const image_array = image_data.data
+        const colors = hex_colors.map(parseHexColor)
+
+        function setColor(row: number, col: number, state: number) {
+            const { red, green, blue } = colors[state]
+
+            const offset = 4 * (n_cols * row + col)
+            image_array[offset + 0] = red
+            image_array[offset + 1] = green
+            image_array[offset + 2] = blue
+            image_array[offset + 3] = 255
+        }
+
+        const radius = automaton.neighborhood_radius
+
+        if (first_gen == 'Random') {
+            for (let col = 0; col < n_cols; col++) {
+                const state = automaton.chooseRandomState()
+                prev_gen[col] = state
+                setColor(0, col, state)
+            }
+        } else {
+            for (let col = 0; col < n_cols; col++) {
+                prev_gen[col] = 0
+                setColor(0, col, 0)
+            }
+            const center_col = Math.floor(n_cols - 1 / 2)
+            prev_gen[center_col] = 1
+            setColor(0, center_col, 1)
+        }
+
+        for (let row = 1; row < n_rows; row++) {
+            for (let col = 0; col < n_cols; col++) {
+                const neighborhood = getNeighborhood(prev_gen, col, radius)
+                const state = automaton.get(neighborhood)
+                current_gen[col] = state
+                setColor(row, col, state)
+            }
+            prev_gen = current_gen.slice()
+        }
+        ctx.putImageData(image_data, 0, 0)
+    }
 }

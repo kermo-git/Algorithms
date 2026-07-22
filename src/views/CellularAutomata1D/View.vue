@@ -10,12 +10,10 @@ import PanelField from '@/components/PanelField.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
+import VBox from '@/components/VBox.vue'
 
-import { Matrix } from '@/utils/Matrix'
-import { drawDiscreteColors } from '@/utils/DrawPixels'
 import { generatePattern, createRule, type FirstGenType, getNumRules } from './Automaton1D'
 import ColorPalette from './ColorPalette.vue'
-import VBox from '@/components/VBox.vue'
 
 const activeTab = ref('Configuration')
 const numStates = ref(2)
@@ -51,29 +49,30 @@ const ruleNumberLabel = computed(() => {
     return `Rule number (up to ${strValue.length} digits)`
 })
 
-const matrix = computed(() => {
-    const matrix = new Matrix(grid_size.value, grid_size.value, () => 0)
-
-    if (numStates.value > 2) {
-        generatePattern(matrix, 'Random', rule.value)
-    } else {
-        generatePattern(matrix, firstGen.value, rule.value)
-    }
-    return matrix
-})
-
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function onCanvasReady(canvas: HTMLCanvasElement) {
+    const aspect_ratio = canvas.clientHeight / canvas.clientWidth
+    canvas.width = grid_size.value
+    canvas.height = Math.floor(grid_size.value * aspect_ratio)
+
     canvasRef.value = canvas
-    drawDiscreteColors(canvas, matrix.value, colors.value)
+    generatePattern(canvas, firstGen.value, colors.value, rule.value)
 }
 
-watch([matrix, colors], ([new_matrix, new_colors]) => {
-    if (canvasRef.value) {
-        drawDiscreteColors(canvasRef.value, new_matrix, new_colors)
-    }
-})
+watch(
+    [rule, grid_size, firstGen, colors],
+    ([new_rule, new_grid_size, new_first_gen, new_colors]) => {
+        if (canvasRef.value) {
+            const canvas = canvasRef.value
+            const aspect_ratio = canvas.clientHeight / canvas.clientWidth
+
+            canvas.width = new_grid_size
+            canvas.height = Math.floor(new_grid_size * aspect_ratio)
+            generatePattern(canvas, new_first_gen, new_colors, new_rule)
+        }
+    },
+)
 </script>
 
 <template>
