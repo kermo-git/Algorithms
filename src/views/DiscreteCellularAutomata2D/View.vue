@@ -3,7 +3,7 @@ import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import CACodeEditor from '@/components/CACodeEditor.vue'
+import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
         v-model="activeTab"
         @canvas-ready="onCanvasReady"
     >
-        <CACodeEditor
+        <SimulationCodeEditor
             v-if="activeTab === 'Configuration'"
             v-model:code="editor_code"
             v-model:is_running="is_running"
@@ -154,7 +154,10 @@ onBeforeUnmount(() => {
             <template v-else-if="activeTab === 'Colors'">
                 <ColorPalette
                     v-model="colors"
-                    @update:model-value="(new_colors) => scene.updateColors(new_colors)"
+                    @change-all-colors="(new_colors) => scene.updateAllColors(new_colors)"
+                    @change-single-color="
+                        (index, value: string) => scene.updateSingleColor(index, value)
+                    "
                 />
             </template>
             <template v-else>

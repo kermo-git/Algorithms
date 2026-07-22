@@ -14,7 +14,7 @@ export class AutomatonScene {
 
     colors!: GPUBuffer
     n_states!: GPUBuffer
-    static_bind_group!: GPUBindGroup
+    color_group!: GPUBindGroup
 
     pipeline!: GPUComputePipeline
 
@@ -46,7 +46,7 @@ export class AutomatonScene {
         this.colors = this.engine.createStorageBuffer(color_data, max_n_states * 16)
         this.n_states = this.engine.createIntUniform(n_states)
 
-        this.static_bind_group = this.engine.device.createBindGroup({
+        this.color_group = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
             entries: [
                 {
@@ -159,7 +159,7 @@ export class AutomatonScene {
         } else {
             encoder.setBindGroup(1, this.generation_group_BA)
         }
-        encoder.setBindGroup(2, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_group)
         this.engine.encodeCompute(encoder, texture.width, texture.height)
         this.engine.endComputePass(encoder)
     }
@@ -180,7 +180,7 @@ export class AutomatonScene {
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
-        encoder.setBindGroup(2, this.static_bind_group)
+        encoder.setBindGroup(2, this.color_group)
 
         for (let i = 0; i < n_generations; i++) {
             this.generation_A_is_current = !this.generation_A_is_current
@@ -195,9 +195,17 @@ export class AutomatonScene {
         this.engine.endComputePass(encoder)
     }
 
-    updateColors(hex_colors: string[]) {
+    updateAllColors(hex_colors: string[]) {
         this.setup.hex_colors = hex_colors
         const state_colors = lerpColorArray(hex_colors, this.setup.n_states)
+        const color_data = shaderColorArray(state_colors)
+        this.engine.updateBuffer(this.colors, color_data)
+        this.redraw()
+    }
+
+    updateSingleColor(i: number, hex_color: string) {
+        this.setup.hex_colors[i] = hex_color
+        const state_colors = lerpColorArray(this.setup.hex_colors, this.setup.n_states)
         const color_data = shaderColorArray(state_colors)
         this.engine.updateBuffer(this.colors, color_data)
         this.redraw()

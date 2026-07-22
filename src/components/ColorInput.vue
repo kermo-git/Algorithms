@@ -2,7 +2,7 @@
 const model = defineModel<string>()
 
 interface Emits {
-    (e: 'animation', value: string): void
+    (e: 'animation', hex_color: string): void
 }
 const emit = defineEmits<Emits>()
 

@@ -147,11 +147,11 @@ export default class VoronoiScene {
         this.render()
     }
 
-    updateSingleColor(index: number, hex_color: string) {
+    updateSingleColor(i: number, hex_color: string) {
         const { red, green, blue } = parseHexColor(hex_color)
         const bytes = new Float32Array([red / 255, green / 255, blue / 255, 1])
 
-        const offset = 16 * index
+        const offset = 16 * i
         this.engine.updateBuffer(this.voronoi_colors, bytes, offset)
         this.render()
     }

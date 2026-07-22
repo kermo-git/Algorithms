@@ -2,7 +2,7 @@
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import CACodeEditor from '@/components/CACodeEditor.vue'
+import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
 import MatrixEditor from './MatrixEditor.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <CACodeEditor
+        <SimulationCodeEditor
             v-if="active_tab === 'Configuration'"
             v-model:code="editor_code"
             v-model:is_running="is_running"

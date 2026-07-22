@@ -7,9 +7,9 @@ import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
 
 interface Emits {
-    (e: 'changeSingleColor', index: number, value: string): void
-    (e: 'changeSinglePoint', index: number, value: number): void
-    (e: 'changeAllColorPoints', colors: string[], points: number[]): void
+    (e: 'changeSingleColor', i: number, hex_color: string): void
+    (e: 'changeSinglePoint', i: number, value: number): void
+    (e: 'changeAllColorPoints', hex_colors: string[], points: number[]): void
 }
 const emit = defineEmits<Emits>()
 
@@ -82,7 +82,7 @@ function onDeleteClick(ev: Event) {
         <div class="color-buttons">
             <ColorInput
                 v-model="colors[i]"
-                @animation="(value: string) => emit('changeSingleColor', i, value)"
+                @animation="(hex_color) => emit('changeSingleColor', i, hex_color)"
             />
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
             <PanelButton
