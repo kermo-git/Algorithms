@@ -267,19 +267,31 @@ export function display2DShader(
         @group(2) @binding(0) var<uniform> uniforms: Uniforms;
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
+        const terrain_width_f = f32(${setup.terrain_dims[0]});
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
-            let pixel_pos = gid.xy;
+            let canvas_pos = gid.xy;
+            let canvas_dims = textureDimensions(canvas);
 
-            if (pixel_pos.x >= terrain_dims.x || pixel_pos.y >= terrain_dims.y) {
+            if (canvas_pos.x >= canvas_dims.x || canvas_pos.y >= canvas_dims.y) {
+                return;
+            }
+            let canvas_pos_f = vec2f(canvas_pos);
+            let canvas_width_f = f32(canvas_dims.x);
+
+            let terrain_pos_x = terrain_width_f * canvas_pos_f.x / canvas_width_f;
+            let terrain_pos_y = terrain_width_f * canvas_pos_f.y / canvas_width_f;
+            let terrain_pos = vec2u(vec2f(terrain_pos_x, terrain_pos_y));
+
+            if (terrain_pos.y >= terrain_dims.y) {
                 return;
             }
 
-            let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
-            let pixel = read_terrain[pixel_index];
+            let terrain_index = terrain_pos.y * terrain_dims.x + terrain_pos.x;
+            let pixel = read_terrain[terrain_index];
 
             let a = uniforms.ambient_light_intensity;
 
@@ -288,7 +300,7 @@ export function display2DShader(
             let light_level = dot(normal, uniforms.light_direction);
             let color = a * pixel.color + (1 - a) * pixel.color * light_level;
 
-            textureStore(canvas, pixel_pos, vec4f(color, 1));
+            textureStore(canvas, canvas_pos, vec4f(color, 1));
         }
     `
 }

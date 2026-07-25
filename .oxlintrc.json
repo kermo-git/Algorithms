@@ -6,6 +6,5 @@
         "suspicious": "warn",
         "perf": "warn",
         "style": "off"
-    },
-    "rules": {}
+    }
 }

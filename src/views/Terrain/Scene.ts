@@ -1,5 +1,5 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
-import { perspectiveProjection, type Mat4x4 } from '@/WebGPU/Geometry'
+import { Mat4x4, perspectiveProjection } from '@/WebGPU/Geometry'
 
 import {
     type Setup,
@@ -53,6 +53,8 @@ export default class TerrainScene {
     uniforms!: GPUBuffer
 
     canvas_layout!: GPUBindGroupLayout
+
+    view_matrix = new Mat4x4()
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         this.setup = setup
@@ -138,11 +140,16 @@ export default class TerrainScene {
             ]
         })
 
+        this.view_matrix = setup.camera_view_matrix
+        const projection_view = perspectiveProjection(70, 1, 0.1, 1000).matmul(
+            this.view_matrix
+        )
+
         this.uniforms = engine.createUniformBuffer(
             new Float32Array([
                 ...setup.light_dir,
                 setup.ambient_light_intensity,
-                ...setup.camera_view_matrix.toWebGPU()
+                ...projection_view.toWebGPU()
             ])
         )
         this.uniforms_group = engine.device.createBindGroup({
@@ -155,7 +162,9 @@ export default class TerrainScene {
             ]
         })
         await this.createIndexBuffer()
-        this.renderNoise(setup.render_3D)
+        this.renderNoise()
+
+        engine.watchResize(() => this.renderDisplay())
     }
 
     private async createIndexBuffer() {
@@ -321,7 +330,7 @@ export default class TerrainScene {
         pass_encoder.setBindGroup(1, terrain_group)
         pass_encoder.setBindGroup(2, this.uniforms_group)
 
-        this.encodeCompute(pass_encoder)
+        this.engine.encodeCompute(pass_encoder, texture.width, texture.height)
         pass_encoder.end()
     }
 
@@ -330,6 +339,25 @@ export default class TerrainScene {
         terrain_group: GPUBindGroup
     ) {
         const main_texture = this.engine.getTexture()
+        const aspect_ratio = main_texture.width / main_texture.height
+
+        const projection_matrix = perspectiveProjection(
+            70,
+            aspect_ratio,
+            0.1,
+            1000
+        )
+        const projection_view_matrix = projection_matrix.matmul(
+            this.view_matrix
+        )
+
+        const offset = 16
+        this.engine.updateBuffer(
+            this.uniforms,
+            projection_view_matrix.toWebGPU(),
+            offset
+        )
+
         const depth_texture = this.engine.createDepthTexture(
             main_texture.width,
             main_texture.height
@@ -362,7 +390,7 @@ export default class TerrainScene {
         pass_encoder.end()
     }
 
-    private renderNoise(render_3D: boolean) {
+    private renderNoise() {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
         this.computePass(
@@ -376,7 +404,7 @@ export default class TerrainScene {
             this.terrain_group_BA
         )
 
-        if (render_3D) {
+        if (this.setup.render_3D) {
             this.display3DPass(cmd_encoder, this.terrain_group_AB)
         } else {
             this.display2DPass(cmd_encoder, this.terrain_group_AB)
@@ -384,7 +412,7 @@ export default class TerrainScene {
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    private renderColor(render_3D: boolean) {
+    private renderColor() {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
         this.computePass(
@@ -393,7 +421,7 @@ export default class TerrainScene {
             this.terrain_group_BA
         )
 
-        if (render_3D) {
+        if (this.setup.render_3D) {
             this.display3DPass(cmd_encoder, this.terrain_group_AB)
         } else {
             this.display2DPass(cmd_encoder, this.terrain_group_AB)
@@ -401,11 +429,11 @@ export default class TerrainScene {
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    renderDisplay(render_3D: boolean) {
+    renderDisplay() {
         const device = this.engine.device
         const cmd_encoder = device.createCommandEncoder()
 
-        if (render_3D) {
+        if (this.setup.render_3D) {
             this.display3DPass(cmd_encoder, this.terrain_group_AB)
         } else {
             this.display2DPass(cmd_encoder, this.terrain_group_AB)
@@ -413,7 +441,7 @@ export default class TerrainScene {
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    setLight(dir: number[], ambient_intensity: number, render_3D: boolean) {
+    setLight(dir: number[], ambient_intensity: number) {
         this.setup.light_dir = dir
         this.setup.ambient_light_intensity = ambient_intensity
 
@@ -424,38 +452,35 @@ export default class TerrainScene {
                 this.setup.ambient_light_intensity
             ])
         )
-        this.renderDisplay(render_3D)
+        this.renderDisplay()
     }
 
-    projection_matrix = perspectiveProjection(70, 1, 0.1, 1000)
     setCamera(view_matrix: Mat4x4) {
-        const projection_view = this.projection_matrix.matmul(view_matrix)
-        const offset = 16
-
-        this.engine.updateBuffer(
-            this.uniforms,
-            projection_view.toWebGPU(),
-            offset
-        )
-        this.renderDisplay(true)
+        this.view_matrix = view_matrix
+        this.renderDisplay()
     }
 
-    async updateNoiseShader(code: string, render_3D: boolean) {
+    setRender3D(render_3D: boolean) {
+        this.setup.render_3D = render_3D
+        this.renderDisplay()
+    }
+
+    async updateNoiseShader(code: string) {
         this.setup.noise_shader = code
 
         const issues = await this.createNoiseShader()
         if (issues.length === 0) {
-            this.renderNoise(render_3D)
+            this.renderNoise()
         }
         return issues
     }
 
-    async updateColorShader(code: string, render_3D: boolean) {
+    async updateColorShader(code: string) {
         this.setup.color_shader = code
 
         const issues = await this.createColorShader()
         if (issues.length === 0) {
-            this.renderColor(render_3D)
+            this.renderColor()
         }
         return issues
     }

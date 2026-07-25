@@ -90,32 +90,6 @@ export default class Engine {
         this.observer.observe(this.canvas.parentElement!)
     }
 
-    watchResizeFixedWidth(canvas_width: number, render_callback: () => void) {
-        this.observer = new ResizeObserver((entries) => {
-            entries.forEach((entry) => {
-                const box_width = entry.contentBoxSize[0].inlineSize
-                const box_height = entry.contentBoxSize[0].blockSize
-                const aspect_ratio = box_height / box_width
-                const canvas_height = Math.ceil(canvas_width * aspect_ratio)
-                const max_size = this.device.limits.maxTextureDimension2D
-
-                this.pending_resize = {
-                    width: Math.min(canvas_width * devicePixelRatio, max_size),
-                    height: Math.min(canvas_height * devicePixelRatio, max_size)
-                }
-                if (!this.frame_id) {
-                    this.frame_id = requestAnimationFrame(() => {
-                        this.frame_id = 0
-                        this.canvas.width = this.pending_resize.width
-                        this.canvas.height = this.pending_resize.height
-                        render_callback()
-                    })
-                }
-            })
-        })
-        this.observer.observe(this.canvas.parentElement!)
-    }
-
     stopResizeWatch() {
         this.observer?.disconnect()
     }

@@ -54,8 +54,6 @@ const camera_view_matrix = computed(() => {
 
 async function initScene(new_grid_size: number) {
     if (canvasRef.value) {
-        console.log(camera_view_matrix.value)
-
         scene.value.cleanup()
         await scene.value.init(
             {
@@ -87,15 +85,13 @@ async function canvasReady(canvas: HTMLCanvasElement) {
 
 async function runNoise() {
     shader_issues.value = await scene.value.updateNoiseShader(
-        noise_shader.value,
-        render_3D.value
+        noise_shader.value
     )
 }
 
 async function runColor() {
     shader_issues.value = await scene.value.updateColorShader(
-        color_shader.value,
-        render_3D.value
+        color_shader.value
     )
 }
 
@@ -104,11 +100,11 @@ watch(grid_size, async (new_grid_size) => {
 })
 
 watch([light_dir, ambient_intensity], (new_values) => {
-    scene.value.setLight(new_values[0], new_values[1], render_3D.value)
+    scene.value.setLight(new_values[0], new_values[1])
 })
 
 watch(render_3D, (new_render_3D) => {
-    scene.value.renderDisplay(new_render_3D)
+    scene.value.setRender3D(new_render_3D)
 })
 
 watch(camera_view_matrix, (new_camera) => {
