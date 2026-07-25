@@ -58,15 +58,8 @@ export function createUniformsLayout(device: GPUDevice) {
     return device.createBindGroupLayout({
         entries: [
             {
-                binding: 0, // struct Light: ambient_intensity, dir
+                binding: 0, // light_dir, ambient_light_intensity, camera_projection_view
                 visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
-                buffer: {
-                    type: 'uniform',
-                },
-            },
-            {
-                binding: 1, // struct Camera: pos, projection_view
-                visibility: GPUShaderStage.VERTEX,
                 buffer: {
                     type: 'uniform',
                 },

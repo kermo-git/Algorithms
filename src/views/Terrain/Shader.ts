@@ -109,14 +109,13 @@ export interface Setup {
     terrain_dims: number[]
     grid_dims: number[]
     light_dir: number[]
-    ambient_intensity: number
-    camera_pos: number[]
-    camera_projection_view: Mat4x4
+    ambient_light_intensity: number
+    camera_view_matrix: Mat4x4
     render_3D: boolean
 }
 
 const terrainStruct = /* wgsl */ `
-    struct TerrainUnit {
+    struct TerrainPixel {
         gradient: vec2f, velocity: vec2f,
         water_outflow_flux: vec4f,
         pos: vec2f, elevation: f32, water: f32,
@@ -124,17 +123,11 @@ const terrainStruct = /* wgsl */ `
     };
 `
 
-const lightStruct = /* wgsl */ `
-    struct Light {
-        dir: vec3f,
-        ambient_intensity: f32,
-    };
-`
-
-const cameraStruct = /* wgsl */ `
-    struct Camera {
-        pos: vec3f,
-        projection_view: mat4x4f,
+const uniformStruct = /* wgsl */ `
+    struct Uniforms {
+        light_direction: vec3f,
+        ambient_light_intensity: f32,
+        camera_projection_view: mat4x4f,
     };
 `
 
@@ -144,8 +137,8 @@ export function noiseShader(setup: Setup): string {
 
         ${terrainStruct}
 
-        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainPixel>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainPixel>;
 
         ${setup.noise_shader}
 
@@ -176,8 +169,8 @@ export function colorShader(setup: Setup): string {
         
         ${terrainStruct}
 
-        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainPixel>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainPixel>;
 
         ${setup.color_shader}
 
@@ -261,14 +254,14 @@ export function colorShader(setup: Setup): string {
 export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
     return /* wgsl */ `
         ${terrainStruct}
-        ${lightStruct}
+        ${uniformStruct}
 
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
 
-        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainUnit>;
-        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainUnit>;
+        @group(1) @binding(0) var<storage, read> read_terrain: array<TerrainPixel>;
+        @group(1) @binding(1) var<storage, read_write> write_terrain: array<TerrainPixel>;
 
-        @group(2) @binding(0) var<uniform> light: Light;
+        @group(2) @binding(0) var<uniform> uniforms: Uniforms;
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
         
@@ -285,11 +278,11 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
             let pixel_index = pixel_pos.y * terrain_dims.x + pixel_pos.x;
             let pixel = read_terrain[pixel_index];
 
-            let a = light.ambient_intensity;
+            let a = uniforms.ambient_light_intensity;
 
             let gradient = pixel.gradient;
             let normal = normalize(vec3f(-gradient.x, 1, -gradient.y));
-            let light_level = dot(normal, light.dir);
+            let light_level = dot(normal, uniforms.light_direction);
             let color = a * pixel.color + (1 - a) * pixel.color * light_level;
 
             textureStore(canvas, pixel_pos, vec4f(color, 1));
@@ -301,12 +294,10 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
     // TODO
     return /* wgsl */ `
         ${terrainStruct}
-        ${lightStruct}
-        ${cameraStruct}
+        ${uniformStruct}
 
-        @group(0) @binding(0) var<storage, read> terrain: array<TerrainUnit>;
-        @group(1) @binding(0) var<uniform> light: Light;
-        @group(1) @binding(1) var<uniform> camera: Camera;
+        @group(0) @binding(0) var<storage, read> terrain: array<TerrainPixel>;
+        @group(1) @binding(0) var<uniform> uniforms: Uniforms;
 
         const terrain_dims = vec2u(${setup.terrain_dims[0]}, ${setup.terrain_dims[1]});
         const grid_dims = vec2f(${setup.grid_dims[0]}, ${setup.grid_dims[1]});
@@ -324,12 +315,12 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
 
             let gradient = pixel.gradient;
             let normal = normalize(vec3f(-gradient.x, 1, -gradient.y));
-            let light_level = dot(normal, light.dir);
-            let a = light.ambient_intensity;
+            let light_level = dot(normal, uniforms.light_direction);
+            let a = uniforms.ambient_light_intensity;
 
             var output: FragmentInput;
             let world_pos = vec4f(pixel.pos.x, pixel.elevation, -pixel.pos.y, 1);
-            output.screen_pos = camera.projection_view * world_pos;
+            output.screen_pos = uniforms.camera_projection_view * world_pos;
             output.color = a * pixel.color + (1 - a) * pixel.color * light_level;
 
             return output;
@@ -338,114 +329,6 @@ export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFor
         @fragment
         fn fragment_main(@location(0) color: vec3f) -> @location(0) vec4f {
             return vec4f(color, 1);
-        }
-    `
-}
-
-function rayMarchingShader(box_dims: number[], canvas_color_format: GPUTextureFormat): string {
-    return /* wgsl */ `
-        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
-        @group(1) @binding(0) var<uniform> light: Light;
-        @group(1) @binding(1) var<uniform> camera: Camera;
-
-        const STEP_SCALE = 1;
-        const HIT_THRESHOLD = 0.005;
-
-        const CAMERA_FOV = radians(70);
-        const IMAGE_WIDTH = 2 * tan(CAMERA_FOV / 2);
-        
-        const box_dims = vec3f(${box_dims[0]}, ${box_dims[1]}, ${box_dims[2]});
-
-        fn find_box_distance(ray_origin: vec3f, ray_direction: vec3f) -> f32 {
-            let t1 = -ray_origin / ray_direction;
-            let t2 = (box_dims - ray_origin) / ray_direction;
-
-            let t_min = min(t1, t2);
-            let t_max = max(t1, t2);
-
-            if !(t_max.x < t_min.y || t_max.y < t_min.x) {
-                if !(t_max.x < t_min.z || t_max.z < t_min.x || t_max.y < t_min.z || t_max.z < t_min.y) {
-                    let outside_dist = max(t_min.z, max(t_min.x, t_min.y));
-
-                    if (outside_dist >= 0) {
-                        return outside_dist;
-                    } else {
-                        let inside_dist = min(t_max.z, min(t_max.x, t_max.y));
-
-                        if (inside_dist >= 0) {
-                            return inside_dist;
-                        }
-                    }
-                }
-            }
-            return -1;
-        }
-
-        fn find_distance(pos: vec3f) -> f32 {
-            // TODO
-            return 0;
-        };
-
-        struct Surface {
-            normal: vec3f;
-            color: vec3f;
-        }
-
-        fn get_surface_data(pos: vec3f) -> Surface {
-            var result: Surface;
-            // TODO
-            return result;
-        }
-        
-        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
-        fn main(
-            @builtin(global_invocation_id) gid: vec3u
-        ) {
-            let canvas_dims = textureDimensions(canvas);
-            let pixel_pos = gid.xy;
-
-            if (pixel_pos.x >= canvas_dims.x || pixel_pos.y < 0) {
-                return;
-            }
-
-            let canvas_dims_f = vec2f(canvas_dims);
-
-            let image_height = IMAGE_WIDTH * canvas_dims_f.y / canvas_dims_f.x;
-            let image_dims = vec2f(IMAGE_WIDTH, image_height);
-
-            let norm_pixel_pos = vec2f(pixel_pos) / canvas_dims_f;
-            let image_pos = image_dims * (norm_pixel_pos - 0.5);
-            let camera_ray = camera.rotation * normalize(vec3f(image_pos.x, 1, image_pos.y));
-
-            var current_distance = find_box_distance(camera.pos, camera_ray) + HIT_THRESHOLD;
-            
-            if current_distance > 0 {
-                var current_pos = camera.pos + current_distance * camera_ray;
-                let a = light.ambient_intensity;
-
-                const MAX_STEPS = 1000;
-                for (var s = 0; s < MAX_STEPS; s++) {
-                    let world_distance = find_distance(current_pos);
-                    current_distance += STEP_SCALE * world_distance;
-                    current_pos = camera.pos + current_distance * camera_ray;
-
-                    if world_distance < HIT_THRESHOLD {
-                        let surface = get_surface_data(current_pos);
-                        let light_level = dot(surface.normal, light.dir);
-                        let color = a * surface.color + (1 - a) * surface.color * light_level;
-                        textureStore(canvas, gid.xy, color);
-                        break;
-                    } else if (
-                        any(current_pos <= vec3f(0)) || 
-                        any(current_pos >= box_dims)
-                    ) {
-                        textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
-                        break;
-                    }
-                }
-            } else {
-                textureStore(canvas, gid.xy, vec4f(0, 0, 0, 1));
-            }
         }
     `
 }

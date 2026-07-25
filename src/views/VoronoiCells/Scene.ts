@@ -116,7 +116,7 @@ export default class VoronoiScene {
                 },
             ],
         })
-        this.engine.onResize(() => this.render())
+        this.engine.watchResize(() => this.render())
     }
 
     render(): void {

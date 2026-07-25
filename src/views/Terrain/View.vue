@@ -11,7 +11,7 @@ import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
-import { DEG_TO_RAD, perspectiveProjection, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
+import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
 
 import { examples, type Example } from './Examples'
 import TerrainScene from './Scene'
@@ -41,31 +41,21 @@ const light_dir = computed(() => {
     return rotateY(rad_y).matmul(rotateX(rad_x)).matmul_vec([0, 1, 0])
 })
 
-const projection_matrix = perspectiveProjection(70, 1, 0.1, 1000)
-
-const camera = computed(() => {
+const camera_view_matrix = computed(() => {
     const size = grid_size.value
     const rad_x = terrain_deg_x.value * DEG_TO_RAD
     const rad_y = terrain_deg_y.value * DEG_TO_RAD
 
-    const camera_pos = translate(0.5 * size, 0, -0.5 * size)
-        .matmul(rotateY(rad_y))
-        .matmul(rotateX(rad_x))
-        .matmul_vec([0, 0, size])
-
-    const view_matrix = translate(0, 0, -size)
+    return translate(0, 0, -size)
         .matmul(rotateX(-rad_x))
         .matmul(rotateY(-rad_y))
         .matmul(translate(-0.5 * size, 0, 0.5 * size))
-
-    return {
-        pos: camera_pos,
-        projectionView: projection_matrix.matmul(view_matrix),
-    }
 })
 
 async function initScene(grid_size: number) {
     if (canvasRef.value) {
+        console.log(camera_view_matrix.value)
+
         scene.value.cleanup()
         await scene.value.init(
             {
@@ -74,9 +64,8 @@ async function initScene(grid_size: number) {
                 terrain_dims: [1024, 1024],
                 grid_dims: [grid_size, grid_size],
                 light_dir: light_dir.value,
-                ambient_intensity: ambient_intensity.value,
-                camera_pos: camera.value.pos,
-                camera_projection_view: camera.value.projectionView,
+                ambient_light_intensity: ambient_intensity.value,
+                camera_view_matrix: camera_view_matrix.value,
                 render_3D: render_3D.value,
             },
             canvasRef.value,
@@ -115,8 +104,8 @@ watch(render_3D, (new_render_3D) => {
     scene.value.renderDisplay(new_render_3D)
 })
 
-watch(camera, (new_camera) => {
-    scene.value.setCamera(new_camera.pos, new_camera.projectionView)
+watch(camera_view_matrix, (new_camera) => {
+    scene.value.setCamera(new_camera)
 })
 </script>
 

@@ -1,5 +1,5 @@
 import Engine, { WG_DIM } from '@/WebGPU/Engine'
-import type { Mat4x4 } from '@/WebGPU/Geometry'
+import { perspectiveProjection, type Mat4x4 } from '@/WebGPU/Geometry'
 
 import {
     type Setup,
@@ -47,8 +47,7 @@ export default class TerrainScene {
 
     uniforms_layout!: GPUBindGroupLayout
     uniforms_group!: GPUBindGroup
-    light!: GPUBuffer
-    camera!: GPUBuffer
+    uniforms!: GPUBuffer
 
     canvas_layout!: GPUBindGroupLayout
 
@@ -129,22 +128,19 @@ export default class TerrainScene {
             ],
         })
 
-        this.light = engine.createUniformBuffer(
-            new Float32Array([...setup.light_dir, setup.ambient_intensity]),
-        )
-        this.camera = engine.createUniformBuffer(
-            new Float32Array([...setup.camera_pos, 0, ...setup.camera_projection_view.toWebGPU()]),
+        this.uniforms = engine.createUniformBuffer(
+            new Float32Array([
+                ...setup.light_dir,
+                setup.ambient_light_intensity,
+                ...setup.camera_view_matrix.toWebGPU(),
+            ]),
         )
         this.uniforms_group = engine.device.createBindGroup({
             layout: this.uniforms_layout,
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.light },
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this.camera },
+                    resource: { buffer: this.uniforms },
                 },
             ],
         })
@@ -380,27 +376,21 @@ export default class TerrainScene {
 
     setLight(dir: number[], ambient_intensity: number, render_3D: boolean) {
         this.setup.light_dir = dir
-        this.setup.ambient_intensity = ambient_intensity
+        this.setup.ambient_light_intensity = ambient_intensity
 
         this.engine.updateBuffer(
-            this.light,
-            new Float32Array([...this.setup.light_dir, this.setup.ambient_intensity]),
+            this.uniforms,
+            new Float32Array([...this.setup.light_dir, this.setup.ambient_light_intensity]),
         )
         this.renderDisplay(render_3D)
     }
 
-    setCamera(pos: number[], projection_view: Mat4x4) {
-        this.setup.camera_pos = pos
-        this.setup.camera_projection_view = projection_view
+    projection_matrix = perspectiveProjection(70, 1, 0.1, 1000)
+    setCamera(view_matrix: Mat4x4) {
+        const projection_view = this.projection_matrix.matmul(view_matrix)
+        const offset = 16
 
-        this.engine.updateBuffer(
-            this.camera,
-            new Float32Array([
-                ...this.setup.camera_pos,
-                0,
-                ...this.setup.camera_projection_view.toWebGPU(),
-            ]),
-        )
+        this.engine.updateBuffer(this.uniforms, projection_view.toWebGPU(), offset)
         this.renderDisplay(true)
     }
 
@@ -426,7 +416,7 @@ export default class TerrainScene {
 
     cleanup() {
         this.engine?.cleanup()
-        this.light?.destroy()
+        this.uniforms?.destroy()
         this.unit_vectors_2D?.destroy()
         this.unit_vectors_3D?.destroy()
         this.terrain_A?.destroy()
