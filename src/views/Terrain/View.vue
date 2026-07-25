@@ -76,7 +76,8 @@ async function initScene(new_grid_size: number) {
 function setExample(example: Example) {
     noise_shader.value = example.elevation_shader
     color_shader.value = example.color_shader
-    initScene(grid_size.value)
+    grid_size.value = example.grid_size
+    initScene(example.grid_size)
 }
 
 async function canvasReady(canvas: HTMLCanvasElement) {

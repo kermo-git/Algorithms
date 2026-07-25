@@ -2,6 +2,7 @@ import { parseHexColor } from '@/utils/Colors'
 
 export interface Example {
     name: string
+    grid_size: number
     elevation_shader: string
     color_shader: string
 }
@@ -73,6 +74,7 @@ function terrainColorShader(
 export const examples: Example[] = [
     {
         name: 'Mountains',
+        grid_size: 4,
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     const warp_1_channel = 0;
     const warp_2_channel = 1;
@@ -116,6 +118,7 @@ export const examples: Example[] = [
 
     {
         name: 'Canyons',
+        grid_size: 8,
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     const warp_channel = 0;
     const warp_scale = 1;
@@ -164,6 +167,7 @@ export const examples: Example[] = [
 
     {
         name: 'Canyons & Mountains',
+        grid_size: 32,
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     let pos3 = vec3f(pos, 0);
     let warp = unit_vector_2d(
