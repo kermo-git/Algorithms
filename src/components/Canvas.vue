@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef } from 'vue'
-import { mdiFloppy } from '@mdi/js'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
 import PanelButton from '@/components/PanelButton.vue'
@@ -61,7 +60,7 @@ function download() {
             </p>
         </template>
         <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />
-        <PanelButton @click="download" class="save-button" :mdi-path="mdiFloppy" />
+        <PanelButton @click="download" class="save-button" mdi-path="floppy" />
     </div>
 </template>
 

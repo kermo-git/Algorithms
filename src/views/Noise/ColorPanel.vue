@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { mdiDelete, mdiPlus, mdiSwapVertical } from '@mdi/js'
-
 import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
 import RangeInput from '@/components/RangeInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
@@ -87,19 +85,14 @@ function onDeleteClick(ev: Event) {
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
             <PanelButton
                 v-if="i > 0"
-                :mdi-path="mdiSwapVertical"
+                mdi-path="swap-vertical"
                 :data-index="i"
                 @click="onSwapClick"
             />
-            <PanelButton
-                v-if="i > 0"
-                :mdi-path="mdiPlus"
-                :data-index="i"
-                @click="onAddColorClick"
-            />
+            <PanelButton v-if="i > 0" mdi-path="plus" :data-index="i" @click="onAddColorClick" />
             <PanelButton
                 v-if="colors!.length > 2"
-                :mdi-path="mdiDelete"
+                mdi-path="delete"
                 :data-index="i"
                 @click="onDeleteClick"
             />

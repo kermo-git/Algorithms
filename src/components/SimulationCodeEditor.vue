@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { mdiPause, mdiPlay, mdiReload, mdiStepForward } from '@mdi/js'
-import SvgIcon from '@jamescoyle/vue-icon'
-
 import CodeEditor from './CodeEditor.vue'
 import Checkbox from './Checkbox.vue'
 
@@ -21,21 +18,15 @@ const skip_frames = defineModel<boolean>('skip-frames')
     <div class="container">
         <div class="header" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
             <button class="header-button" @click="emits('reset')">
-                <span>
-                    <svg-icon type="mdi" :path="mdiReload" />
-                </span>
+                <span class="mdi mdi-reload" />
                 <span>Reset</span>
             </button>
             <button class="header-button" @click="emits('step')">
-                <span>
-                    <svg-icon type="mdi" :path="mdiStepForward" />
-                </span>
+                <span class="mdi mdi-step-forward" />
                 <span>Step</span>
             </button>
             <button class="header-button" @click="is_running = !is_running">
-                <span>
-                    <svg-icon type="mdi" :path="is_running ? mdiPause : mdiPlay" />
-                </span>
+                <span :class="`mdi mdi-${is_running ? 'pause' : 'play'}`" />
                 <span>{{ is_running ? 'Pause' : 'Run' }}</span>
             </button>
         </div>
@@ -85,8 +76,8 @@ const skip_frames = defineModel<boolean>('skip-frames')
     background-color: var(--accent-color);
 }
 
-.header-button > svg-icon {
-    font-size: 10pt;
+.header-button > .mdi {
+    font-size: 20pt;
 }
 
 .ca-editor {

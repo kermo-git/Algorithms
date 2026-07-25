@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@jamescoyle/vue-icon'
-import { mdiCheck } from '@mdi/js'
-
 interface Props {
     text: string
     name: string
@@ -27,7 +24,7 @@ function onChange(event: Event) {
                 :value="model"
                 @change="onChange"
             />
-            <svg-icon class="checkbox-icon" type="mdi" :path="model ? mdiCheck : ''" />
+            <span :class="`checkbox-icon ${model ? 'mdi mdi-check' : ''}`" />
         </span>
         <label class="caption" :for="props.name">{{ props.text }}</label>
     </div>
@@ -51,6 +48,7 @@ function onChange(event: Event) {
 }
 
 .checkbox-icon {
+    font-size: 30pt;
     position: absolute;
     top: 0;
     left: 0;

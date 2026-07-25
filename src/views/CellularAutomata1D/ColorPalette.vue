@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@jamescoyle/vue-icon'
-import { mdiSwapHorizontal } from '@mdi/js'
-
 import ColorInput from '@/components/ColorInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import HBox from '@/components/HBox.vue'
@@ -83,7 +80,7 @@ function onSwapClick(ev: Event) {
                 class="swap"
                 @click="onSwapClick"
             >
-                <svg-icon type="mdi" :path="mdiSwapHorizontal" />
+                <span type="mdi" class="mdi mdi-swap-horizontal" />
             </button>
         </template>
     </HBox>
@@ -108,6 +105,7 @@ function onSwapClick(ev: Event) {
     color: var(--text-color);
     padding: 0;
     cursor: pointer;
+    font-size: 20pt;
 }
 
 .swap:hover {

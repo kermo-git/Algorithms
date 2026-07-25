@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@jamescoyle/vue-icon'
-
 interface Props {
     text?: string
     mdiPath?: string
@@ -10,9 +8,7 @@ const props = defineProps<Props>()
 
 <template>
     <button>
-        <span v-if="props.mdiPath">
-            <svg-icon type="mdi" :path="props.mdiPath" />
-        </span>
+        <span v-if="props.mdiPath" :class="`mdi mdi-${props.mdiPath}`" />
         <span v-if="props.text">{{ props.text }}</span>
     </button>
 </template>
@@ -42,7 +38,7 @@ button:active {
     color: var(--bg-color);
 }
 
-button svg {
-    font-size: 10pt;
+button .mdi {
+    font-size: 20pt;
 }
 </style>

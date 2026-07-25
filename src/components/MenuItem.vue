@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@jamescoyle/vue-icon'
-
 interface Props {
     text: string
 }
