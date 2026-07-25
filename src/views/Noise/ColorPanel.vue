@@ -11,8 +11,10 @@ interface Emits {
 }
 const emit = defineEmits<Emits>()
 
-const colors = defineModel<string[]>('colors', { default: ['#000000', '#FFFFFF'] })
-const points = defineModel<number[]>('points', { default: [0, 1] })
+const colors = defineModel<string[]>('colors', {
+    default: () => ['#000000', '#FFFFFF']
+})
+const points = defineModel<number[]>('points', { default: () => [0, 1] })
 
 function lerp(t: number, a: number, b: number) {
     return a + t * (b - a)

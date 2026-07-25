@@ -11,12 +11,16 @@ import ColorPanel from './ColorPanel.vue'
 import NoiseScene from './Scene'
 import type { DomainTransform, Setup } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
-import { SimplexValue2D, SimplexValue3D, SimplexValue4D } from '@/Noise/Algorithms/SimplexValue.ts'
+import {
+    SimplexValue2D,
+    SimplexValue3D,
+    SimplexValue4D
+} from '@/Noise/Algorithms/SimplexValue'
 import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
-import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2.ts'
+import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
 
 const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])

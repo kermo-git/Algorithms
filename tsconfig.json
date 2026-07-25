@@ -1,14 +1,14 @@
 {
-    "files": [],
-    "references": [
-        {
-            "path": "./tsconfig.node.json"
-        },
-        {
-            "path": "./tsconfig.app.json"
-        }
-    ],
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
     "compilerOptions": {
-        "allowJs": true
+        "paths": {
+            "@/*": ["./src/*"]
+        },
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ESNext", "DOM"],
+        "skipLibCheck": true,
+        "noEmit": true
     }
 }

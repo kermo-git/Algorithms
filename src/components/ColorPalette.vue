@@ -9,7 +9,7 @@ interface Emits {
 }
 const emit = defineEmits<Emits>()
 
-const hex_colors = defineModel<string[]>({ default: ['#000000'] })
+const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
 </script>
 
 <template>

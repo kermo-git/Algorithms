@@ -3,7 +3,7 @@ interface Props {
     matrixSize: number
 }
 const props = defineProps<Props>()
-const matrix = defineModel<number[]>('matrix', { default: [] })
+const matrix = defineModel<number[]>('matrix', { default: () => [] })
 
 function onCellClick(ev: Event) {
     const element = ev.target as HTMLInputElement

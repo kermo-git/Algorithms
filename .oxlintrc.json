@@ -1,0 +1,10 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["typescript", "vue"],
+    "categories": {
+        "correctness": "warn",
+        "suspicious": "warn",
+        "style": "off"
+    },
+    "rules": {}
+}

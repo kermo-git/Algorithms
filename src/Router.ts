@@ -6,44 +6,42 @@ import NoiseView from '@/views/Noise/View.vue'
 import TerrainView from '@/views/Terrain/View.vue'
 import VoronoiView from '@/views/VoronoiCells/View.vue'
 
-const router = createRouter({
+export default createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
             path: '/',
-            redirect: '/1d-ca',
+            redirect: '/1d-ca'
         },
         {
             path: '/1d-ca',
             name: '1d-ca',
-            component: Automata1DView,
+            component: Automata1DView
         },
         {
             path: '/2d-ca',
             name: '2d-ca',
-            component: DiscreteAutomataView,
+            component: DiscreteAutomataView
         },
         {
             path: '/neural-ca',
             name: 'neural-ca',
-            component: NeuralAutomataView,
+            component: NeuralAutomataView
         },
         {
             path: '/noise',
             name: 'noise',
-            component: NoiseView,
+            component: NoiseView
         },
         {
             path: '/terrain',
             name: 'terrain',
-            component: TerrainView,
+            component: TerrainView
         },
         {
             path: '/voronoi',
             name: 'voronoi',
-            component: VoronoiView,
-        },
-    ],
+            component: VoronoiView
+        }
+    ]
 })
-
-export default router
