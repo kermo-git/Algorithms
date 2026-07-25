@@ -10,7 +10,7 @@ function terrainColorShader(
     bottom_color: string,
     bottom_color_end: number,
     top_color: string,
-    top_color_start: number,
+    top_color_start: number
 ) {
     function hexColorToWGSL(hex: string) {
         const { red, green, blue } = parseHexColor(hex)
@@ -111,7 +111,7 @@ export const examples: Example[] = [
         noise_persistence
     );
 }`,
-        color_shader: terrainColorShader('#15b342', 0.58, '#FFFFFF', 0.62),
+        color_shader: terrainColorShader('#15b342', 0.58, '#FFFFFF', 0.62)
     },
 
     {
@@ -159,7 +159,7 @@ export const examples: Example[] = [
         ))
     );
 }`,
-        color_shader: terrainColorShader('#C49A1A', 0.56, '#15b342', 0.6),
+        color_shader: terrainColorShader('#C49A1A', 0.56, '#15b342', 0.6)
     },
 
     {
@@ -259,6 +259,6 @@ export const examples: Example[] = [
         );
     }
     return result;
-}`,
-    },
+}`
+    }
 ]

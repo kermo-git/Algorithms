@@ -28,24 +28,24 @@ export const examples: Example[] = [
         name: 'Rainbow',
         colors: COLOR_PALETTES.get('Rainbow')!,
         nStates: 24,
-        updateShader: cyclic_CA_shader(1, 1),
+        updateShader: cyclic_CA_shader(1, 1)
     },
     {
         name: '313',
         colors: ['#235931', '#5ae07e'],
         nStates: 3,
-        updateShader: cyclic_CA_shader(3, 1),
+        updateShader: cyclic_CA_shader(3, 1)
     },
     {
         name: 'Perfect',
         colors: ['#0C4B8A', '#1B94BF', '#24D6F2', '#B1F7FF'],
         nStates: 4,
-        updateShader: cyclic_CA_shader(3, 1),
+        updateShader: cyclic_CA_shader(3, 1)
     },
     {
         name: 'Roses',
         colors: ['#4b0089', '#b55bff'],
         nStates: 24,
-        updateShader: cyclic_CA_shader(1, 3),
-    },
+        updateShader: cyclic_CA_shader(1, 3)
+    }
 ]

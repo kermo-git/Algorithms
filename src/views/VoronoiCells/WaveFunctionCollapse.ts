@@ -6,14 +6,14 @@ import { Matrix } from '@/utils/Matrix'
 export function generate(
     sample_picture: Matrix<number>,
     n_rows: number,
-    n_cols: number,
+    n_cols: number
 ): Matrix<number[]> {
     const rules = learn(sample_picture)
     const state = new State(rules, n_rows, n_cols)
 
     let collapse_pos = {
         x: Math.floor(Math.random() * n_rows),
-        y: Math.floor(Math.random() * n_cols),
+        y: Math.floor(Math.random() * n_cols)
     }
     while (!state.isFinished()) {
         collapse_pos = collapseAndPropagate(state, collapse_pos)
@@ -27,7 +27,8 @@ export function flatten(wave_function: Matrix<number[]>): Int32Array {
     const result = new Int32Array(n_rows * n_cols)
 
     wave_function.foreach((row, col, superposition) => {
-        result[row * n_cols + col] = superposition.length > 0 ? superposition[0] : 0
+        result[row * n_cols + col] =
+            superposition.length > 0 ? superposition[0] : 0
     })
     return result
 }
@@ -40,7 +41,7 @@ enum Direction {
     South = 4,
     SouthWest = 5,
     West = 6,
-    NorthWest = 7,
+    NorthWest = 7
 }
 
 function learn(sample_picture: Matrix<number>): Rules {
@@ -107,7 +108,7 @@ function collapseAndPropagate(state: State, start_pos: Vec2) {
             min_entropy = entropy
             min_entropy_pos = {
                 x: x % n_cols,
-                y: y % n_rows,
+                y: y % n_rows
             }
         }
     }
@@ -199,7 +200,12 @@ class Rules {
         return Math.log(sum_w) - sum_w_log_w / sum_w
     }
 
-    set(tile: number, direction: Direction, neighbor_tile: number, value = true) {
+    set(
+        tile: number,
+        direction: Direction,
+        neighbor_tile: number,
+        value = true
+    ) {
         const n_tiles = this.weights.length
         const index = (tile * 8 + direction) * n_tiles + neighbor_tile
         this.rules[index] = value
@@ -213,7 +219,7 @@ class Rules {
 
     propagate(to: number[], direction: Direction, from: number[]): number[] {
         return to.filter((to_tile) =>
-            from.every((from_tile) => this.get(to_tile, direction, from_tile)),
+            from.every((from_tile) => this.get(to_tile, direction, from_tile))
         )
     }
 }
@@ -226,7 +232,7 @@ const direction_vectors = [
     { x: 0, y: -1 }, // South
     { x: -1, y: -1 }, // SouthWest
     { x: -1, y: 0 }, // West
-    { x: -1, y: 1 }, // NorthWest
+    { x: -1, y: 1 } // NorthWest
 ]
 
 class State {
@@ -247,7 +253,9 @@ class State {
         for (let i = 0; i < rules.getNTiles(); i++) {
             superposition.push(i)
         }
-        this.wave_function = new Matrix<number[]>(n_rows, n_cols, () => superposition.slice())
+        this.wave_function = new Matrix<number[]>(n_rows, n_cols, () =>
+            superposition.slice()
+        )
     }
 
     collapse(pos: Vec2) {
@@ -271,7 +279,10 @@ class State {
             const neighbor_x = (to.x + step.x) % this.n_cols
             const neighbor_y = (to.y + step.y) % this.n_rows
 
-            const neighbor_tiles = this.wave_function.get(neighbor_x, neighbor_y)
+            const neighbor_tiles = this.wave_function.get(
+                neighbor_x,
+                neighbor_y
+            )
             tiles = this.rules.propagate(tiles, direction, neighbor_tiles)
         }
         this.wave_function.set(to_x, to_y, tiles)
@@ -284,11 +295,13 @@ class State {
 
         return {
             n_tiles: n_now,
-            entropy: this.rules.entropy(tiles),
+            entropy: this.rules.entropy(tiles)
         }
     }
 
     isFinished() {
-        return !this.is_success || this.n_collapsed === this.n_rows * this.n_cols
+        return (
+            !this.is_success || this.n_collapsed === this.n_rows * this.n_cols
+        )
     }
 }

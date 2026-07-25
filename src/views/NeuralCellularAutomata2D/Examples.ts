@@ -49,8 +49,8 @@ function mazeKernel() {
             [0, N, N, N, P, P, P, N, N, N, 0],
             [0, N, N, N, N, N, N, N, N, N, 0],
             [0, 0, N, N, N, N, N, N, N, 0, 0],
-            [0, 0, 0, 0, N, N, N, 0, 0, 0, 0],
-        ].flat(),
+            [0, 0, 0, 0, N, N, N, 0, 0, 0, 0]
+        ].flat()
     )
 }
 
@@ -64,7 +64,7 @@ export const examples: Example[] = [
         get_kernel: () => {
             return mazeKernel()
         },
-        activation: sigmoid,
+        activation: sigmoid
     },
     {
         name: 'Flowing maze',
@@ -78,7 +78,7 @@ export const examples: Example[] = [
             kernel[98] = -1
             return kernel
         },
-        activation: sigmoid,
+        activation: sigmoid
     },
     {
         name: 'Zebra',
@@ -100,11 +100,11 @@ export const examples: Example[] = [
                     [N, N, P, P, P, P, P, N, N],
                     [N, N, N, P, P, P, N, N, N],
                     [0, N, N, P, P, P, N, N, 0],
-                    [0, 0, N, N, P, N, N, 0, 0],
-                ].flat(),
+                    [0, 0, N, N, P, N, N, 0, 0]
+                ].flat()
             )
         },
-        activation: sigmoid,
+        activation: sigmoid
     },
     {
         name: 'Merging bubbles',
@@ -120,10 +120,10 @@ export const examples: Example[] = [
             return [
                 [Z, X, Z],
                 [X, Y, X],
-                [Z, X, Z],
+                [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian,
+        activation: invertedGaussian
     },
     {
         // https://neuralpatterns.io
@@ -140,10 +140,10 @@ export const examples: Example[] = [
             return [
                 [Z, X, Z],
                 [X, Y, X],
-                [Z, X, Z],
+                [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian,
+        activation: invertedGaussian
     },
     {
         // https://neuralpatterns.io
@@ -160,10 +160,10 @@ export const examples: Example[] = [
             return [
                 [Z, X, Z],
                 [X, Y, X],
-                [Z, X, Z],
+                [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian,
+        activation: invertedGaussian
     },
     {
         name: 'Long bacteria',
@@ -179,9 +179,9 @@ export const examples: Example[] = [
             return [
                 [Z, X, Z],
                 [X, Y, X],
-                [Z, X, Z],
+                [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian,
-    },
+        activation: invertedGaussian
+    }
 ]

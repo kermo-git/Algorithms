@@ -65,9 +65,9 @@ async function initScene() {
                 kernel_radius: kernel_radius.value,
                 kernel: new Float32Array(kernel.value),
                 color_1: color_0.value,
-                color_2: color_1.value,
+                color_2: color_1.value
             },
-            canvasRef.value,
+            canvasRef.value
         )
     }
 }
@@ -108,7 +108,10 @@ function run() {
         initScene()
     }
     const fps = 60
-    interval_ref.value = setInterval(() => scene.value.step(skip_frames.value ? 2 : 1), 1000 / fps)
+    interval_ref.value = setInterval(
+        () => scene.value.step(skip_frames.value ? 2 : 1),
+        1000 / fps
+    )
 }
 
 function pause() {
@@ -167,12 +170,16 @@ onBeforeUnmount(() => {
                 <HBox>
                     <ColorInput
                         v-model="color_0"
-                        @animation="(hex_color) => scene.updateColor1(hex_color)"
+                        @animation="
+                            (hex_color) => scene.updateColor1(hex_color)
+                        "
                     />
                     <p>Select colors</p>
                     <ColorInput
                         v-model="color_1"
-                        @animation="(hex_color) => scene.updateColor2(hex_color)"
+                        @animation="
+                            (hex_color) => scene.updateColor2(hex_color)
+                        "
                     />
                 </HBox>
 

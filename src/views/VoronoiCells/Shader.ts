@@ -19,7 +19,7 @@ export interface Setup {
 
 export function createShader(
     { distance_measure, warp_algorithm }: Setup,
-    canvas_color_format: GPUTextureFormat,
+    canvas_color_format: GPUTextureFormat
 ) {
     const pos_type = warp_algorithm.pos_type
     const noise_data = warp_algorithm.extra_data_type ? '' : '//'
@@ -94,13 +94,13 @@ export function createShader(
 
         ${warp_algorithm.createShader({
             name: 'noise',
-            extraBufferName: 'noise_data',
+            extraBufferName: 'noise_data'
         })}
         
         ${octaveNoiseShader({
             func_name: 'octave_noise',
             noise_name: 'noise',
-            pos_type: warp_algorithm.pos_type,
+            pos_type: warp_algorithm.pos_type
         })}
 
         fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {

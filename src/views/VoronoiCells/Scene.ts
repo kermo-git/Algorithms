@@ -39,43 +39,53 @@ export default class VoronoiScene {
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
             compute: {
-                module: module,
-            },
+                module: module
+            }
         })
-        this.voronoi_n_columns = this.engine.createFloatUniform(setup.voronoi_n_columns || 16)
-        this.noise_scale = this.engine.createFloatUniform(setup.noise_scale || 1)
-        this.noise_n_octaves = this.engine.createIntUniform(setup.noise_n_octaves || 1)
-        this.noise_persistence = this.engine.createFloatUniform(setup.noise_persistence || 0.5)
-        this.noise_warp_strength = this.engine.createFloatUniform(setup.noise_warp_strength || 0)
+        this.voronoi_n_columns = this.engine.createFloatUniform(
+            setup.voronoi_n_columns || 16
+        )
+        this.noise_scale = this.engine.createFloatUniform(
+            setup.noise_scale || 1
+        )
+        this.noise_n_octaves = this.engine.createIntUniform(
+            setup.noise_n_octaves || 1
+        )
+        this.noise_persistence = this.engine.createFloatUniform(
+            setup.noise_persistence || 0.5
+        )
+        this.noise_warp_strength = this.engine.createFloatUniform(
+            setup.noise_warp_strength || 0
+        )
 
         const bind_group_entries: GPUBindGroupEntry[] = [
             {
                 binding: 0,
-                resource: { buffer: this.voronoi_n_columns },
+                resource: { buffer: this.voronoi_n_columns }
             },
             {
                 binding: 1,
-                resource: { buffer: this.noise_scale },
+                resource: { buffer: this.noise_scale }
             },
             {
                 binding: 2,
-                resource: { buffer: this.noise_n_octaves },
+                resource: { buffer: this.noise_n_octaves }
             },
             {
                 binding: 3,
-                resource: { buffer: this.noise_persistence },
+                resource: { buffer: this.noise_persistence }
             },
             {
                 binding: 4,
-                resource: { buffer: this.noise_warp_strength },
-            },
+                resource: { buffer: this.noise_warp_strength }
+            }
         ]
 
         if (warp_algorithm.pos_type === 'vec3f') {
             this.noise_z = this.engine.createFloatUniform(setup.noise_z || 0)
             bind_group_entries.push({
                 binding: 5,
-                resource: { buffer: this.noise_z },
+                resource: { buffer: this.noise_z }
             })
         }
 
@@ -84,20 +94,22 @@ export default class VoronoiScene {
             this.noise_data = this.engine.createStorageBuffer(data)
             bind_group_entries.push({
                 binding: 6,
-                resource: { buffer: this.noise_data },
+                resource: { buffer: this.noise_data }
             })
         }
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
-            entries: bind_group_entries,
+            entries: bind_group_entries
         })
 
         this.voronoi_colors = this.engine.createStorageBuffer(
             shaderColorArray(setup.voronoi_colors!),
-            256,
+            256
         )
-        this.n_colors = this.engine.createIntUniform(setup.voronoi_colors!.length)
+        this.n_colors = this.engine.createIntUniform(
+            setup.voronoi_colors!.length
+        )
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -105,16 +117,16 @@ export default class VoronoiScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.voronoi_colors,
-                    },
+                        buffer: this.voronoi_colors
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.n_colors,
-                    },
-                },
-            ],
+                        buffer: this.n_colors
+                    }
+                }
+            ]
         })
         this.engine.watchResize(() => this.render())
     }
@@ -128,9 +140,9 @@ export default class VoronoiScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -157,7 +169,10 @@ export default class VoronoiScene {
     }
 
     updateAllColors(hex_colors: string[]) {
-        this.engine.updateBuffer(this.voronoi_colors, shaderColorArray(hex_colors))
+        this.engine.updateBuffer(
+            this.voronoi_colors,
+            shaderColorArray(hex_colors)
+        )
         this.engine.updateIntUniform(this.n_colors, hex_colors.length)
         this.render()
     }

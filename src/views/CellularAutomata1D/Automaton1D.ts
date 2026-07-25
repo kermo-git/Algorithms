@@ -95,7 +95,7 @@ export function getNumRules(n_states: number, radius: number): bigint {
 export function createRule(
     rule_number: bigint,
     n_states: number,
-    neighborhood_radius: number,
+    neighborhood_radius: number
 ): Automaton1D {
     const automaton = new Automaton1D(n_states, neighborhood_radius)
 
@@ -117,7 +117,11 @@ export function createRule(
     return automaton
 }
 
-function getNeighborhood(generation: number[], center_col: number, radius: number): number[] {
+function getNeighborhood(
+    generation: number[],
+    center_col: number,
+    radius: number
+): number[] {
     const start_col = center_col - radius
     const result = new Array(2 * radius + 1)
 
@@ -139,7 +143,7 @@ export function generatePattern(
     canvas: HTMLCanvasElement,
     first_gen: FirstGenType,
     hex_colors: string[],
-    automaton: Automaton1D,
+    automaton: Automaton1D
 ) {
     const ctx = canvas.getContext('2d')
 

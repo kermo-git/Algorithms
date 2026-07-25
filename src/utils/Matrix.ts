@@ -3,7 +3,11 @@ export class Matrix<T = number> {
     n_rows: number
     n_cols: number
 
-    constructor(n_rows: number, n_cols: number, fill: (row: number, col: number) => T) {
+    constructor(
+        n_rows: number,
+        n_cols: number,
+        fill: (row: number, col: number) => T
+    ) {
         this.n_rows = n_rows
         this.n_cols = n_cols
         this.data = new Array(n_rows * n_cols)

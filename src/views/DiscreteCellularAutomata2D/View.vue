@@ -39,9 +39,9 @@ async function initScene() {
                 n_states: n_states.value,
                 hex_colors: colors.value,
                 update_shader: update_shader.value,
-                canvas_width: grid_size.value,
+                canvas_width: grid_size.value
             },
-            canvasRef.value,
+            canvasRef.value
         )
     }
 }
@@ -83,7 +83,10 @@ function run() {
         initScene()
     }
     const fps = 60
-    interval_ref.value = setInterval(() => scene.value.step(skip_frames.value ? 2 : 1), 1000 / fps)
+    interval_ref.value = setInterval(
+        () => scene.value.step(skip_frames.value ? 2 : 1),
+        1000 / fps
+    )
 }
 
 function pause() {
@@ -154,9 +157,12 @@ onBeforeUnmount(() => {
             <template v-else-if="activeTab === 'Colors'">
                 <ColorPalette
                     v-model="colors"
-                    @change-all-colors="(new_colors) => scene.updateAllColors(new_colors)"
+                    @change-all-colors="
+                        (new_colors) => scene.updateAllColors(new_colors)
+                    "
                     @change-single-color="
-                        (index, value: string) => scene.updateSingleColor(index, value)
+                        (index, value: string) =>
+                            scene.updateSingleColor(index, value)
                     "
                 />
             </template>

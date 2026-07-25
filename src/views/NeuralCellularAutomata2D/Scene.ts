@@ -21,7 +21,10 @@ export class NeuralScene {
     setup!: Setup
     canvas_height = 0
 
-    async init(setup: Setup, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+    async init(
+        setup: Setup,
+        canvas: HTMLCanvasElement
+    ): Promise<ShaderIssue[]> {
         this.setup = setup
         this.engine = new Engine()
         await this.engine.init(canvas)
@@ -35,13 +38,13 @@ export class NeuralScene {
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
             compute: {
-                module: module,
-            },
+                module: module
+            }
         })
 
         this.kernel = this.engine.createStorageBuffer(kernel)
         this.colors = this.engine.createUniformBuffer(
-            shaderColorArray([setup.color_1, setup.color_2]),
+            shaderColorArray([setup.color_1, setup.color_2])
         )
 
         this.kernel_color_group = device.createBindGroup({
@@ -50,16 +53,16 @@ export class NeuralScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.kernel,
-                    },
+                        buffer: this.kernel
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.colors,
-                    },
-                },
-            ],
+                        buffer: this.colors
+                    }
+                }
+            ]
         })
 
         this.resizeCanvas(setup.canvas_width)
@@ -76,8 +79,14 @@ export class NeuralScene {
         this.canvas_height = this.engine.setCanvasWidth(canvas_width)
 
         const n_canvas_bytes = canvas_width * this.canvas_height * 4
-        this.generation_A = this.engine.createStorageBuffer(null, n_canvas_bytes)
-        this.generation_B = this.engine.createStorageBuffer(null, n_canvas_bytes)
+        this.generation_A = this.engine.createStorageBuffer(
+            null,
+            n_canvas_bytes
+        )
+        this.generation_B = this.engine.createStorageBuffer(
+            null,
+            n_canvas_bytes
+        )
 
         this.generation_group_AB = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
@@ -85,16 +94,16 @@ export class NeuralScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.generation_A,
-                    },
+                        buffer: this.generation_A
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.generation_B,
-                    },
-                },
-            ],
+                        buffer: this.generation_B
+                    }
+                }
+            ]
         })
 
         this.generation_group_BA = this.engine.device.createBindGroup({
@@ -103,16 +112,16 @@ export class NeuralScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.generation_B,
-                    },
+                        buffer: this.generation_B
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.generation_A,
-                    },
-                },
-            ],
+                        buffer: this.generation_A
+                    }
+                }
+            ]
         })
     }
 
@@ -133,9 +142,9 @@ export class NeuralScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -160,9 +169,9 @@ export class NeuralScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -183,14 +192,22 @@ export class NeuralScene {
 
     updateColor1(hex_color: string) {
         const { red, green, blue } = parseHexColor(hex_color)
-        const shader_data = new Float32Array([red / 255, green / 255, blue / 255])
+        const shader_data = new Float32Array([
+            red / 255,
+            green / 255,
+            blue / 255
+        ])
         this.engine.updateBuffer(this.colors, shader_data)
         this.redraw()
     }
 
     updateColor2(hex_color: string) {
         const { red, green, blue } = parseHexColor(hex_color)
-        const shader_data = new Float32Array([red / 255, green / 255, blue / 255])
+        const shader_data = new Float32Array([
+            red / 255,
+            green / 255,
+            blue / 255
+        ])
         this.engine.updateBuffer(this.colors, shader_data, 16)
         this.redraw()
     }

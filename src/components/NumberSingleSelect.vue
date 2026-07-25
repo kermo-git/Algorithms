@@ -22,7 +22,9 @@ const model = defineModel()
                     :value="value"
                     v-model="model"
                 />
-                <label class="option" :for="`${props.name}-${value}`">{{ value }}</label>
+                <label class="option" :for="`${props.name}-${value}`">{{
+                    value
+                }}</label>
             </template>
         </div>
     </HBox>

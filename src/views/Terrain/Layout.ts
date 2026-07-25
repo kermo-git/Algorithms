@@ -5,17 +5,17 @@ export function createNoiseLayout(device: GPUDevice): GPUBindGroupLayout {
                 binding: 0, // unit_vectors_2D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
-                    type: 'read-only-storage',
-                },
+                    type: 'read-only-storage'
+                }
             },
             {
                 binding: 1, // unit_vectors_3D
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
-                    type: 'read-only-storage',
-                },
-            },
-        ],
+                    type: 'read-only-storage'
+                }
+            }
+        ]
     })
 }
 
@@ -26,10 +26,10 @@ export function createIndexBufferLayout(device: GPUDevice): GPUBindGroupLayout {
                 binding: 0, // vertex_index
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
-                    type: 'storage',
-                },
-            },
-        ],
+                    type: 'storage'
+                }
+            }
+        ]
     })
 }
 
@@ -40,17 +40,17 @@ export function createTerrainLayout(device: GPUDevice): GPUBindGroupLayout {
                 binding: 0, // terrain A/B
                 visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
                 buffer: {
-                    type: 'read-only-storage',
-                },
+                    type: 'read-only-storage'
+                }
             },
             {
                 binding: 1, // terrain A/B
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: {
-                    type: 'storage',
-                },
-            },
-        ],
+                    type: 'storage'
+                }
+            }
+        ]
     })
 }
 
@@ -61,23 +61,26 @@ export function createUniformsLayout(device: GPUDevice) {
                 binding: 0, // light_dir, ambient_light_intensity, camera_projection_view
                 visibility: GPUShaderStage.COMPUTE | GPUShaderStage.VERTEX,
                 buffer: {
-                    type: 'uniform',
-                },
-            },
-        ],
+                    type: 'uniform'
+                }
+            }
+        ]
     })
 }
 
-export function createCanvasLayout(device: GPUDevice, color_format: GPUTextureFormat) {
+export function createCanvasLayout(
+    device: GPUDevice,
+    color_format: GPUTextureFormat
+) {
     return device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
                 visibility: GPUShaderStage.COMPUTE,
                 storageTexture: {
-                    format: color_format,
-                },
-            },
-        ],
+                    format: color_format
+                }
+            }
+        ]
     })
 }

@@ -13,7 +13,11 @@ export function randVec(vec_type: VecType, min = 10, max = 30) {
 
 // https://iquilezles.org/articles/fbm/
 
-export function octaveNoiseShader({ func_name, noise_name, pos_type }: NoiseTransformNames) {
+export function octaveNoiseShader({
+    func_name,
+    noise_name,
+    pos_type
+}: NoiseTransformNames) {
     return /* wgsl */ `
         fn ${func_name}(noise_pos: ${pos_type}, channel: u32, n_octaves: u32, persistence: f32) -> f32 {
             var noise_value: f32 = ${noise_name}(noise_pos, channel);

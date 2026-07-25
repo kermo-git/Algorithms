@@ -38,26 +38,32 @@ export default class NoiseScene {
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
             compute: {
-                module: module,
-            },
+                module: module
+            }
         })
-        this.n_grid_columns = this.engine.createFloatUniform(setup.n_grid_columns || 16)
-        this.n_main_octaves = this.engine.createIntUniform(setup.n_main_octaves || 1)
-        this.persistence = this.engine.createFloatUniform(setup.persistence || 0.5)
+        this.n_grid_columns = this.engine.createFloatUniform(
+            setup.n_grid_columns || 16
+        )
+        this.n_main_octaves = this.engine.createIntUniform(
+            setup.n_main_octaves || 1
+        )
+        this.persistence = this.engine.createFloatUniform(
+            setup.persistence || 0.5
+        )
 
         const bind_group_entries = [
             {
                 binding: 0,
-                resource: { buffer: this.n_grid_columns },
+                resource: { buffer: this.n_grid_columns }
             },
             {
                 binding: 1,
-                resource: { buffer: this.n_main_octaves },
+                resource: { buffer: this.n_main_octaves }
             },
             {
                 binding: 2,
-                resource: { buffer: this.persistence },
-            },
+                resource: { buffer: this.persistence }
+            }
         ]
 
         if (algorithm.extra_data_type) {
@@ -66,7 +72,7 @@ export default class NoiseScene {
 
             bind_group_entries.push({
                 binding: 3,
-                resource: { buffer: this.noise_data },
+                resource: { buffer: this.noise_data }
             })
         }
 
@@ -74,33 +80,39 @@ export default class NoiseScene {
             this.z_coord = this.engine.createFloatUniform(setup.z_coord || 0)
             bind_group_entries.push({
                 binding: 4,
-                resource: { buffer: this.z_coord },
+                resource: { buffer: this.z_coord }
             })
             if (algorithm.pos_type === 'vec4f') {
-                this.w_coord = this.engine.createFloatUniform(setup.w_coord || 0)
+                this.w_coord = this.engine.createFloatUniform(
+                    setup.w_coord || 0
+                )
                 bind_group_entries.push({
                     binding: 5,
-                    resource: { buffer: this.w_coord },
+                    resource: { buffer: this.w_coord }
                 })
             }
         }
         if (transform === 'Warp' || transform === 'Warp 2X') {
-            this.n_warp_octaves = this.engine.createIntUniform(setup.n_warp_octaves || 1)
-            this.warp_strength = this.engine.createFloatUniform(setup.warp_strength || 1)
+            this.n_warp_octaves = this.engine.createIntUniform(
+                setup.n_warp_octaves || 1
+            )
+            this.warp_strength = this.engine.createFloatUniform(
+                setup.warp_strength || 1
+            )
 
             bind_group_entries.push({
                 binding: 6,
-                resource: { buffer: this.n_warp_octaves },
+                resource: { buffer: this.n_warp_octaves }
             })
             bind_group_entries.push({
                 binding: 7,
-                resource: { buffer: this.warp_strength },
+                resource: { buffer: this.warp_strength }
             })
         }
 
         this.static_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
-            entries: bind_group_entries,
+            entries: bind_group_entries
         })
 
         const colors = setup.colors || ['#000000', '#FFFFFF']
@@ -116,18 +128,18 @@ export default class NoiseScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.color_points,
-                    },
+                        buffer: this.color_points
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.n_colors,
-                    },
-                },
-            ],
+                        buffer: this.n_colors
+                    }
+                }
+            ]
         })
-        this.engine.onResize(() => this.render())
+        this.engine.watchResize(() => this.render())
     }
 
     render(): void {
@@ -139,9 +151,9 @@ export default class NoiseScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -214,7 +226,11 @@ export default class NoiseScene {
 
     updateColorPoint(index: number, value: number) {
         const offset = 16 * index + 12
-        this.engine.updateBuffer(this.color_points, new Float32Array([value]), offset)
+        this.engine.updateBuffer(
+            this.color_points,
+            new Float32Array([value]),
+            offset
+        )
         this.render()
     }
 

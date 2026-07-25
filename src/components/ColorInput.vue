@@ -23,7 +23,12 @@ function onInput(event: Event) {
 }
 </script>
 <template>
-    <input type="color" :style="`background-color: ${model}`" :value="model" @input="onInput" />
+    <input
+        type="color"
+        :style="`background-color: ${model}`"
+        :value="model"
+        @input="onInput"
+    />
 </template>
 
 <style scoped>

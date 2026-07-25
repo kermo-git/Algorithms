@@ -9,7 +9,7 @@ import {
     scramble_3d,
     pcd3d_1f,
     scramble_4d,
-    pcd4d_1f,
+    pcd4d_1f
 } from './Common'
 
 export const Cubic2D: NoiseAlgorithm = {
@@ -64,7 +64,7 @@ export const Cubic2D: NoiseAlgorithm = {
                 return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
             }
         `
-    },
+    }
 }
 
 export const Cubic3D: NoiseAlgorithm = {
@@ -132,7 +132,7 @@ export const Cubic3D: NoiseAlgorithm = {
             return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
         }
     `
-    },
+    }
 }
 
 export const Cubic4D: NoiseAlgorithm = {
@@ -213,5 +213,5 @@ export const Cubic4D: NoiseAlgorithm = {
                 return clamp((n - NORM_MIN) * NORM_DIFF, 0, 1);
             }
         `
-    },
+    }
 }

@@ -11,7 +11,12 @@ import MenuItem from '@/components/MenuItem.vue'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import VBox from '@/components/VBox.vue'
 
-import { generatePattern, createRule, type FirstGenType, getNumRules } from './Automaton1D'
+import {
+    generatePattern,
+    createRule,
+    type FirstGenType,
+    getNumRules
+} from './Automaton1D'
 import ColorPalette from './ColorPalette.vue'
 
 const activeTab = ref('Configuration')
@@ -33,11 +38,17 @@ function randomizeRule() {
 }
 
 const rule = computed(() => {
-    return createRule(BigInt(ruleNumber.value), numStates.value, neighborhoodRadius.value)
+    return createRule(
+        BigInt(ruleNumber.value),
+        numStates.value,
+        neighborhoodRadius.value
+    )
 })
 
 const ruleNumberLabel = computed(() => {
-    const strValue = String(getNumRules(numStates.value, neighborhoodRadius.value) - 1n)
+    const strValue = String(
+        getNumRules(numStates.value, neighborhoodRadius.value) - 1n
+    )
 
     if (
         (numStates.value == 2 && neighborhoodRadius.value < 3) ||
@@ -70,7 +81,7 @@ watch(
             canvas.height = Math.floor(new_grid_size * aspect_ratio)
             generatePattern(canvas, new_first_gen, new_colors, new_rule)
         }
-    },
+    }
 )
 </script>
 
@@ -132,7 +143,12 @@ watch(
                             ruleNumber = '30'
                             numStates = 2
                             neighborhoodRadius = 1
-                            colors = ['#323232', '#FECB3E', '#FF87FD', '#009200']
+                            colors = [
+                                '#323232',
+                                '#FECB3E',
+                                '#FF87FD',
+                                '#009200'
+                            ]
                         }
                     "
                 />
@@ -143,7 +159,12 @@ watch(
                             ruleNumber = '6637593129346'
                             numStates = 3
                             neighborhoodRadius = 1
-                            colors = ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
+                            colors = [
+                                '#DAFFC1',
+                                '#91DB76',
+                                '#689C56',
+                                '#FFFFFF'
+                            ]
                         }
                     "
                 />
@@ -154,7 +175,12 @@ watch(
                             ruleNumber = '4234215280010'
                             numStates = 3
                             neighborhoodRadius = 1
-                            colors = ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
+                            colors = [
+                                '#E6ABFF',
+                                '#AC51E4',
+                                '#5F158B',
+                                '#FAF2FA'
+                            ]
                         }
                     "
                 />
@@ -162,10 +188,16 @@ watch(
                     text="Vines"
                     @click="
                         () => {
-                            ruleNumber = '135497638344673206598927780380850347174'
+                            ruleNumber =
+                                '135497638344673206598927780380850347174'
                             numStates = 4
                             neighborhoodRadius = 1
-                            colors = ['#FF87FD', '#323232', '#009200', '#FECB3E']
+                            colors = [
+                                '#FF87FD',
+                                '#323232',
+                                '#009200',
+                                '#FECB3E'
+                            ]
                         }
                     "
                 />
@@ -176,7 +208,12 @@ watch(
                             ruleNumber = '609058266'
                             numStates = 2
                             neighborhoodRadius = 2
-                            colors = ['#FECB3E', '#007628', '#000000', '#FFFFFF']
+                            colors = [
+                                '#FECB3E',
+                                '#007628',
+                                '#000000',
+                                '#FFFFFF'
+                            ]
                         }
                     "
                 />
@@ -187,7 +224,12 @@ watch(
                             ruleNumber = '2939828314'
                             numStates = 2
                             neighborhoodRadius = 2
-                            colors = ['#F5CB6E', '#323232', '#000000', '#FFFFFF']
+                            colors = [
+                                '#F5CB6E',
+                                '#323232',
+                                '#000000',
+                                '#FFFFFF'
+                            ]
                         }
                     "
                 />
@@ -198,7 +240,12 @@ watch(
                             ruleNumber = '9548131633201461177601464909579195651'
                             numStates = 2
                             neighborhoodRadius = 3
-                            colors = ['#F7F6CF', '#7A7A7A', '#000000', '#FFFFFF']
+                            colors = [
+                                '#F7F6CF',
+                                '#7A7A7A',
+                                '#000000',
+                                '#FFFFFF'
+                            ]
                         }
                     "
                 />

@@ -19,7 +19,9 @@ const model = defineModel()
                 :value="value"
                 v-model="model"
             />
-            <label class="panel-button" :for="`${props.name}-${value}`">{{ value }}</label>
+            <label class="panel-button" :for="`${props.name}-${value}`">{{
+                value
+            }}</label>
         </template>
     </fieldset>
 </template>

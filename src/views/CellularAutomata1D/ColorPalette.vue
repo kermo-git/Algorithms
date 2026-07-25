@@ -16,32 +16,32 @@ const emit = defineEmits<Emits>()
 const palettes = [
     {
         name: 'Techno',
-        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB'],
+        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB']
     },
     {
         name: 'Funky',
-        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3'],
+        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']
     },
     {
         name: 'Magic',
-        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B'],
+        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']
     },
     {
         name: 'Forest',
-        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B'],
+        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B']
     },
     {
         name: 'Amethyst',
-        colors: ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA'],
+        colors: ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
     },
     {
         name: 'Ice',
-        colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A'],
+        colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A']
     },
     {
         name: 'Satellite photo',
-        colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3'],
-    },
+        colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3']
+    }
 ]
 
 function onSwapClick(ev: Event) {
@@ -68,7 +68,9 @@ function onSwapClick(ev: Event) {
                         const color_value = new_color || '#000000'
                         const before = props.modelValue.slice(0, i)
                         const after = props.modelValue.slice(i + 1)
-                        const new_palette = before.concat([color_value]).concat(after)
+                        const new_palette = before
+                            .concat([color_value])
+                            .concat(after)
                         emit('update:modelValue', new_palette)
                     }
                 "

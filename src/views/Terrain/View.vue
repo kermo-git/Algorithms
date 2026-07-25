@@ -66,9 +66,9 @@ async function initScene(grid_size: number) {
                 light_dir: light_dir.value,
                 ambient_light_intensity: ambient_intensity.value,
                 camera_view_matrix: camera_view_matrix.value,
-                render_3D: render_3D.value,
+                render_3D: render_3D.value
             },
-            canvasRef.value,
+            canvasRef.value
         )
     }
 }
@@ -85,11 +85,17 @@ async function canvasReady(canvas: HTMLCanvasElement) {
 }
 
 async function runNoise() {
-    shader_issues.value = await scene.value.updateNoiseShader(noise_shader.value, render_3D.value)
+    shader_issues.value = await scene.value.updateNoiseShader(
+        noise_shader.value,
+        render_3D.value
+    )
 }
 
 async function runColor() {
-    shader_issues.value = await scene.value.updateColorShader(color_shader.value, render_3D.value)
+    shader_issues.value = await scene.value.updateColorShader(
+        color_shader.value,
+        render_3D.value
+    )
 }
 
 watch(grid_size, async (new_grid_size) => {
@@ -149,24 +155,53 @@ watch(camera_view_matrix, (new_camera) => {
         <template v-else-if="active_tab == 'Rendering'">
             <VBox>
                 <p>Ambient light intensity: {{ ambient_intensity }}</p>
-                <RangeInput v-model="ambient_intensity" :min="0" :max="1" :step="0.1" />
+                <RangeInput
+                    v-model="ambient_intensity"
+                    :min="0"
+                    :max="1"
+                    :step="0.1"
+                />
 
                 <p>Light angle: {{ light_deg_x }}</p>
-                <RangeInput v-model="light_deg_x" :min="0" :max="90" :step="1" />
+                <RangeInput
+                    v-model="light_deg_x"
+                    :min="0"
+                    :max="90"
+                    :step="1"
+                />
 
                 <p>Light direction: {{ light_deg_y }}</p>
-                <RangeInput v-model="light_deg_y" :min="-180" :max="180" :step="1" />
+                <RangeInput
+                    v-model="light_deg_y"
+                    :min="-180"
+                    :max="180"
+                    :step="1"
+                />
 
                 <HBox justify="left">
-                    <Checkbox text="3D view" name="render_3D" v-model="render_3D" />
+                    <Checkbox
+                        text="3D view"
+                        name="render_3D"
+                        v-model="render_3D"
+                    />
                 </HBox>
 
                 <template v-if="render_3D">
                     <p>View angle: {{ terrain_deg_x }}</p>
-                    <RangeInput v-model="terrain_deg_x" :max="0" :min="-90" :step="1" />
+                    <RangeInput
+                        v-model="terrain_deg_x"
+                        :max="0"
+                        :min="-90"
+                        :step="1"
+                    />
 
                     <p>View direction: {{ terrain_deg_y }}</p>
-                    <RangeInput v-model="terrain_deg_y" :min="-180" :max="180" :step="1" />
+                    <RangeInput
+                        v-model="terrain_deg_y"
+                        :min="-180"
+                        :max="180"
+                        :step="1"
+                    />
                 </template>
             </VBox>
         </template>

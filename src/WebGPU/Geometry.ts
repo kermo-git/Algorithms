@@ -26,7 +26,8 @@ export class Mat4x4 {
             for (let col = 0; col < 4; col++) {
                 let value = 0
                 for (let common_dim = 0; common_dim < 4; common_dim++) {
-                    value += this.get(row, common_dim) * other.get(common_dim, col)
+                    value +=
+                        this.get(row, common_dim) * other.get(common_dim, col)
                 }
                 res.set(row, col, value)
             }
@@ -108,7 +109,7 @@ export function perspectiveProjection(
     degrees_FOV: number,
     aspect_ratio: number,
     near: number,
-    far: number,
+    far: number
 ): Mat4x4 {
     const fov = degrees_FOV * DEG_TO_RAD
     const t = Math.tan(fov / 2)

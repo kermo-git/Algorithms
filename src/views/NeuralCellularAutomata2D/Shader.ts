@@ -20,7 +20,10 @@ export interface Setup {
     color_2: string
 }
 
-export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
+export function createShader(
+    setup: Setup,
+    canvas_color_format: GPUTextureFormat
+): string {
     return /* wgsl */ `
         struct Colors {
             color_0: vec4f,

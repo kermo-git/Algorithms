@@ -4,7 +4,7 @@ import {
     rotate3DShader,
     octaveNoiseShader,
     unitVector2DShader,
-    unitVector3DShader,
+    unitVector3DShader
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
@@ -52,18 +52,18 @@ function noiseFunctionShader(group: number) {
     function createNoiseFunctions(
         algorithm: NoiseAlgorithm,
         name: string,
-        extraBufferName?: string,
+        extraBufferName?: string
     ) {
         return `
             ${algorithm.createShader({
                 name,
-                extraBufferName,
+                extraBufferName
             })}
 
             ${octaveNoiseShader({
                 func_name: `${name}_octaves`,
                 noise_name: name,
-                pos_type: algorithm.pos_type,
+                pos_type: algorithm.pos_type
             })}
         `
     }
@@ -251,7 +251,10 @@ export function colorShader(setup: Setup): string {
     `
 }
 
-export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
+export function display2DShader(
+    setup: Setup,
+    canvas_color_format: GPUTextureFormat
+): string {
     return /* wgsl */ `
         ${terrainStruct}
         ${uniformStruct}
@@ -290,7 +293,10 @@ export function display2DShader(setup: Setup, canvas_color_format: GPUTextureFor
     `
 }
 
-export function display3DShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
+export function display3DShader(
+    setup: Setup,
+    canvas_color_format: GPUTextureFormat
+): string {
     // TODO
     return /* wgsl */ `
         ${terrainStruct}

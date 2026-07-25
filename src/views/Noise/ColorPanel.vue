@@ -82,7 +82,9 @@ function onDeleteClick(ev: Event) {
         <div class="color-buttons">
             <ColorInput
                 v-model="colors[i]"
-                @animation="(hex_color) => emit('changeSingleColor', i, hex_color)"
+                @animation="
+                    (hex_color) => emit('changeSingleColor', i, hex_color)
+                "
             />
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
             <PanelButton

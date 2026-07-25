@@ -24,8 +24,8 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
                             toHexColor({
                                 red: Math.floor(Math.random() * 255),
                                 green: Math.floor(Math.random() * 255),
-                                blue: Math.floor(Math.random() * 255),
-                            }),
+                                blue: Math.floor(Math.random() * 255)
+                            })
                         )
                         emit('changeAllColors', colors_copy)
                         hex_colors = colors_copy
@@ -47,7 +47,9 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
                 />
                 <ColorInput
                     v-model="hex_colors[i]"
-                    @animation="(hex_color) => emit('changeSingleColor', i, hex_color)"
+                    @animation="
+                        (hex_color) => emit('changeSingleColor', i, hex_color)
+                    "
                 />
             </div>
         </div>

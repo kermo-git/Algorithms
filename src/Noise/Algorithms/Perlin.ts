@@ -1,4 +1,8 @@
-import { generateUnitVectors2D, generateUnitVectors3D, generateUnitVectors4D } from '../UnitVectors'
+import {
+    generateUnitVectors2D,
+    generateUnitVectors3D,
+    generateUnitVectors4D
+} from '../UnitVectors'
 import { type NoiseAlgorithm, type Config, type VecType } from '../Types'
 import {
     fade_2d,
@@ -9,7 +13,7 @@ import {
     pcd4d_1u,
     scramble_2d,
     scramble_3d,
-    scramble_4d,
+    scramble_4d
 } from './Common'
 
 function gradientCalculation(quadratic: boolean) {

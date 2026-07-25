@@ -8,7 +8,7 @@ import {
     pcd4d_1f,
     scramble_2d,
     scramble_3d,
-    scramble_4d,
+    scramble_4d
 } from './Common'
 
 export const Value2D: NoiseAlgorithm = {
@@ -40,7 +40,7 @@ export const Value2D: NoiseAlgorithm = {
                 return mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
             }
         `
-    },
+    }
 }
 
 export const Value3D: NoiseAlgorithm = {
@@ -80,7 +80,7 @@ export const Value3D: NoiseAlgorithm = {
                 );
             }
         `
-    },
+    }
 }
 
 export const Value4D: NoiseAlgorithm = {
@@ -137,5 +137,5 @@ export const Value4D: NoiseAlgorithm = {
                 );
             }
         `
-    },
+    }
 }

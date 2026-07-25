@@ -5,12 +5,22 @@ import { RouterLink, RouterView } from 'vue-router'
 <template>
     <div class="app">
         <nav>
-            <RouterLink class="router-link" to="/1d-ca">1D cellular automata</RouterLink>
-            <RouterLink class="router-link" to="/2d-ca">2D cellular automata</RouterLink>
-            <RouterLink class="router-link" to="/neural-ca">Neural cellular automata</RouterLink>
-            <RouterLink class="router-link" to="/noise">Procedural noise</RouterLink>
+            <RouterLink class="router-link" to="/1d-ca"
+                >1D cellular automata</RouterLink
+            >
+            <RouterLink class="router-link" to="/2d-ca"
+                >2D cellular automata</RouterLink
+            >
+            <RouterLink class="router-link" to="/neural-ca"
+                >Neural cellular automata</RouterLink
+            >
+            <RouterLink class="router-link" to="/noise"
+                >Procedural noise</RouterLink
+            >
             <RouterLink class="router-link" to="/terrain">Terrain</RouterLink>
-            <RouterLink class="router-link" to="/voronoi">Voronoi cells</RouterLink>
+            <RouterLink class="router-link" to="/voronoi"
+                >Voronoi cells</RouterLink
+            >
         </nav>
         <RouterView />
     </div>

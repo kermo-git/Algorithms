@@ -56,7 +56,7 @@ const KEYWORDS = [
     'break',
     'continue',
     'continuing',
-    'return',
+    'return'
 ]
 
 const SEP_REGEX = '[\\s=/+*\\(\\)\\{\\},;\\<\\>&]|^|$'
@@ -65,8 +65,14 @@ const SEP_AFTER = `(?=${SEP_REGEX})`
 
 const LINE_COMMENT_REGEX = /(\/\/.*?)(?=<br>|$)/g
 const MULTILINE_COMMENT_REGEX = /(\/\*.*?\*\/)/g
-const KEYWORD_REGEX = new RegExp(`${SEP_BEFORE}(${KEYWORDS.join('|')})${SEP_AFTER}`, 'g')
-const NUMBER_REGEX = new RegExp(`${SEP_BEFORE}(-?\\d+\\.?\\d*[iuf]?)${SEP_AFTER}`, 'g')
+const KEYWORD_REGEX = new RegExp(
+    `${SEP_BEFORE}(${KEYWORDS.join('|')})${SEP_AFTER}`,
+    'g'
+)
+const NUMBER_REGEX = new RegExp(
+    `${SEP_BEFORE}(-?\\d+\\.?\\d*[iuf]?)${SEP_AFTER}`,
+    'g'
+)
 const FUNCTION_REGEX = new RegExp(`${SEP_BEFORE}([\\w]+)(?=\\s*\\()`, 'g')
 
 function syntaxHighlight(text: string) {
@@ -75,7 +81,10 @@ function syntaxHighlight(text: string) {
         .replace(/>/, '&gt;')
         .replace(/\n/g, '<br>')
         .replace(LINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
-        .replace(MULTILINE_COMMENT_REGEX, '<span class="code-comment">$1</span>')
+        .replace(
+            MULTILINE_COMMENT_REGEX,
+            '<span class="code-comment">$1</span>'
+        )
         .replace(KEYWORD_REGEX, '<span class="code-keyword">$1</span>')
         .replace(NUMBER_REGEX, '<span class="code-number">$1</span>')
         .replace(FUNCTION_REGEX, '<span class="code-function">$1</span>')
@@ -152,7 +161,12 @@ function setCaretOffset(el: HTMLElement, offset: number) {
 </script>
 
 <template>
-    <div ref="editor" class="code-editor" contenteditable="true" @input="onInput" />
+    <div
+        ref="editor"
+        class="code-editor"
+        contenteditable="true"
+        @input="onInput"
+    />
 </template>
 
 <style>

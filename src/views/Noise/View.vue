@@ -129,9 +129,9 @@ async function initScene(canvas: HTMLCanvasElement) {
             n_warp_octaves: n_warp_octaves.value,
             warp_strength: warp_strength.value,
             colors: colors.value,
-            color_points: color_points.value,
+            color_points: color_points.value
         },
-        canvas,
+        canvas
     )
 }
 
@@ -151,7 +151,10 @@ watch(
             scene.value.cleanup()
             scene.value.init(
                 {
-                    algorithm: createNoiseAlgorithm(new_algorithm, new_dimension),
+                    algorithm: createNoiseAlgorithm(
+                        new_algorithm,
+                        new_dimension
+                    ),
                     transform: new_domain_transform,
                     n_grid_columns: n_grid_columns.value,
                     n_main_octaves: n_main_octaves.value,
@@ -161,12 +164,12 @@ watch(
                     n_warp_octaves: n_warp_octaves.value,
                     warp_strength: warp_strength.value,
                     colors: colors.value,
-                    color_points: color_points.value,
+                    color_points: color_points.value
                 },
-                canvasRef.value,
+                canvasRef.value
             )
         }
-    },
+    }
 )
 
 onBeforeUnmount(() => {
@@ -178,7 +181,7 @@ const available_transforms = computed(() =>
         ? ['None', 'Warp']
         : dimension.value === '3D'
           ? ['None', 'Rotate', 'Warp']
-          : ['None', 'Rotate'],
+          : ['None', 'Rotate']
 )
 </script>
 
@@ -201,7 +204,7 @@ const available_transforms = computed(() =>
                         'Cubic',
                         'Value',
                         'Worley',
-                        'Worley F2 - F1',
+                        'Worley F2 - F1'
                     ]"
                     v-model="algorithm"
                 />
@@ -258,7 +261,9 @@ const available_transforms = computed(() =>
                     name="grid_size"
                     :options="[4, 8, 16, 32, 64]"
                     v-model="n_grid_columns"
-                    @update:model-value="(value) => scene.updateGridDimensions(value)"
+                    @update:model-value="
+                        (value) => scene.updateGridDimensions(value)
+                    "
                 />
 
                 <NumberSingleSelect
@@ -267,21 +272,30 @@ const available_transforms = computed(() =>
                     name="n_warp_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_warp_octaves"
-                    @update:model-value="(value) => scene.updateNWarpOctaves(value)"
+                    @update:model-value="
+                        (value) => scene.updateNWarpOctaves(value)
+                    "
                 />
 
                 <NumberSingleSelect
-                    :text="domain_transform.startsWith('Warp') ? 'Main octaves' : 'Octaves'"
+                    :text="
+                        domain_transform.startsWith('Warp')
+                            ? 'Main octaves'
+                            : 'Octaves'
+                    "
                     name="n_main_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_main_octaves"
-                    @update:model-value="(value) => scene.updateNMainOctaves(value)"
+                    @update:model-value="
+                        (value) => scene.updateNMainOctaves(value)
+                    "
                 />
 
                 <template
                     v-if="
                         n_main_octaves > 1 ||
-                        (domain_transform.startsWith('Warp') && n_warp_octaves > 1)
+                        (domain_transform.startsWith('Warp') &&
+                            n_warp_octaves > 1)
                     "
                 >
                     <p>Persistence: {{ persistence }}</p>
@@ -298,10 +312,15 @@ const available_transforms = computed(() =>
                 <ColorPanel
                     v-model:colors="colors"
                     v-model:points="color_points"
-                    @change-single-color="(index, color) => scene.updateColor(index, color)"
-                    @change-single-point="(index, value) => scene.updateColorPoint(index, value)"
+                    @change-single-color="
+                        (index, color) => scene.updateColor(index, color)
+                    "
+                    @change-single-point="
+                        (index, value) => scene.updateColorPoint(index, value)
+                    "
                     @change-all-color-points="
-                        (colors, points) => scene.updateColorData(colors, points)
+                        (colors, points) =>
+                            scene.updateColorData(colors, points)
                     "
                 />
             </template>

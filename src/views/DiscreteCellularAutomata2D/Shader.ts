@@ -27,7 +27,10 @@ export interface Setup {
     canvas_width: number
 }
 
-export function createShader(setup: Setup, canvas_color_format: GPUTextureFormat): string {
+export function createShader(
+    setup: Setup,
+    canvas_color_format: GPUTextureFormat
+): string {
     return /* wgsl */ `
         @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
         

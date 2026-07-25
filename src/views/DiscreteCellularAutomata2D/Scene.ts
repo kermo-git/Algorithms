@@ -21,7 +21,10 @@ export class AutomatonScene {
     setup!: Setup
     canvas_height = 0
 
-    async init(setup: Setup, canvas: HTMLCanvasElement): Promise<ShaderIssue[]> {
+    async init(
+        setup: Setup,
+        canvas: HTMLCanvasElement
+    ): Promise<ShaderIssue[]> {
         this.setup = setup
         this.engine = new Engine()
         await this.engine.init(canvas)
@@ -35,15 +38,18 @@ export class AutomatonScene {
         this.pipeline = device.createComputePipeline({
             layout: 'auto',
             compute: {
-                module: module,
-            },
+                module: module
+            }
         })
         const max_n_states = 32
 
         const state_colors = lerpColorArray(this.setup.hex_colors, n_states)
         const color_data = shaderColorArray(state_colors)
 
-        this.colors = this.engine.createStorageBuffer(color_data, max_n_states * 16)
+        this.colors = this.engine.createStorageBuffer(
+            color_data,
+            max_n_states * 16
+        )
         this.n_states = this.engine.createIntUniform(n_states)
 
         this.color_group = this.engine.device.createBindGroup({
@@ -52,16 +58,16 @@ export class AutomatonScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.colors,
-                    },
+                        buffer: this.colors
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.n_states,
-                    },
-                },
-            ],
+                        buffer: this.n_states
+                    }
+                }
+            ]
         })
 
         this.resizeCanvas(setup.canvas_width)
@@ -88,8 +94,14 @@ export class AutomatonScene {
         this.canvas_height = this.engine.setCanvasWidth(canvas_width)
 
         const n_canvas_bytes = canvas_width * this.canvas_height * 4
-        this.generation_A = this.engine.createStorageBuffer(null, n_canvas_bytes)
-        this.generation_B = this.engine.createStorageBuffer(null, n_canvas_bytes)
+        this.generation_A = this.engine.createStorageBuffer(
+            null,
+            n_canvas_bytes
+        )
+        this.generation_B = this.engine.createStorageBuffer(
+            null,
+            n_canvas_bytes
+        )
 
         this.generation_group_AB = this.engine.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(1),
@@ -97,16 +109,16 @@ export class AutomatonScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.generation_A,
-                    },
+                        buffer: this.generation_A
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.generation_B,
-                    },
-                },
-            ],
+                        buffer: this.generation_B
+                    }
+                }
+            ]
         })
 
         this.generation_group_BA = this.engine.device.createBindGroup({
@@ -115,16 +127,16 @@ export class AutomatonScene {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this.generation_B,
-                    },
+                        buffer: this.generation_B
+                    }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this.generation_A,
-                    },
-                },
-            ],
+                        buffer: this.generation_A
+                    }
+                }
+            ]
         })
     }
 
@@ -147,9 +159,9 @@ export class AutomatonScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -174,9 +186,9 @@ export class AutomatonScene {
             entries: [
                 {
                     binding: 0,
-                    resource: texture.createView(),
-                },
-            ],
+                    resource: texture.createView()
+                }
+            ]
         })
         encoder.setPipeline(this.pipeline)
         encoder.setBindGroup(0, canvas_bind_group)
@@ -205,7 +217,10 @@ export class AutomatonScene {
 
     updateSingleColor(i: number, hex_color: string) {
         this.setup.hex_colors[i] = hex_color
-        const state_colors = lerpColorArray(this.setup.hex_colors, this.setup.n_states)
+        const state_colors = lerpColorArray(
+            this.setup.hex_colors,
+            this.setup.n_states
+        )
         const color_data = shaderColorArray(state_colors)
         this.engine.updateBuffer(this.colors, color_data)
         this.redraw()

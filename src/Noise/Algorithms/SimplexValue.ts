@@ -1,7 +1,14 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
 import type { NoiseAlgorithm, Config } from '../Types'
-import { pcd2d_1f, pcd3d_1f, pcd4d_1f, scramble_2d, scramble_3d, scramble_4d } from './Common'
+import {
+    pcd2d_1f,
+    pcd3d_1f,
+    pcd4d_1f,
+    scramble_2d,
+    scramble_3d,
+    scramble_4d
+} from './Common'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions
@@ -76,7 +83,7 @@ export const SimplexValue2D: NoiseAlgorithm = {
                 return clamp(n, -1, 1)*0.5 + 0.5;
             }
         `
-    },
+    }
 }
 
 export const SimplexValue3D: NoiseAlgorithm = {
@@ -170,7 +177,7 @@ export const SimplexValue3D: NoiseAlgorithm = {
                 return clamp(n, -1, 1)*0.5 + 0.5;
             }
         `
-    },
+    }
 }
 
 export const SimplexValue4D: NoiseAlgorithm = {
@@ -391,5 +398,5 @@ export const SimplexValue4D: NoiseAlgorithm = {
                 return clamp(n, -1, 1)*0.5 + 0.5;
             }
         `
-    },
+    }
 }

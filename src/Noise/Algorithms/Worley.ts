@@ -1,5 +1,12 @@
 import type { NoiseAlgorithm, Config } from '../Types'
-import { scramble_2d, pcd2d_2f, scramble_3d, pcd3d_3f, scramble_4d, pcd4d_4f } from './Common'
+import {
+    scramble_2d,
+    pcd2d_2f,
+    scramble_3d,
+    pcd3d_3f,
+    scramble_4d,
+    pcd4d_4f
+} from './Common'
 
 export const Worley2D: NoiseAlgorithm = {
     pos_type: 'vec2f',
@@ -31,7 +38,7 @@ export const Worley2D: NoiseAlgorithm = {
                 return clamp(sqrt(min_dist_sqr) * 1.05, 0, 1);
             }
         `
-    },
+    }
 }
 
 export const Worley3D: NoiseAlgorithm = {
@@ -66,7 +73,7 @@ export const Worley3D: NoiseAlgorithm = {
                 return clamp(sqrt(min_dist_sqr), 0, 1);
             }
         `
-    },
+    }
 }
 
 export const Worley4D: NoiseAlgorithm = {
@@ -103,5 +110,5 @@ export const Worley4D: NoiseAlgorithm = {
                 return clamp(sqrt(min_dist_sqr), 0, 1);
             }
         `
-    },
+    }
 }

@@ -4,7 +4,7 @@ import {
     rotate4DShader,
     octaveNoiseShader,
     unitVector2DShader,
-    unitVector3DShader,
+    unitVector3DShader
 } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
 
@@ -69,18 +69,19 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
         
         ${algorithm.createShader({
             name: 'noise',
-            extraBufferName: 'noise_data',
+            extraBufferName: 'noise_data'
         })}
         ${octaveNoiseShader({
             func_name: 'octave_noise',
             noise_name: 'noise',
-            pos_type: algorithm.pos_type,
+            pos_type: algorithm.pos_type
         })}
     `
     let noise_expr = ''
 
     if (transform === 'Rotate') {
-        noise_expr = 'octave_noise(rotate(noise_pos), main_channel, n_main_octaves, persistence)'
+        noise_expr =
+            'octave_noise(rotate(noise_pos), main_channel, n_main_octaves, persistence)'
 
         if (algorithm.pos_type === 'vec3f') {
             noise_functions = `
@@ -114,7 +115,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
     }
     return {
         noise_functions,
-        noise_expr,
+        noise_expr
     }
 }
 
@@ -139,7 +140,7 @@ function noisePosCode(algorithm: NoiseAlgorithm) {
 
 export default function createNoiseShader(
     setup: Setup,
-    canvas_color_format: GPUTextureFormat,
+    canvas_color_format: GPUTextureFormat
 ): string {
     const { algorithm, transform } = setup
     const noise_data = algorithm.extra_data_type ? '' : '//'

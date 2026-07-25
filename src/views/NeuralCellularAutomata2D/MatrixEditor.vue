@@ -29,7 +29,7 @@ function onInput(ev: Event) {
         class="matrix"
         :style="{
             gridTemplateColumns: `repeat(${matrixSize}, 1fr)`,
-            width: `${50 + (50 * (matrixSize - 3)) / 8}%`,
+            width: `${50 + (50 * (matrixSize - 3)) / 8}%`
         }"
     >
         <template v-for="row in matrixSize" :key="row">
@@ -44,7 +44,7 @@ function onInput(ev: Event) {
                 @click="onCellClick"
                 @change="onInput"
                 :style="{
-                    fontSize: `${1.1 - 0.45 * ((matrixSize - 3) / 8)}rem`,
+                    fontSize: `${1.1 - 0.45 * ((matrixSize - 3) / 8)}rem`
                 }"
             />
         </template>

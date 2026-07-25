@@ -56,7 +56,9 @@ function download() {
         <template v-for="(issue, i) in props.issues" :key="i">
             <p class="issue">{{ issue.message }}</p>
             <p class="issue">
-                &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{ issue.codeLine }}
+                &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{
+                    issue.codeLine
+                }}
             </p>
         </template>
         <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />

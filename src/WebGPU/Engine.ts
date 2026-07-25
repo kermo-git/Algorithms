@@ -24,7 +24,7 @@ export default class Engine {
 
     async init(
         canvas: HTMLCanvasElement,
-        canvas_usage: GPUFlagsConstant = GPUTextureUsage.STORAGE_BINDING,
+        canvas_usage: GPUFlagsConstant = GPUTextureUsage.STORAGE_BINDING
     ) {
         const context = canvas.getContext('webgpu')
         if (!context) {
@@ -37,9 +37,12 @@ export default class Engine {
         if (!adapter) {
             throw Error('WebGPU adapter not found!')
         }
-        const has_bgra8unorm_storage = adapter.features.has('bgra8unorm-storage')
+        const has_bgra8unorm_storage =
+            adapter.features.has('bgra8unorm-storage')
         this.device = await adapter.requestDevice({
-            requiredFeatures: has_bgra8unorm_storage ? ['bgra8unorm-storage'] : [],
+            requiredFeatures: has_bgra8unorm_storage
+                ? ['bgra8unorm-storage']
+                : []
         })
         this.canvas_color_format = has_bgra8unorm_storage
             ? navigator.gpu.getPreferredCanvasFormat()
@@ -48,7 +51,7 @@ export default class Engine {
         context.configure({
             device: this.device,
             format: this.canvas_color_format,
-            usage: canvas_usage,
+            usage: canvas_usage
         })
     }
 
@@ -59,7 +62,7 @@ export default class Engine {
 
     pending_resize = {
         width: 0,
-        height: 0,
+        height: 0
     }
     frame_id: number = 0
 
@@ -72,7 +75,7 @@ export default class Engine {
 
                 this.pending_resize = {
                     width: Math.min(box_width * devicePixelRatio, max_size),
-                    height: Math.min(box_height * devicePixelRatio, max_size),
+                    height: Math.min(box_height * devicePixelRatio, max_size)
                 }
                 if (!this.frame_id) {
                     this.frame_id = requestAnimationFrame(() => {
@@ -98,7 +101,7 @@ export default class Engine {
 
                 this.pending_resize = {
                     width: Math.min(canvas_width * devicePixelRatio, max_size),
-                    height: Math.min(canvas_height * devicePixelRatio, max_size),
+                    height: Math.min(canvas_height * devicePixelRatio, max_size)
                 }
                 if (!this.frame_id) {
                     this.frame_id = requestAnimationFrame(() => {
@@ -143,15 +146,22 @@ export default class Engine {
         this.device.queue.submit([this.cmd_encoder.finish()])
     }
 
-    encodeCompute(encoder: GPUComputePassEncoder, width: number, height: number) {
-        encoder.dispatchWorkgroups(Math.ceil(width / WG_DIM), Math.ceil(height / WG_DIM))
+    encodeCompute(
+        encoder: GPUComputePassEncoder,
+        width: number,
+        height: number
+    ) {
+        encoder.dispatchWorkgroups(
+            Math.ceil(width / WG_DIM),
+            Math.ceil(height / WG_DIM)
+        )
     }
 
     async compileShader(shader_code: string): Promise<ShaderCompilationResult> {
         const trimmed_code = shader_code.trim()
 
         const module = this.device.createShaderModule({
-            code: trimmed_code,
+            code: trimmed_code
         })
         const info = await module.getCompilationInfo()
         const issues: ShaderIssue[] = []
@@ -168,7 +178,7 @@ export default class Engine {
 
                 issues.push({
                     message: issue_text,
-                    codeLine: issue_line,
+                    codeLine: issue_line
                 })
             }
         }
@@ -200,10 +210,14 @@ export default class Engine {
         return this.createBuffer(data, size, GPUBufferUsage.STORAGE)
     }
 
-    createBuffer(data: BufferData | null, size: number = 0, usage: GPUFlagsConstant): GPUBuffer {
+    createBuffer(
+        data: BufferData | null,
+        size: number = 0,
+        usage: GPUFlagsConstant
+    ): GPUBuffer {
         const buffer = this.device.createBuffer({
             size: size || data?.byteLength || 0,
-            usage: usage | GPUBufferUsage.COPY_DST,
+            usage: usage | GPUBufferUsage.COPY_DST
         })
         if (data) {
             this.device.queue.writeBuffer(buffer, 0, data, 0, data.length)
@@ -219,7 +233,7 @@ export default class Engine {
         return {
             depthWriteEnabled: true,
             depthCompare: 'less',
-            format: 'depth24plus-stencil8',
+            format: 'depth24plus-stencil8'
         }
     }
 
@@ -228,11 +242,13 @@ export default class Engine {
             size: { width, height },
             dimension: '2d',
             format: 'depth24plus-stencil8',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
         })
     }
 
-    createDepthStencilAttachment(depth_texture: GPUTexture): GPURenderPassDepthStencilAttachment {
+    createDepthStencilAttachment(
+        depth_texture: GPUTexture
+    ): GPURenderPassDepthStencilAttachment {
         return {
             view: depth_texture.createView(),
             depthClearValue: 1,
@@ -240,7 +256,7 @@ export default class Engine {
             depthStoreOp: 'store',
             stencilClearValue: 0,
             stencilLoadOp: 'load',
-            stencilStoreOp: 'store',
+            stencilStoreOp: 'store'
         }
     }
 }
