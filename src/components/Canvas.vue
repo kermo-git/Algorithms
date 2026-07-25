@@ -60,7 +60,7 @@ function download() {
             </p>
         </template>
         <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />
-        <PanelButton @click="download" class="save-button" mdi-path="floppy" />
+        <PanelButton @click="download" class="save-button" mdi-icon="floppy" />
     </div>
 </template>
 

@@ -16,7 +16,7 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
     <div class="container">
         <div class="column">
             <PanelButton
-                mdi-path="plus"
+                mdi-icon="plus"
                 @click="
                     () => {
                         const colors_copy = hex_colors.slice()
@@ -35,7 +35,7 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
             <div v-for="(_, i) in hex_colors" :key="i" class="color-unit">
                 <PanelButton
                     v-if="hex_colors!.length > 2"
-                    mdi-path="delete"
+                    mdi-icon="delete"
                     @click="
                         () => {
                             const colors_copy = hex_colors.slice()

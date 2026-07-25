@@ -1,14 +1,14 @@
 <script setup lang="ts">
 interface Props {
     text?: string
-    mdiPath?: string
+    mdiIcon?: string
 }
 const props = defineProps<Props>()
 </script>
 
 <template>
     <button>
-        <span v-if="props.mdiPath" :class="`mdi mdi-${props.mdiPath}`" />
+        <span v-if="props.mdiIcon" :class="`mdi mdi-${props.mdiIcon}`" />
         <span v-if="props.text">{{ props.text }}</span>
     </button>
 </template>

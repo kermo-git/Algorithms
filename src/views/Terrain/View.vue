@@ -126,13 +126,23 @@ watch(camera_view_matrix, (new_camera) => {
         </VBox>
         <template v-if="active_tab == 'Elevation'">
             <div class="editor-container">
-                <PanelButton class="run-button" text="Run" mdi-path="play" @click="runNoise" />
+                <PanelButton
+                    class="run-button"
+                    text="Run"
+                    mdi-icon="play"
+                    @click="runNoise"
+                />
                 <CodeEditor class="terrain-editor" v-model="noise_shader" />
             </div>
         </template>
         <template v-else-if="active_tab == 'Color'">
             <div class="editor-container">
-                <PanelButton class="run-button" text="Run" mdi-path="play" @click="runColor" />
+                <PanelButton
+                    class="run-button"
+                    text="Run"
+                    mdi-icon="play"
+                    @click="runColor"
+                />
                 <CodeEditor class="terrain-editor" v-model="color_shader" />
             </div>
         </template>

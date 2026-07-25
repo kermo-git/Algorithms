@@ -106,14 +106,22 @@ watch(
 
                 <label for="rule">{{ ruleNumberLabel }}</label>
                 <HBox>
-                    <PanelField id="rule" type="text" inputmode="numeric" v-model="ruleNumber" />
-                    <PanelButton mdi-path="content-copy" @click="copyRuleNumber" />
+                    <PanelField
+                        id="rule"
+                        type="text"
+                        inputmode="numeric"
+                        v-model="ruleNumber"
+                    />
+                    <PanelButton
+                        mdi-icon="content-copy"
+                        @click="copyRuleNumber"
+                    />
                 </HBox>
 
                 <p>Lambda: {{ lambda }}</p>
 
                 <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
-                    <PanelButton mdi-path="dice-5" @click="randomizeRule" />
+                    <PanelButton mdi-icon="dice-5" @click="randomizeRule" />
                 </RangeInput>
             </template>
             <template v-if="activeTab === 'Examples'">

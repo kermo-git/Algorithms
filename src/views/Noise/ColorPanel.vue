@@ -87,14 +87,19 @@ function onDeleteClick(ev: Event) {
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
             <PanelButton
                 v-if="i > 0"
-                mdi-path="swap-vertical"
+                mdi-icon="swap-vertical"
                 :data-index="i"
                 @click="onSwapClick"
             />
-            <PanelButton v-if="i > 0" mdi-path="plus" :data-index="i" @click="onAddColorClick" />
+            <PanelButton
+                v-if="i > 0"
+                mdi-icon="plus"
+                :data-index="i"
+                @click="onAddColorClick"
+            />
             <PanelButton
                 v-if="colors!.length > 2"
-                mdi-path="delete"
+                mdi-icon="delete"
                 :data-index="i"
                 @click="onDeleteClick"
             />
