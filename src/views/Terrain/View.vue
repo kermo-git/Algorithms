@@ -52,7 +52,7 @@ const camera_view_matrix = computed(() => {
         .matmul(translate(-0.5 * size, 0, 0.5 * size))
 })
 
-async function initScene(grid_size: number) {
+async function initScene(new_grid_size: number) {
     if (canvasRef.value) {
         console.log(camera_view_matrix.value)
 
@@ -62,7 +62,7 @@ async function initScene(grid_size: number) {
                 noise_shader: noise_shader.value,
                 color_shader: color_shader.value,
                 terrain_dims: [1024, 1024],
-                grid_dims: [grid_size, grid_size],
+                grid_dims: [new_grid_size, new_grid_size],
                 light_dir: light_dir.value,
                 ambient_light_intensity: ambient_intensity.value,
                 camera_view_matrix: camera_view_matrix.value,

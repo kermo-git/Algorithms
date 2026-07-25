@@ -1,4 +1,4 @@
-import Engine, { type FloatArray, type ShaderIssue } from '@/WebGPU/Engine'
+import Engine, { type ShaderIssue } from '@/WebGPU/Engine'
 import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
 
 import { createShader, type Setup } from './Shader'

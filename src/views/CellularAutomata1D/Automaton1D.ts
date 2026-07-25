@@ -1,5 +1,4 @@
-import { parseHexColor, type Color } from '@/utils/Colors'
-import type { Matrix } from '@/utils/Matrix'
+import { parseHexColor } from '@/utils/Colors'
 
 type numberArray = Uint8Array | number[]
 

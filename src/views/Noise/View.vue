@@ -38,10 +38,10 @@ const active_tab = ref('Configuration')
 const scene = shallowRef(new NoiseScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function createNoiseAlgorithm(name: string, dimension: string) {
-    switch (name) {
+function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
+    switch (algorithm_name) {
         case 'Simplex':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return Simplex2D
                 case '3D':
@@ -50,7 +50,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return Simplex4D
             }
         case 'Simplex Value':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return SimplexValue2D
                 case '3D':
@@ -59,7 +59,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return SimplexValue4D
             }
         case 'Perlin':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return new Perlin2D()
                 case '3D':
@@ -68,7 +68,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return new Perlin4D()
             }
         case 'Quadratic':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return new Perlin2D(true)
                 case '3D':
@@ -77,7 +77,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return new Perlin4D(true)
             }
         case 'Cubic':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return Cubic2D
                 case '3D':
@@ -86,7 +86,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return Cubic4D
             }
         case 'Value':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return Value2D
                 case '3D':
@@ -95,7 +95,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return Value4D
             }
         case 'Worley':
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return Worley2D
                 case '3D':
@@ -104,7 +104,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
                     return Worley4D
             }
         default:
-            switch (dimension) {
+            switch (noise_dimension) {
                 case '2D':
                     return WorleyF22D
                 case '3D':

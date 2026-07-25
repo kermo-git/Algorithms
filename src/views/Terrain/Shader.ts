@@ -293,10 +293,7 @@ export function display2DShader(
     `
 }
 
-export function display3DShader(
-    setup: Setup,
-    canvas_color_format: GPUTextureFormat
-): string {
+export function display3DShader(setup: Setup): string {
     // TODO
     return /* wgsl */ `
         ${terrainStruct}

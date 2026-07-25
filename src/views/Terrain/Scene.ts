@@ -258,7 +258,7 @@ export default class TerrainScene {
 
     private async createDisplay3DShader() {
         const { module } = await this.engine.compileShader(
-            display3DShader(this.setup, this.engine.canvas_color_format)
+            display3DShader(this.setup)
         )
 
         this.display_3D_pipeline = this.engine.device.createRenderPipeline({

@@ -1,4 +1,3 @@
-import type { FloatArray } from '@/WebGPU/Engine'
 import { invertedGaussian, sigmoid } from './Shader'
 
 export interface Example {

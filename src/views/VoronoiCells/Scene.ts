@@ -1,4 +1,4 @@
-import Engine, { type FloatArray } from '@/WebGPU/Engine'
+import Engine from '@/WebGPU/Engine'
 
 import { type Setup, createShader } from './Shader'
 import { parseHexColor, shaderColorArray } from '@/utils/Colors'

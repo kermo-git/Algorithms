@@ -1,6 +1,6 @@
 import { octaveNoiseShader } from '@/Noise/ShaderUtils'
 import type { NoiseAlgorithm } from '@/Noise/Types'
-import { WG_DIM, type FloatArray } from '@/WebGPU/Engine'
+import { WG_DIM } from '@/WebGPU/Engine'
 
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
 export type DistanceMeasure = 'Euclidean' | 'Manhattan'
