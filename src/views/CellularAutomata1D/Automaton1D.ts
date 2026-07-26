@@ -180,7 +180,7 @@ export function generatePattern(
                 prev_gen[col] = 0
                 setColor(0, col, 0)
             }
-            const center_col = Math.floor(n_cols - 1 / 2)
+            const center_col = Math.floor((n_cols - 1) / 2)
             prev_gen[center_col] = 1
             setColor(0, center_col, 1)
         }
