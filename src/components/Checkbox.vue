@@ -48,7 +48,7 @@ function onChange(event: Event) {
 }
 
 .checkbox-icon {
-    font-size: 30pt;
+    font-size: 25pt;
     position: absolute;
     top: 0;
     left: 0;

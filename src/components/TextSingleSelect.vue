@@ -1,70 +1,46 @@
 <script setup lang="ts">
+import HBox from './HBox.vue'
+import PanelButton from './PanelButton.vue'
+
 interface Props {
     text: string
-    name: string
     options: string[]
 }
 const props = defineProps<Props>()
-const model = defineModel()
+const model = defineModel<string>()
 </script>
 
 <template>
-    <fieldset>
-        <legend>{{ props.text }}</legend>
-        <template v-for="value in props.options" :key="value">
-            <input
-                type="radio"
-                :id="`${props.name}-${value}`"
-                :name="props.name"
-                :value="value"
-                v-model="model"
+    <HBox>
+        <p class="caption">{{ props.text }}</p>
+        <div class="options" role="radiogroup" :aria-label="props.text">
+            <PanelButton
+                v-for="value in props.options"
+                :key="value"
+                role="radio"
+                :aria-checked="model == value"
+                :text="value"
+                @click="model = value"
             />
-            <label class="panel-button" :for="`${props.name}-${value}`">{{
-                value
-            }}</label>
-        </template>
-    </fieldset>
+        </div>
+    </HBox>
 </template>
 
 <style scoped>
-fieldset {
-    border: var(--border);
-    border-radius: 0.5em;
-    padding: 1em;
-    box-sizing: border-box;
+.caption {
+    width: 100%;
     margin: 0;
+}
+
+.options {
+    width: 100%;
     display: flex;
-    justify-content: space-around;
     flex-wrap: wrap;
     gap: var(--small-gap);
-    width: 100%;
 }
 
-input[type='radio'] {
-    display: none;
-}
-
-label {
-    border: var(--border);
-    background-color: var(--secondary-color);
-    border-radius: var(--border-radius);
-    min-width: var(--label-height);
-    line-height: var(--label-height);
-    padding-left: var(--small-gap);
-    padding-right: var(--small-gap);
-    text-align: center;
-    font-size: inherit;
-    color: inherit;
-}
-
-label:hover {
-    border: var(--accent-border);
-    cursor: pointer;
-}
-
-input[type='radio']:checked + label {
-    border: var(--accent-border);
-    background-color: var(--accent-color);
-    color: var(--bg-color);
+.options > button {
+    flex-basis: 0;
+    flex-grow: 1;
 }
 </style>

@@ -13,19 +13,16 @@ const model = defineModel()
 <template>
     <HBox>
         <p class="caption">{{ props.text }}</p>
-        <div class="options">
-            <template v-for="value in props.options" :key="value">
-                <input
-                    type="radio"
-                    :id="`${props.name}-${value}`"
-                    :name="props.name"
-                    :value="value"
-                    v-model="model"
-                />
-                <label class="option" :for="`${props.name}-${value}`">{{
-                    value
-                }}</label>
-            </template>
+        <div class="options" role="radiogroup" :aria-label="props.text">
+            <button
+                v-for="value in props.options"
+                :key="value"
+                role="radio"
+                :aria-checked="model == value"
+                @click="model = value"
+            >
+                {{ value }}
+            </button>
         </div>
     </HBox>
 </template>
@@ -39,32 +36,41 @@ const model = defineModel()
 .options {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--small-gap);
 }
 
-input[type='radio'] {
-    display: none;
-}
-
-label {
+.options button {
     border: var(--border);
+    border-right: none;
     background-color: var(--bg-color);
-    border-radius: var(--border-radius);
-    min-width: var(--label-height);
-    line-height: var(--label-height);
+    min-width: var(--button-height);
+    height: var(--button-height);
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+
     text-align: center;
     color: inherit;
     font-size: 15pt;
 }
 
-label:hover {
+.options button:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.options button:last-child {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+    border: var(--border);
+}
+
+.options button:hover {
     background-color: var(--secondary-color);
     cursor: pointer;
 }
 
-input[type='radio']:checked + label {
+.options button[aria-checked='true'] {
     background-color: var(--accent-color);
-    border: var(--accent-border);
     color: var(--bg-color);
+    font-weight: bold;
 }
 </style>

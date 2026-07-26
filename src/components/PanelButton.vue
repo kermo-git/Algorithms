@@ -19,7 +19,7 @@ button {
     background-color: var(--secondary-color);
     border-radius: var(--border-radius);
     height: var(--button-height);
-    min-width: var(--button-height);
+    min-width: max-content;
     font-size: inherit;
     color: inherit;
     display: flex;
@@ -32,10 +32,12 @@ button:hover {
     cursor: pointer;
 }
 
-button:active {
+button:not([aria-checked]):active,
+button[aria-checked='true'] {
     border: var(--accent-border);
     background-color: var(--accent-color);
     color: var(--bg-color);
+    font-weight: bold;
 }
 
 button .mdi {

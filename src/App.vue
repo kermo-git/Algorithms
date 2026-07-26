@@ -50,9 +50,8 @@ import { RouterLink, RouterView } from 'vue-router'
     --border: 2pt solid var(--secondary-color);
     --accent-border: 2pt solid var(--accent-color);
 
-    --button-height: 2.8rem;
-    --label-height: 2.5rem; /* Just to get HTML label elements the same height as --button-height makes HTML button elements. */
-    --border-radius: 0.7rem;
+    --button-height: 2.3rem;
+    --border-radius: 0.5rem;
     --small-gap: 0.5rem;
 
     background-color: var(--bg-color);

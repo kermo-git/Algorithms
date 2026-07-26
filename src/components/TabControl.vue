@@ -52,7 +52,7 @@ const active_tab = defineModel<string>()
     color: inherit;
     background-color: inherit;
     flex-grow: 1;
-    height: 3em;
+    height: var(--button-height);
 }
 
 .tab.active {
