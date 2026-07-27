@@ -117,7 +117,6 @@ onBeforeUnmount(() => {
             <template v-if="active_tab === 'Configuration'">
                 <NumberSingleSelect
                     text="Grid size"
-                    name="n_grid_columns"
                     :options="[4, 8, 16, 32, 64]"
                     v-model="voronoi_n_columns"
                     @update:model-value="
@@ -126,7 +125,6 @@ onBeforeUnmount(() => {
                 />
                 <TextSingleSelect
                     text="Distance measure"
-                    name="distance"
                     :options="['Euclidean', 'Manhattan']"
                     v-model="voronoi_distance"
                 />
@@ -142,14 +140,12 @@ onBeforeUnmount(() => {
 
                 <TextSingleSelect
                     text="Noise algorithm"
-                    name="algorithm"
                     :options="['Simplex', 'Perlin', 'Value', 'Worley']"
                     v-model="noise_algorithm"
                 />
 
                 <TextSingleSelect
                     text="Noise dimension"
-                    name="dimension"
                     :options="['2D', '3D']"
                     v-model="noise_dimension"
                 />
@@ -167,7 +163,6 @@ onBeforeUnmount(() => {
 
                 <NumberSingleSelect
                     text="Noise octaves"
-                    name="noise_n_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="noise_n_octaves"
                     @update:model-value="

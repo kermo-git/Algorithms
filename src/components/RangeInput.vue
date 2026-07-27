@@ -28,9 +28,9 @@ function onInput(event: Event) {
 
 <template>
     <HBox>
-        <p>{{ $attrs['min'] }}</p>
+        <span>{{ $attrs['min'] }}</span>
         <input v-bind="$attrs" type="range" :value="model" @input="onInput" />
-        <p>{{ $attrs['max'] }}</p>
+        <span>{{ $attrs['max'] }}</span>
         <slot />
     </HBox>
 </template>

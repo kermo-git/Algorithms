@@ -3,7 +3,6 @@ import HBox from './HBox.vue'
 
 interface Props {
     text: string
-    name: string
     options: number[]
 }
 const props = defineProps<Props>()
@@ -12,7 +11,7 @@ const model = defineModel()
 
 <template>
     <HBox>
-        <p class="caption">{{ props.text }}</p>
+        <span class="caption">{{ props.text }}</span>
         <div class="options" role="radiogroup" :aria-label="props.text">
             <button
                 v-for="value in props.options"

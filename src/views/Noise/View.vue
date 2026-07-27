@@ -195,7 +195,6 @@ const available_transforms = computed(() =>
             <template v-if="active_tab === 'Configuration'">
                 <TextSingleSelect
                     text="Noise algorithm"
-                    name="algorithm"
                     :options="[
                         'Simplex',
                         'Simplex Value',
@@ -211,7 +210,6 @@ const available_transforms = computed(() =>
 
                 <TextSingleSelect
                     text="Noise dimension"
-                    name="dimension"
                     :options="['2D', '3D', '4D']"
                     v-model="dimension"
                 />
@@ -240,7 +238,6 @@ const available_transforms = computed(() =>
 
                 <TextSingleSelect
                     text="Domain transformation"
-                    name="domain_transform"
                     :options="available_transforms"
                     v-model="domain_transform"
                 />
@@ -258,7 +255,6 @@ const available_transforms = computed(() =>
 
                 <NumberSingleSelect
                     text="Grid size"
-                    name="grid_size"
                     :options="[4, 8, 16, 32, 64]"
                     v-model="n_grid_columns"
                     @update:model-value="
@@ -269,7 +265,6 @@ const available_transforms = computed(() =>
                 <NumberSingleSelect
                     v-if="domain_transform.startsWith('Warp')"
                     text="Warp octaves"
-                    name="n_warp_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_warp_octaves"
                     @update:model-value="
@@ -283,7 +278,6 @@ const available_transforms = computed(() =>
                             ? 'Main octaves'
                             : 'Octaves'
                     "
-                    name="n_main_octaves"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="n_main_octaves"
                     @update:model-value="

@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import HBox from './HBox.vue'
+
 interface Props {
-    text: string
     name: string
 }
 const props = defineProps<Props>()
 const model = defineModel<boolean>()
-defineOptions({ inheritAttrs: false })
 
 function onChange(event: Event) {
     const element = event.target as HTMLInputElement
@@ -14,11 +14,10 @@ function onChange(event: Event) {
 </script>
 
 <template>
-    <div class="component">
+    <HBox>
         <span class="checkbox-wrapper">
             <input
                 type="checkbox"
-                v-bind="$attrs"
                 :id="`${props.name}`"
                 :name="props.name"
                 :value="model"
@@ -26,21 +25,11 @@ function onChange(event: Event) {
             />
             <span :class="`checkbox-icon ${model ? 'mdi mdi-check' : ''}`" />
         </span>
-        <label class="caption" :for="props.name">{{ props.text }}</label>
-    </div>
+        <label class="caption" :for="props.name"><slot /></label>
+    </HBox>
 </template>
 
 <style scoped>
-.component {
-    flex-grow: 1;
-    box-sizing: border-box;
-    height: var(--button-height);
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    gap: 0;
-}
-
 .checkbox-wrapper {
     position: relative;
     height: 100%;
@@ -51,7 +40,7 @@ function onChange(event: Event) {
     font-size: 25pt;
     position: absolute;
     top: 0;
-    left: 0;
+    left: 8%;
     width: 100%;
     height: 100%;
     pointer-events: none;
@@ -74,11 +63,9 @@ input[type='checkbox']:hover {
 input[type='checkbox']:checked + .checkbox-icon {
     color: var(--accent-color);
 }
-.caption {
-    flex-grow: 1;
-}
 
 .caption {
+    flex-grow: 1;
     height: 100%;
     line-height: 2.5rem;
     padding-left: var(--small-gap);

@@ -7,6 +7,7 @@ import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
+import Menu from '@/components/Menu.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import VBox from '@/components/VBox.vue'
 
@@ -143,7 +144,6 @@ onBeforeUnmount(() => {
                 />
                 <NumberSingleSelect
                     text="Grid size"
-                    name="grid-size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
                     @update:model-value="
@@ -154,26 +154,25 @@ onBeforeUnmount(() => {
                     "
                 />
             </template>
-            <template v-else-if="activeTab === 'Colors'">
-                <ColorPalette
-                    v-model="colors"
-                    @change-all-colors="
-                        (new_colors) => scene.updateAllColors(new_colors)
-                    "
-                    @change-single-color="
-                        (index, value: string) =>
-                            scene.updateSingleColor(index, value)
-                    "
-                />
-            </template>
-            <template v-else>
+            <ColorPalette
+                v-else-if="activeTab === 'Colors'"
+                v-model="colors"
+                @change-all-colors="
+                    (new_colors) => scene.updateAllColors(new_colors)
+                "
+                @change-single-color="
+                    (index, value: string) =>
+                        scene.updateSingleColor(index, value)
+                "
+            />
+            <Menu v-else>
                 <MenuItem
                     v-for="example in examples"
                     :key="example.name"
                     :text="example.name"
                     @click="setExample(example)"
                 />
-            </template>
+            </Menu>
         </VBox>
     </SidePanelCanvas>
 </template>

@@ -44,10 +44,6 @@ export class Automaton1D {
         this.new_center[0] = 0
     }
 
-    chooseRandomState() {
-        return Math.floor(Math.random() * this.n_states)
-    }
-
     getRuleNumber(): bigint {
         const n_states = BigInt(this.n_states)
         const n_configurations = BigInt(this.new_center.length)
@@ -138,9 +134,22 @@ function getNeighborhood(
 
 export type FirstGenType = 'Center' | 'Random'
 
+export function generateRandomRow(size: number, n_states: number): number[] {
+    return new Array(size)
+        .fill(0)
+        .map(() => Math.floor(Math.random() * n_states))
+}
+
+export function initializeCenter(size: number): number[] {
+    const result = new Array(size).fill(0)
+    const center_col = Math.floor((size - 1) / 2)
+    result[center_col] = 1
+    return result
+}
+
 export function generatePattern(
     canvas: HTMLCanvasElement,
-    first_gen: FirstGenType,
+    first_gen: number[],
     hex_colors: string[],
     automaton: Automaton1D
 ) {
@@ -150,8 +159,8 @@ export function generatePattern(
         const n_cols = canvas.width
         const n_rows = canvas.height
 
-        let prev_gen: number[] = new Array(n_cols)
-        const current_gen: number[] = new Array(n_cols)
+        let prev_gen: number[] = first_gen.slice()
+        const current_gen: number[] = first_gen.slice()
 
         const image_data = ctx.createImageData(n_cols, n_rows)
         const image_array = image_data.data
@@ -169,20 +178,8 @@ export function generatePattern(
 
         const radius = automaton.neighborhood_radius
 
-        if (first_gen == 'Random') {
-            for (let col = 0; col < n_cols; col++) {
-                const state = automaton.chooseRandomState()
-                prev_gen[col] = state
-                setColor(0, col, state)
-            }
-        } else {
-            for (let col = 0; col < n_cols; col++) {
-                prev_gen[col] = 0
-                setColor(0, col, 0)
-            }
-            const center_col = Math.floor((n_cols - 1) / 2)
-            prev_gen[center_col] = 1
-            setColor(0, center_col, 1)
+        for (let col = 0; col < n_cols; col++) {
+            setColor(0, col, first_gen[col])
         }
 
         for (let row = 1; row < n_rows; row++) {

@@ -86,7 +86,7 @@ function onSwapClick(ev: Event) {
             </button>
         </template>
     </HBox>
-    <HBox>
+    <HBox class="palette-choices">
         <PanelButton
             v-for="palette in palettes"
             :key="palette.name"
@@ -112,5 +112,10 @@ function onSwapClick(ev: Event) {
 
 .swap:hover {
     color: var(--accent-color);
+}
+
+.palette-choices > button {
+    flex-basis: 0;
+    flex-grow: 1;
 }
 </style>

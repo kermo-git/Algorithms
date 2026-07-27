@@ -32,13 +32,13 @@ const skip_frames = defineModel<boolean>('skip-frames')
         </div>
         <CodeEditor class="ca-editor" v-model="code" />
     </div>
-    <div class="skip-frames-section">
-        <Checkbox
-            text="Skip every second frame"
-            name="skip_frames"
-            v-model="skip_frames"
-        />
-    </div>
+    <Checkbox
+        class="skip-frames-section"
+        name="skip_frames"
+        v-model="skip_frames"
+    >
+        Skip every second frame
+    </Checkbox>
 </template>
 
 <style scoped>
@@ -92,6 +92,5 @@ const skip_frames = defineModel<boolean>('skip-frames')
 .skip-frames-section {
     padding: var(--small-gap);
     border-bottom: var(--border);
-    box-sizing: border-box;
 }
 </style>

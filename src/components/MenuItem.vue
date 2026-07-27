@@ -14,13 +14,26 @@ const props = defineProps<Props>()
 <style scoped>
 button {
     border: var(--border);
-    border-radius: var(--border-radius);
     height: var(--button-height);
     width: 100%;
     background-color: inherit;
     font-size: inherit;
     color: inherit;
     text-align: center;
+}
+
+button:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
+button:not(:last-child) {
+    border-bottom: 0;
+}
+
+button:last-child {
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
 }
 
 button:hover {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 
+import type { ShaderIssue } from '@/WebGPU/Engine'
+import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import PanelButton from '@/components/PanelButton.vue'
@@ -8,14 +10,11 @@ import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import Checkbox from '@/components/Checkbox.vue'
 import VBox from '@/components/VBox.vue'
-import HBox from '@/components/HBox.vue'
-
-import type { ShaderIssue } from '@/WebGPU/Engine'
-import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
+import MenuItem from '@/components/MenuItem.vue'
+import Menu from '@/components/Menu.vue'
 
 import { examples, type Example } from './Examples'
 import TerrainScene from './Scene'
-import MenuItem from '@/components/MenuItem.vue'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
@@ -122,7 +121,6 @@ watch(camera_view_matrix, (new_camera) => {
         <VBox>
             <NumberSingleSelect
                 text="Grid columns"
-                name="n_grid_columns"
                 :options="[4, 8, 16, 32, 64]"
                 v-model="grid_size"
             />
@@ -175,13 +173,9 @@ watch(camera_view_matrix, (new_camera) => {
                     :step="1"
                 />
 
-                <HBox justify="left">
-                    <Checkbox
-                        text="3D view"
-                        name="render_3D"
-                        v-model="render_3D"
-                    />
-                </HBox>
+                <Checkbox name="render_3D" v-model="render_3D">
+                    3D view
+                </Checkbox>
 
                 <template v-if="render_3D">
                     <p>View angle: {{ terrain_deg_x }}</p>
@@ -202,16 +196,16 @@ watch(camera_view_matrix, (new_camera) => {
                 </template>
             </VBox>
         </template>
-        <template v-else>
-            <VBox>
+        <VBox v-else>
+            <Menu>
                 <MenuItem
                     v-for="example in examples"
                     :key="example.name"
                     :text="example.name"
                     @click="setExample(example)"
                 />
-            </VBox>
-        </template>
+            </Menu>
+        </VBox>
     </SidePanelCanvas>
 </template>
 

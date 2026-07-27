@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { onBeforeUnmount, ref, shallowRef } from 'vue'
 
+import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
-import MatrixEditor from './MatrixEditor.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
+import Menu from '@/components/Menu.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import HBox from '@/components/HBox.vue'
 import VBox from '@/components/VBox.vue'
 
-import type { FloatArray } from '@/WebGPU/Engine'
-import { type ShaderIssue } from '@/WebGPU/Engine'
-
 import { NeuralScene } from './Scene'
+import MatrixEditor from './MatrixEditor.vue'
 import { examples, type Example } from './Examples'
 
 const default_example = examples[0]
@@ -155,7 +154,6 @@ onBeforeUnmount(() => {
             <template v-if="active_tab === 'Configuration'">
                 <NumberSingleSelect
                     text="Kernel size"
-                    name="radius"
                     :options="[1, 2, 3, 4, 5]"
                     v-model="kernel_radius"
                     @update:model-value="onKernelRadiusChange"
@@ -185,7 +183,6 @@ onBeforeUnmount(() => {
 
                 <NumberSingleSelect
                     text="Grid size"
-                    name="grid-size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
                     @update:model-value="
@@ -195,12 +192,14 @@ onBeforeUnmount(() => {
                         }
                     "
                 />
-                <MenuItem
-                    v-for="example in examples"
-                    :key="example.name"
-                    :text="example.name"
-                    @click="setExample(example)"
-                />
+                <Menu>
+                    <MenuItem
+                        v-for="example in examples"
+                        :key="example.name"
+                        :text="example.name"
+                        @click="setExample(example)"
+                    />
+                </Menu>
             </template>
         </VBox>
     </SidePanelCanvas>

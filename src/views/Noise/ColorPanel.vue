@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { lerpColors, parseHexColor, toHexColor } from '@/utils/Colors'
+import HBox from '@/components/HBox.vue'
 import RangeInput from '@/components/RangeInput.vue'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
@@ -79,7 +80,7 @@ function onDeleteClick(ev: Event) {
 
 <template>
     <template v-for="(_, i) in colors" :key="i">
-        <div class="color-buttons">
+        <HBox>
             <ColorInput
                 v-model="colors[i]"
                 @animation="
@@ -87,25 +88,27 @@ function onDeleteClick(ev: Event) {
                 "
             />
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
-            <PanelButton
-                v-if="i > 0"
-                mdi-icon="swap-vertical"
-                :data-index="i"
-                @click="onSwapClick"
-            />
-            <PanelButton
-                v-if="i > 0"
-                mdi-icon="plus"
-                :data-index="i"
-                @click="onAddColorClick"
-            />
-            <PanelButton
-                v-if="colors!.length > 2"
-                mdi-icon="delete"
-                :data-index="i"
-                @click="onDeleteClick"
-            />
-        </div>
+            <div class="button-group">
+                <PanelButton
+                    v-if="i > 0"
+                    mdi-icon="swap-vertical"
+                    :data-index="i"
+                    @click="onSwapClick"
+                />
+                <PanelButton
+                    v-if="i > 0"
+                    mdi-icon="plus"
+                    :data-index="i"
+                    @click="onAddColorClick"
+                />
+                <PanelButton
+                    v-if="colors!.length > 2"
+                    mdi-icon="delete"
+                    :data-index="i"
+                    @click="onDeleteClick"
+                />
+            </div>
+        </HBox>
         <RangeInput
             :min="0"
             :max="1"
@@ -117,14 +120,26 @@ function onDeleteClick(ev: Event) {
 </template>
 
 <style scoped>
-.color-buttons {
-    width: 100%;
-    display: flex;
-    gap: 0.5em;
-    align-items: center;
+.color-point-value {
+    flex-grow: 1;
 }
 
-.color-point-value {
-    margin-right: auto;
+.button-group {
+    display: flex;
+    gap: var(--small-gap);
+}
+
+.button-group button {
+    border-radius: 0;
+}
+
+.button-group button:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.button-group button:last-child {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
 }
 </style>
