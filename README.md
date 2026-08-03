@@ -1,6 +1,6 @@
 # Algorithms
 
-This is a web application that implements various algorithms that generate interesting visual patterns. The application lets you configure and tweak the parameters of those algorithms, but there isn't much documentation right now.
+This is a web application that implements various algorithms that generate interesting visual patterns. The application lets you configure and tweak the parameters of those algorithms.
 
 ## Setup
 
@@ -13,11 +13,11 @@ This is a web application that implements various algorithms that generate inter
 
 1. Navigate to the project directory in the terminal.
 2. Run `npm run dev`.
-3. Open `http://localhost:5173/` in your browser
+3. Open `http://localhost:5173/` in your browser (or whatever URL you see in the terminal).
 
 ## Description
 
-This application doesn't document itself, but here I will refer to online resources where you can read about the algorithms.
+This application doesn't really explain what is going on behind the scenes or what those tweakable parameters do, but here I will refer to online resources where you can read about the algorithms. On several pages of the application, you can check out the "Examples" section to see what is possible to achieve by tweaking the parameters.
 
 ### 1D Cellular automata
 
@@ -49,6 +49,7 @@ This section uses various algorithms to generate random patterns:
 
 - [Value noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/introduction.html)
 - [Perlin noise](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/perlin-noise-part-2/perlin-noise.html)
+- [Quadratic noise](https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better)
 - [Simplex noise](https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf)
 - [Cubic noise](https://jobtalle.com/cubic_noise.html)
 - [Worley noise](https://en.wikipedia.org/wiki/Worley_noise)
@@ -58,6 +59,14 @@ The result of these basic noises can be tweaked in a few different ways:
 - [Multiple octaves](https://iquilezles.org/articles/fbm/)
 - [Domain warping](https://iquilezles.org/articles/warp/)
 - [Domain rotation](https://noiseposti.ng/posts/2022-01-16-The-Perlin-Problem-Moving-Past-Square-Noise.html)
+
+### Terrain
+
+This is like an advanced version of the procedural noise page. Here you can write your own function that takes 2D terrain coordinates as input and returns elevation at that location. You can use both simple mathematical functions as well as basic procedural noise functions as building blocks. In addition, you can also write another function that gives the terrain its color where you can use all of the same tools.
+
+### Voronoi cells
+
+This page draws voronoi cells and fills them with colors. You can choose the distance metric for Voronoi cells and distort their borders with noise functions.
 
 ## Planned features
 
@@ -79,7 +88,7 @@ These types of algorithms simulate water eroding soil material, carrying the sed
 
 #### Local erosion simulator
 
-Implement an algorithm that simulates erosion in a locally computed manner, so that it's suitable for infinite procedurally generated worlds.
+Implement an algorithm that simulates erosion in a locally computed manner, so that it's suitable for GPU and infinite procedurally generated worlds.
 
 - Dendry: [code](https://github.com/mgaillard/Noise) and [paper](https://dl.acm.org/doi/epdf/10.1145/3306131.3317020).
 - Analytical terrain: [code](https://gitlab.inria.fr/landscapes/analytical-terrains/-/tree/main/analytical?ref_type=heads) and [paper](https://hal.science/hal-04525371v1/document)
