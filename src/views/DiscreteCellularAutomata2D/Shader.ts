@@ -40,25 +40,29 @@ export function createShader(
         @group(2) @binding(1) var<uniform> n_states: u32;
 
         fn neighbor(center_pos: vec2u, offset_x: i32, offset_y: i32) -> u32 {
-            let canvas_dims = textureDimensions(canvas);
-            let canvas_x = (i32(center_pos.x) + offset_x) % i32(canvas_dims.x);
-            let canvas_y = (i32(center_pos.y) + offset_y) % i32(canvas_dims.y);
-            let canvas_i = canvas_y * i32(canvas_dims.x) + canvas_x;
+            let canvas_dims = vec2i(textureDimensions(canvas));
+
+            let canvas_pos = (
+                vec2i(center_pos) + vec2i(offset_x, offset_y)
+            ) % canvas_dims;
+            
+            let canvas_i = canvas_pos.y * canvas_dims.x + canvas_pos.x;
+            
             return current_generation[canvas_i];
         }
 
-        fn shift(state: u32, shift: i32) -> u32 {
-            return u32(i32(state + n_states) + shift) % n_states;
+        fn shift(state: u32, n: i32) -> u32 {
+            return u32(i32(state + n_states) + n) % n_states;
         }
 
-        fn count(center_pos: vec2u, neighborhood_radius: u32, state: u32) -> u32 {
+        fn moore_count(center_pos: vec2u, radius: u32, state: u32) -> u32 {
             let canvas_dims = textureDimensions(canvas);
-            let neighborhood_size = 2 * neighborhood_radius + 1;
-            let start_pos = center_pos - vec2u(neighborhood_radius);
+            let diameter = 2 * radius + 1;
+            let start_pos = center_pos - vec2u(radius);
             var result: u32 = 0;
 
-            for (var ny = 0u; ny < neighborhood_size; ny++) {
-                for (var nx = 0u; nx < neighborhood_size; nx++) {
+            for (var ny = 0u; ny < diameter; ny++) {
+                for (var nx = 0u; nx < diameter; nx++) {
                     let canvas_x = (start_pos.x + nx) % canvas_dims.x;
                     let canvas_y = (start_pos.y + ny) % canvas_dims.y;
                     let canvas_i = canvas_y * canvas_dims.x + canvas_x;
@@ -69,6 +73,86 @@ export function createShader(
                 }
             }
             return result;
+        }
+
+        fn moore_avg(center_pos: vec2u, radius: u32, include_center: bool) -> f32 {
+            let canvas_dims = textureDimensions(canvas);
+            let diameter = 2 * radius + 1;
+            let start_pos = center_pos - vec2u(radius);
+            var sum: u32 = 0;
+
+            for (var ny = 0u; ny < diameter; ny++) {
+                for (var nx = 0u; nx < diameter; nx++) {
+                    if !include_center && ny == radius && nx == radius {
+                        continue;
+                    }
+                    let canvas_x = (start_pos.x + nx) % canvas_dims.x;
+                    let canvas_y = (start_pos.y + ny) % canvas_dims.y;
+                    let canvas_i = canvas_y * canvas_dims.x + canvas_x;
+
+                    sum += current_generation[canvas_i];
+                }
+            }
+            return f32(sum) / f32(diameter * diameter);
+        }
+
+        fn neumann_count(center_pos: vec2u, radius: u32, state: u32) -> u32 {
+            let canvas_dims = textureDimensions(canvas);
+            let diameter = 2 * radius + 1;
+            var result: u32 = 0;
+
+            for (var i = 0u; i <= radius; i++) {
+                let top_y = (center_pos.y + i) % canvas_dims.y;
+                let bottom_y = (center_pos.y - i) % canvas_dims.y;
+                let left_x = (center_pos.x - radius + i) % canvas_dims.x;
+
+                for (var j = 0u; j < diameter - 2*i; j++) {
+                    let canvas_x = (left_x + j) % canvas_dims.x;
+
+                    let top_i = top_y * canvas_dims.x + canvas_x;
+                    let bottom_i = bottom_y * canvas_dims.x + canvas_x;
+
+                    if current_generation[top_i] == state {
+                        result += 1;
+                    }
+                    if i != 0 && current_generation[bottom_i] == state {
+                        result += 1;
+                    }
+                }
+            }
+            return result;
+        }
+
+        fn neumann_avg(center_pos: vec2u, radius: u32, include_center: bool) -> f32 {
+            let canvas_dims = textureDimensions(canvas);
+            let diameter = 2 * radius + 1;
+            var sum: u32 = 0;
+
+            for (var i = 0u; i <= radius; i++) {
+                let top_y = (center_pos.y + i) % canvas_dims.y;
+                let bottom_y = (center_pos.y - i) % canvas_dims.y;
+                let left_x = (center_pos.x - radius + i) % canvas_dims.x;
+
+                for (var j = 0u; j < diameter - 2*i; j++) {
+                    let canvas_x = (left_x + j) % canvas_dims.x;
+
+                    let top_i = top_y * canvas_dims.x + canvas_x;
+                    let bottom_i = bottom_y * canvas_dims.x + canvas_x;
+
+                    if include_center || i != 0 || j != radius {
+                        sum += current_generation[top_i];
+                    }
+                    if i != 0 {
+                        sum += current_generation[bottom_i];
+                    }
+                }
+            }
+            let area = select(
+                2 * radius * radius + diameter - 1,
+                2 * radius * radius + diameter,
+                include_center
+            );
+            return f32(sum) / f32(area);
         }
 
         ${setup.update_shader}

@@ -7,6 +7,7 @@ export interface Example {
     kernel_radius: number
     get_kernel: () => number[]
     activation: string
+    skipFrames: boolean
 }
 
 function normalizeKernel(kernel: number[]) {
@@ -63,7 +64,8 @@ export const examples: Example[] = [
         get_kernel: () => {
             return mazeKernel()
         },
-        activation: sigmoid
+        activation: sigmoid,
+        skipFrames: false
     },
     {
         name: 'Flowing maze',
@@ -77,7 +79,8 @@ export const examples: Example[] = [
             kernel[98] = -1
             return kernel
         },
-        activation: sigmoid
+        activation: sigmoid,
+        skipFrames: false
     },
     {
         name: 'Zebra',
@@ -103,7 +106,8 @@ export const examples: Example[] = [
                 ].flat()
             )
         },
-        activation: sigmoid
+        activation: sigmoid,
+        skipFrames: false
     },
     {
         name: 'Merging bubbles',
@@ -122,7 +126,8 @@ export const examples: Example[] = [
                 [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian
+        activation: invertedGaussian,
+        skipFrames: true
     },
     {
         // https://neuralpatterns.io
@@ -142,11 +147,12 @@ export const examples: Example[] = [
                 [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian
+        activation: invertedGaussian,
+        skipFrames: true
     },
     {
         // https://neuralpatterns.io
-        name: 'Mitosis',
+        name: 'Small bacteria',
         color_0: '#001E57',
         color_1: '#00CE00',
 
@@ -162,7 +168,8 @@ export const examples: Example[] = [
                 [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian
+        activation: invertedGaussian,
+        skipFrames: true
     },
     {
         name: 'Long bacteria',
@@ -181,6 +188,7 @@ export const examples: Example[] = [
                 [Z, X, Z]
             ].flat()
         },
-        activation: invertedGaussian
+        activation: invertedGaussian,
+        skipFrames: true
     }
 ]

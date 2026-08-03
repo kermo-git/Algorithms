@@ -142,9 +142,9 @@ export class AutomatonScene {
 
     reset() {
         const n_cells = this.setup.canvas_width * this.canvas_height
-        const random_data = new Uint32Array(n_cells).map(() => {
-            return Math.floor(Math.random() * this.setup.n_states)
-        })
+        const random_data = new Uint32Array(n_cells).map(() =>
+            Math.round(Math.random() * (this.setup.n_states - 1))
+        )
         this.engine.updateBuffer(this.generation_A, random_data)
         this.generation_A_is_current = true
         this.redraw()

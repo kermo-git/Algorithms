@@ -2,12 +2,17 @@
 import CodeEditor from './CodeEditor.vue'
 import Checkbox from './Checkbox.vue'
 
+interface Props {
+    showEditor: boolean
+}
+
 interface Emits {
     (e: 'reset'): void
     (e: 'step'): void
 }
 
 const emits = defineEmits<Emits>()
+const props = defineProps<Props>()
 
 const code = defineModel<string>('code')
 const is_running = defineModel<boolean>('is_running')
@@ -30,15 +35,16 @@ const skip_frames = defineModel<boolean>('skip-frames')
                 <span>{{ is_running ? 'Pause' : 'Run' }}</span>
             </button>
         </div>
-        <CodeEditor class="ca-editor" v-model="code" />
+        <CodeEditor v-if="showEditor" class="ca-editor" v-model="code" />
+        <Checkbox
+            v-if="showEditor"
+            class="skip-frames-section"
+            name="skip_frames"
+            v-model="skip_frames"
+        >
+            Skip every second frame
+        </Checkbox>
     </div>
-    <Checkbox
-        class="skip-frames-section"
-        name="skip_frames"
-        v-model="skip_frames"
-    >
-        Skip every second frame
-    </Checkbox>
 </template>
 
 <style scoped>

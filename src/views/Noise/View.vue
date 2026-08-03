@@ -94,7 +94,7 @@ function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
                 default:
                     return Value4D
             }
-        case 'Worley':
+        case 'Worley F1':
             switch (noise_dimension) {
                 case '2D':
                     return Worley2D
@@ -103,7 +103,7 @@ function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
                 default:
                     return Worley4D
             }
-        default:
+        default: // 'Worley F2 - F1'
             switch (noise_dimension) {
                 case '2D':
                     return WorleyF22D
@@ -202,7 +202,7 @@ const available_transforms = computed(() =>
                         'Quadratic',
                         'Cubic',
                         'Value',
-                        'Worley',
+                        'Worley F1',
                         'Worley F2 - F1'
                     ]"
                     v-model="algorithm"

@@ -57,6 +57,7 @@ function setExample(example: Example) {
     n_states.value = example.nStates
     update_shader.value = example.updateShader
     editor_code.value = example.updateShader
+    skip_frames.value = example.skipFrames
     initScene()
 }
 
@@ -111,7 +112,7 @@ onBeforeUnmount(() => {
         @canvas-ready="onCanvasReady"
     >
         <SimulationCodeEditor
-            v-if="activeTab === 'Configuration'"
+            :show-editor="activeTab === 'Configuration'"
             v-model:code="editor_code"
             v-model:is_running="is_running"
             v-model:skip-frames="skip_frames"
@@ -142,20 +143,20 @@ onBeforeUnmount(() => {
                         }
                     "
                 />
-                <NumberSingleSelect
-                    text="Grid size"
-                    :options="[256, 512, 1024]"
-                    v-model="grid_size"
-                    @update:model-value="
-                        (new_grid_size) => {
-                            scene.resizeCanvas(new_grid_size)
-                            scene.reset()
-                        }
-                    "
-                />
             </template>
+            <NumberSingleSelect
+                text="Grid size"
+                :options="[256, 512, 1024]"
+                v-model="grid_size"
+                @update:model-value="
+                    (new_grid_size) => {
+                        scene.resizeCanvas(new_grid_size)
+                        scene.reset()
+                    }
+                "
+            />
             <ColorPalette
-                v-else-if="activeTab === 'Colors'"
+                v-if="activeTab === 'Colors'"
                 v-model="colors"
                 @change-all-colors="
                     (new_colors) => scene.updateAllColors(new_colors)
@@ -165,7 +166,7 @@ onBeforeUnmount(() => {
                         scene.updateSingleColor(index, value)
                 "
             />
-            <Menu v-else>
+            <Menu v-if="activeTab === 'Examples'">
                 <MenuItem
                     v-for="example in examples"
                     :key="example.name"

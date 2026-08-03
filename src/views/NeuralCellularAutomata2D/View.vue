@@ -83,6 +83,7 @@ function setExample(example: Example) {
     kernel.value = example.get_kernel()
     activation_shader = example.activation
     editor_code.value = example.activation
+    skip_frames.value = example.skipFrames
     initScene()
 }
 
@@ -128,13 +129,13 @@ onBeforeUnmount(() => {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Style & Examples']"
+        :tab-captions="['Configuration', 'Examples']"
         :issues="shader_issues"
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
         <SimulationCodeEditor
-            v-if="active_tab === 'Configuration'"
+            :show-editor="active_tab === 'Configuration'"
             v-model:code="editor_code"
             v-model:is_running="is_running"
             v-model:skip-frames="skip_frames"
@@ -152,6 +153,34 @@ onBeforeUnmount(() => {
         />
         <VBox>
             <template v-if="active_tab === 'Configuration'">
+                <HBox>
+                    <span :style="{ flexGrow: 1 }">Colors</span>
+                    <ColorInput
+                        v-model="color_0"
+                        @animation="
+                            (hex_color) => scene.updateColor1(hex_color)
+                        "
+                    />
+                    <ColorInput
+                        v-model="color_1"
+                        @animation="
+                            (hex_color) => scene.updateColor2(hex_color)
+                        "
+                    />
+                </HBox>
+            </template>
+            <NumberSingleSelect
+                text="Grid size"
+                :options="[256, 512, 1024]"
+                v-model="grid_size"
+                @update:model-value="
+                    (new_grid_size) => {
+                        scene.resizeCanvas(new_grid_size)
+                        scene.reset()
+                    }
+                "
+            />
+            <template v-if="active_tab === 'Configuration'">
                 <NumberSingleSelect
                     text="Kernel size"
                     :options="[1, 2, 3, 4, 5]"
@@ -164,34 +193,7 @@ onBeforeUnmount(() => {
                     @update:matrix="onKernelEdit"
                 />
             </template>
-            <template v-else>
-                <HBox>
-                    <ColorInput
-                        v-model="color_0"
-                        @animation="
-                            (hex_color) => scene.updateColor1(hex_color)
-                        "
-                    />
-                    <p>Select colors</p>
-                    <ColorInput
-                        v-model="color_1"
-                        @animation="
-                            (hex_color) => scene.updateColor2(hex_color)
-                        "
-                    />
-                </HBox>
-
-                <NumberSingleSelect
-                    text="Grid size"
-                    :options="[256, 512, 1024]"
-                    v-model="grid_size"
-                    @update:model-value="
-                        (new_grid_size) => {
-                            scene.resizeCanvas(new_grid_size)
-                            scene.reset()
-                        }
-                    "
-                />
+            <template v-if="active_tab === 'Examples'">
                 <Menu>
                     <MenuItem
                         v-for="example in examples"
