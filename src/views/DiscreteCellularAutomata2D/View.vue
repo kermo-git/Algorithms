@@ -144,17 +144,6 @@ onBeforeUnmount(() => {
                     "
                 />
             </template>
-            <NumberSingleSelect
-                text="Grid size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-                @update:model-value="
-                    (new_grid_size) => {
-                        scene.resizeCanvas(new_grid_size)
-                        scene.reset()
-                    }
-                "
-            />
             <ColorPalette
                 v-if="activeTab === 'Colors'"
                 v-model="colors"
@@ -174,6 +163,17 @@ onBeforeUnmount(() => {
                     @click="setExample(example)"
                 />
             </Menu>
+            <NumberSingleSelect
+                text="Grid size"
+                :options="[256, 512, 1024]"
+                v-model="grid_size"
+                @update:model-value="
+                    (new_grid_size) => {
+                        scene.resizeCanvas(new_grid_size)
+                        scene.reset()
+                    }
+                "
+            />
         </VBox>
     </SidePanelCanvas>
 </template>

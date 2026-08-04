@@ -15,20 +15,12 @@ const emit = defineEmits<Emits>()
 
 const palettes = [
     {
-        name: 'Techno',
-        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB']
+        name: 'VIP',
+        colors: ['#323232', '#FECB3E', '#FF87FD', '#009200']
     },
     {
-        name: 'Funky',
-        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']
-    },
-    {
-        name: 'Magic',
-        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']
-    },
-    {
-        name: 'Forest',
-        colors: ['#7CD87C', '#32944F', '#665F35', '#2B2B2B']
+        name: 'Pastel green',
+        colors: ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
     },
     {
         name: 'Amethyst',
@@ -39,8 +31,16 @@ const palettes = [
         colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A']
     },
     {
-        name: 'Satellite photo',
-        colors: ['#E5D677', '#32944F', '#002E7A', '#FFF3E3']
+        name: 'Techno',
+        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB']
+    },
+    {
+        name: 'Funky',
+        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']
+    },
+    {
+        name: 'Magic',
+        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']
     }
 ]
 

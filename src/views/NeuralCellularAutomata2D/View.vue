@@ -168,19 +168,17 @@ onBeforeUnmount(() => {
                         "
                     />
                 </HBox>
-            </template>
-            <NumberSingleSelect
-                text="Grid size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-                @update:model-value="
-                    (new_grid_size) => {
-                        scene.resizeCanvas(new_grid_size)
-                        scene.reset()
-                    }
-                "
-            />
-            <template v-if="active_tab === 'Configuration'">
+                <NumberSingleSelect
+                    text="Grid size"
+                    :options="[256, 512, 1024]"
+                    v-model="grid_size"
+                    @update:model-value="
+                        (new_grid_size) => {
+                            scene.resizeCanvas(new_grid_size)
+                            scene.reset()
+                        }
+                    "
+                />
                 <NumberSingleSelect
                     text="Kernel size"
                     :options="[1, 2, 3, 4, 5]"
@@ -202,6 +200,17 @@ onBeforeUnmount(() => {
                         @click="setExample(example)"
                     />
                 </Menu>
+                <NumberSingleSelect
+                    text="Grid size"
+                    :options="[256, 512, 1024]"
+                    v-model="grid_size"
+                    @update:model-value="
+                        (new_grid_size) => {
+                            scene.resizeCanvas(new_grid_size)
+                            scene.reset()
+                        }
+                    "
+                />
             </template>
         </VBox>
     </SidePanelCanvas>
