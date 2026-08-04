@@ -46,13 +46,6 @@ export const examples: Example[] = [
         skipFrames: false
     },
     {
-        name: '313',
-        colors: ['#235931', '#5ae07e'],
-        nStates: 3,
-        updateShader: basic_cyclic_CA_shader(3, 1),
-        skipFrames: false
-    },
-    {
         name: 'Roses',
         colors: ['#4b0089', '#b55bff'],
         nStates: 24,

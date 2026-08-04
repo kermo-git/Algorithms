@@ -21,23 +21,27 @@ button {
     height: var(--button-height);
     min-width: max-content;
     font-size: inherit;
-    color: inherit;
+    color: var(--text-color);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-button:hover {
+button:not([disabled]):hover {
     border: var(--accent-border);
     cursor: pointer;
 }
 
-button:not([aria-checked]):active,
+button:not([aria-checked], [disabled]):active,
 button[aria-checked='true'] {
     border: var(--accent-border);
     background-color: var(--accent-color);
     color: var(--bg-color);
     font-weight: bold;
+}
+
+button[disabled] {
+    color: color-mix(in srgb, var(--text-color) 30%, transparent);
 }
 
 button .mdi {

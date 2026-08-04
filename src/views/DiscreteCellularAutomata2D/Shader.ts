@@ -13,6 +13,7 @@ fn activate(x: f32) -> f32 {
 
 export interface Setup {
     n_states: number
+    max_n_states: number
     hex_colors: string[]
     /**
      * A WGSL (WebGPU shading language) function that takes a cell's state in the current generation and returns its state in the next generation

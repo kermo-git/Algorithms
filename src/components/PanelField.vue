@@ -4,9 +4,12 @@ import PanelButton from './PanelButton.vue'
 defineOptions({ inheritAttrs: false })
 
 interface Props {
-    containerStyle?: string
+    containerWidth?: string
+    fieldWidth?: string
     leftButtonMdiIcon?: string
+    leftButtonDisabled?: boolean
     rightButtonMdiIcon?: string
+    rightButtonDisabled?: boolean
 }
 const props = defineProps<Props>()
 
@@ -26,10 +29,11 @@ function onFieldClick(ev: Event) {
 </script>
 
 <template>
-    <div :style="containerStyle" class="field-container">
+    <div class="field-container">
         <PanelButton
             v-if="leftButtonMdiIcon"
             class="left-button"
+            :disabled="leftButtonDisabled"
             :mdi-icon="leftButtonMdiIcon"
             @click="() => emit('leftButtonClick')"
         />
@@ -46,6 +50,7 @@ function onFieldClick(ev: Event) {
         <PanelButton
             v-if="props.rightButtonMdiIcon"
             class="right-button"
+            :disabled="rightButtonDisabled"
             :mdi-icon="props.rightButtonMdiIcon"
             @click="() => emit('rightButtonClick')"
         />
@@ -54,8 +59,14 @@ function onFieldClick(ev: Event) {
 
 <style scoped>
 .field-container {
+    width: v-bind(containerWidth);
     display: flex;
     gap: 0;
+}
+
+.left-button,
+.right-button {
+    padding: 0;
 }
 
 .left-button {
@@ -75,8 +86,9 @@ function onFieldClick(ev: Event) {
     -moz-appearance: textfield;
 }
 .field {
-    flex-grow: 1;
-    font-size: inherit;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15pt;
     text-align: center;
     background-color: inherit;
     color: inherit;
@@ -93,11 +105,13 @@ function onFieldClick(ev: Event) {
 }
 
 .field.left-button-field {
+    border-left: none;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
 
 .field.right-button-field {
+    border-right: none;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }

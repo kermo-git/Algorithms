@@ -41,14 +41,13 @@ export class AutomatonScene {
                 module: module
             }
         })
-        const max_n_states = 32
 
         const state_colors = lerpColorArray(this.setup.hex_colors, n_states)
         const color_data = shaderColorArray(state_colors)
 
         this.colors = this.engine.createStorageBuffer(
             color_data,
-            max_n_states * 16
+            setup.max_n_states * 16
         )
         this.n_states = this.engine.createIntUniform(n_states)
 

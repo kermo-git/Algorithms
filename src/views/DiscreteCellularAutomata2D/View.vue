@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { onBeforeUnmount, ref, shallowRef } from 'vue'
 
 import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
-import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
 import Menu from '@/components/Menu.vue'
 import MenuItem from '@/components/MenuItem.vue'
@@ -13,6 +12,8 @@ import VBox from '@/components/VBox.vue'
 
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
+import HBox from '@/components/HBox.vue'
+import PanelField from '@/components/PanelField.vue'
 
 const default_example = examples[0]
 
@@ -31,6 +32,7 @@ const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const scene = shallowRef(new AutomatonScene())
+const max_n_states = 32
 
 async function initScene() {
     if (canvasRef.value) {
@@ -38,6 +40,7 @@ async function initScene() {
         shader_issues.value = await scene.value.init(
             {
                 n_states: n_states.value,
+                max_n_states: max_n_states,
                 hex_colors: colors.value,
                 update_shader: update_shader.value,
                 canvas_width: grid_size.value
@@ -59,6 +62,12 @@ function setExample(example: Example) {
     editor_code.value = example.updateShader
     skip_frames.value = example.skipFrames
     initScene()
+}
+
+function setNStates(new_n_states: number) {
+    n_states.value = new_n_states
+    scene.value.setNStates(new_n_states)
+    scene.value.reset()
 }
 
 function reset() {
@@ -102,6 +111,13 @@ onBeforeUnmount(() => {
     pause()
     scene.value.cleanup()
 })
+
+const onFieldChange = (ev: Event) => {
+    const str_value = (ev.target as HTMLInputElement).value
+    const number_value = Number(str_value)
+    const fixed_value = Math.max(Math.min(number_value, max_n_states), 2)
+    setNStates(fixed_value)
+}
 </script>
 
 <template>
@@ -130,19 +146,23 @@ onBeforeUnmount(() => {
         />
         <VBox>
             <template v-if="activeTab === 'Configuration'">
-                <p>Number of states: {{ n_states }}</p>
-                <RangeInput
-                    :min="2"
-                    :max="32"
-                    :step="1"
-                    v-model="n_states"
-                    @update:model-value="
-                        (new_n_states) => {
-                            scene.setNStates(new_n_states)
-                            scene.reset()
-                        }
-                    "
-                />
+                <HBox>
+                    <p style="flex-grow: 1">
+                        Number of states (2 - {{ max_n_states }})
+                    </p>
+                    <PanelField
+                        container-width="7rem"
+                        left-button-mdi-icon="less-than"
+                        :left-button-disabled="n_states <= 2"
+                        @left-button-click="setNStates(n_states - 1)"
+                        right-button-mdi-icon="greater-than"
+                        @right-button-click="setNStates(n_states + 1)"
+                        :right-button-disabled="n_states >= 32"
+                        type="number"
+                        v-model="n_states"
+                        @change="onFieldChange"
+                    />
+                </HBox>
             </template>
             <ColorPalette
                 v-if="activeTab === 'Colors'"

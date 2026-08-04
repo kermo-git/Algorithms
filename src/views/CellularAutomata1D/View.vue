@@ -141,7 +141,7 @@ watch(hex_colors, (new_colors) => {
 
                 <label for="rule">{{ ruleNumberLabel }}</label>
                 <PanelField
-                    container-style="width: 100%"
+                    container-width="100%"
                     id="rule"
                     type="text"
                     inputmode="numeric"
