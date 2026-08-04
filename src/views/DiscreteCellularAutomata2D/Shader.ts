@@ -63,6 +63,10 @@ export function createShader(
 
             for (var ny = 0u; ny < diameter; ny++) {
                 for (var nx = 0u; nx < diameter; nx++) {
+                    // Don't include the center cell
+                    if ny == radius && nx == radius {
+                        continue;
+                    }
                     let canvas_x = (start_pos.x + nx) % canvas_dims.x;
                     let canvas_y = (start_pos.y + ny) % canvas_dims.y;
                     let canvas_i = canvas_y * canvas_dims.x + canvas_x;
@@ -75,7 +79,7 @@ export function createShader(
             return result;
         }
 
-        fn moore_avg(center_pos: vec2u, radius: u32, include_center: bool) -> f32 {
+        fn moore_avg(center_pos: vec2u, radius: u32) -> f32 {
             let canvas_dims = textureDimensions(canvas);
             let diameter = 2 * radius + 1;
             let start_pos = center_pos - vec2u(radius);
@@ -83,7 +87,8 @@ export function createShader(
 
             for (var ny = 0u; ny < diameter; ny++) {
                 for (var nx = 0u; nx < diameter; nx++) {
-                    if !include_center && ny == radius && nx == radius {
+                    // Don't include the center cell
+                    if ny == radius && nx == radius {
                         continue;
                     }
                     let canvas_x = (start_pos.x + nx) % canvas_dims.x;
@@ -112,10 +117,12 @@ export function createShader(
                     let top_i = top_y * canvas_dims.x + canvas_x;
                     let bottom_i = bottom_y * canvas_dims.x + canvas_x;
 
-                    if current_generation[top_i] == state {
+                    if (i != 0 || j != radius) && // Don't include the center cell
+                       (current_generation[top_i] == state) {
                         result += 1;
                     }
-                    if i != 0 && current_generation[bottom_i] == state {
+                    if (i != 0) && // Don't include the middle row twice
+                       (current_generation[bottom_i] == state) {
                         result += 1;
                     }
                 }
@@ -123,7 +130,7 @@ export function createShader(
             return result;
         }
 
-        fn neumann_avg(center_pos: vec2u, radius: u32, include_center: bool) -> f32 {
+        fn neumann_avg(center_pos: vec2u, radius: u32) -> f32 {
             let canvas_dims = textureDimensions(canvas);
             let diameter = 2 * radius + 1;
             var sum: u32 = 0;
@@ -139,19 +146,17 @@ export function createShader(
                     let top_i = top_y * canvas_dims.x + canvas_x;
                     let bottom_i = bottom_y * canvas_dims.x + canvas_x;
 
-                    if include_center || i != 0 || j != radius {
+                    // Don't include the center cell
+                    if i != 0 || j != radius {
                         sum += current_generation[top_i];
                     }
+                    // Don't include the middle row twice
                     if i != 0 {
                         sum += current_generation[bottom_i];
                     }
                 }
             }
-            let area = select(
-                2 * radius * radius + diameter - 1,
-                2 * radius * radius + diameter,
-                include_center
-            );
+            let area = 2 * radius * radius + diameter - 1;
             return f32(sum) / f32(area);
         }
 

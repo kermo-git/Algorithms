@@ -28,7 +28,7 @@ function theta_cyclic_CA_shader(theta_expr: string) {
     return /* wgsl */ `
 fn update(pos: vec2u, state: u32) -> u32 {
     let theta = ${theta_expr};
-    let avg = neumann_avg(pos, 1, false);
+    let avg = neumann_avg(pos, 1);
 
     if f32(state) > avg - theta {
         return shift(state, -1);
@@ -64,13 +64,13 @@ export const examples: Example[] = [
         colors: COLOR_PALETTES.get('Lava')!,
         nStates: 24,
         updateShader: /* wgsl */ `fn update(pos: vec2u, state: u32) -> u32 {
-    let top_left = neighbor(pos, -1, -1);
-    let bottom_right = neighbor(pos, 1, 1);
+    let top_left = neighbor(pos, -2, -2);
+    let bottom_right = neighbor(pos, 2, 2);
 
     if top_left > bottom_right {
         return shift(state, -1);
     }
-    let avg = neumann_avg(pos, 1, true);
+    let avg = neumann_avg(pos, 2);
     return u32(ceil(avg));
 }`,
         skipFrames: false
