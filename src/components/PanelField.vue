@@ -1,4 +1,21 @@
 <script setup lang="ts">
+import PanelButton from './PanelButton.vue'
+
+defineOptions({ inheritAttrs: false })
+
+interface Props {
+    containerStyle?: string
+    leftButtonMdiIcon?: string
+    rightButtonMdiIcon?: string
+}
+const props = defineProps<Props>()
+
+interface Emits {
+    (e: 'leftButtonClick'): void
+    (e: 'rightButtonClick'): void
+}
+const emit = defineEmits<Emits>()
+
 const model = defineModel()
 
 function onFieldClick(ev: Event) {
@@ -9,17 +26,56 @@ function onFieldClick(ev: Event) {
 </script>
 
 <template>
-    <input @click="onFieldClick" v-model="model" />
+    <div :style="containerStyle" class="field-container">
+        <PanelButton
+            v-if="leftButtonMdiIcon"
+            class="left-button"
+            :mdi-icon="leftButtonMdiIcon"
+            @click="() => emit('leftButtonClick')"
+        />
+        <input
+            :class="{
+                field: true,
+                'left-button-field': leftButtonMdiIcon,
+                'right-button-field': rightButtonMdiIcon
+            }"
+            v-bind="$attrs"
+            @click="onFieldClick"
+            v-model="model"
+        />
+        <PanelButton
+            v-if="props.rightButtonMdiIcon"
+            class="right-button"
+            :mdi-icon="props.rightButtonMdiIcon"
+            @click="() => emit('rightButtonClick')"
+        />
+    </div>
 </template>
 
 <style scoped>
-input[type='number']::-webkit-inner-spin-button,
-input[type='number']::-webkit-outer-spin-button {
+.field-container {
+    display: flex;
+    gap: 0;
+}
+
+.left-button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.right-button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.field[type='number']::-webkit-inner-spin-button,
+.field[type='number']::-webkit-outer-spin-button {
     appearance: textfield;
     -webkit-appearance: none;
     -moz-appearance: textfield;
 }
-input {
+.field {
+    flex-grow: 1;
     font-size: inherit;
     text-align: center;
     background-color: inherit;
@@ -31,8 +87,18 @@ input {
     text-overflow: ellipsis;
 }
 
-input:focus {
+.field:focus {
     border: var(--accent-border);
     outline: none;
+}
+
+.field.left-button-field {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.field.right-button-field {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
 }
 </style>

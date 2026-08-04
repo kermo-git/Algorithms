@@ -140,18 +140,15 @@ watch(hex_colors, (new_colors) => {
                 />
 
                 <label for="rule">{{ ruleNumberLabel }}</label>
-                <HBox>
-                    <PanelField
-                        id="rule"
-                        type="text"
-                        inputmode="numeric"
-                        v-model="rule_number"
-                    />
-                    <PanelButton
-                        mdi-icon="content-copy"
-                        @click="copyRuleNumber"
-                    />
-                </HBox>
+                <PanelField
+                    container-style="width: 100%"
+                    id="rule"
+                    type="text"
+                    inputmode="numeric"
+                    v-model="rule_number"
+                    right-button-mdi-icon="content-copy"
+                    @right-button-click="copyRuleNumber"
+                />
 
                 <p>Lambda: {{ lambda }}</p>
 
