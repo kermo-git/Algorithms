@@ -21,6 +21,7 @@ import {
     initializeCenter
 } from './Automaton1D'
 import ColorPalette from './ColorPalette.vue'
+import { examples } from './Examples'
 
 const active_tab = ref('Configuration')
 const n_states = ref(2)
@@ -165,116 +166,14 @@ watch(hex_colors, (new_colors) => {
             <template v-if="active_tab === 'Examples'">
                 <Menu>
                     <MenuItem
-                        text="Rule 30"
+                        v-for="example in examples"
+                        :text="example.name"
                         @click="
                             () => {
-                                rule_number = '30'
-                                n_states = 2
-                                neighborhood_radius = 1
-                                hex_colors = [
-                                    '#323232',
-                                    '#FECB3E',
-                                    '#FF87FD',
-                                    '#009200'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="Triangles"
-                        @click="
-                            () => {
-                                rule_number = '6637593129346'
-                                n_states = 3
-                                neighborhood_radius = 1
-                                hex_colors = [
-                                    '#DAFFC1',
-                                    '#91DB76',
-                                    '#689C56',
-                                    '#FFFFFF'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="Sharp corners"
-                        @click="
-                            () => {
-                                rule_number = '4234215280010'
-                                n_states = 3
-                                neighborhood_radius = 1
-                                hex_colors = [
-                                    '#E6ABFF',
-                                    '#AC51E4',
-                                    '#5F158B',
-                                    '#FAF2FA'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="Vines"
-                        @click="
-                            () => {
-                                rule_number =
-                                    '135497638344673206598927780380850347174'
-                                n_states = 4
-                                neighborhood_radius = 1
-                                hex_colors = [
-                                    '#FF87FD',
-                                    '#323232',
-                                    '#009200',
-                                    '#FECB3E'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="Electrical circuit board"
-                        @click="
-                            () => {
-                                rule_number = '609058266'
-                                n_states = 2
-                                neighborhood_radius = 2
-                                hex_colors = [
-                                    '#FECB3E',
-                                    '#007628',
-                                    '#000000',
-                                    '#FFFFFF'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="Tall buildings"
-                        @click="
-                            () => {
-                                rule_number = '2939828314'
-                                n_states = 2
-                                neighborhood_radius = 2
-                                hex_colors = [
-                                    '#F5CB6E',
-                                    '#323232',
-                                    '#000000',
-                                    '#FFFFFF'
-                                ]
-                            }
-                        "
-                    />
-                    <MenuItem
-                        text="City"
-                        @click="
-                            () => {
-                                rule_number =
-                                    '9548131633201461177601464909579195651'
-                                n_states = 2
-                                neighborhood_radius = 3
-                                hex_colors = [
-                                    '#F7F6CF',
-                                    '#7A7A7A',
-                                    '#000000',
-                                    '#FFFFFF'
-                                ]
+                                rule_number = String(example.ruleNumber)
+                                n_states = example.nStates
+                                neighborhood_radius = example.neighborhoodRadius
+                                hex_colors = example.hexColors
                             }
                         "
                     />
