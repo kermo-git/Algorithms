@@ -33,23 +33,26 @@ const render_3D = ref(false)
 const terrain_deg_x = ref(-40)
 const terrain_deg_y = ref(70)
 
-const light_dir = computed(() => {
-    const rad_x = light_deg_x.value * DEG_TO_RAD
-    const rad_y = light_deg_y.value * DEG_TO_RAD
+function createLightVector(deg_x: number, deg_y: number) {
+    const rad_x = deg_x * DEG_TO_RAD
+    const rad_y = deg_y * DEG_TO_RAD
 
     return rotateY(rad_y).matmul(rotateX(rad_x)).matmul_vec([0, 1, 0])
-})
+}
 
-const camera_view_matrix = computed(() => {
-    const size = grid_size.value
-    const rad_x = terrain_deg_x.value * DEG_TO_RAD
-    const rad_y = terrain_deg_y.value * DEG_TO_RAD
+function createCameraViewmatrix(
+    new_grid_size: number,
+    new_terrain_deg_x: number,
+    new_terrain_deg_y: number
+) {
+    const rad_x = new_terrain_deg_x * DEG_TO_RAD
+    const rad_y = new_terrain_deg_y * DEG_TO_RAD
 
-    return translate(0, 0, -size)
+    return translate(0, 0, -new_grid_size)
         .matmul(rotateX(-rad_x))
         .matmul(rotateY(-rad_y))
-        .matmul(translate(-0.5 * size, 0, 0.5 * size))
-})
+        .matmul(translate(-0.5 * new_grid_size, 0, 0.5 * new_grid_size))
+}
 
 async function initScene(new_grid_size: number) {
     if (canvasRef.value) {
@@ -60,9 +63,16 @@ async function initScene(new_grid_size: number) {
                 color_shader: color_shader.value,
                 terrain_dims: [1024, 1024],
                 grid_dims: [new_grid_size, new_grid_size],
-                light_dir: light_dir.value,
+                light_dir: createLightVector(
+                    light_deg_x.value,
+                    light_deg_y.value
+                ),
                 ambient_light_intensity: ambient_intensity.value,
-                camera_view_matrix: camera_view_matrix.value,
+                camera_view_matrix: createCameraViewmatrix(
+                    new_grid_size,
+                    terrain_deg_x.value,
+                    terrain_deg_y.value
+                ),
                 render_3D: render_3D.value
             },
             canvasRef.value
@@ -76,46 +86,18 @@ function setExample(example: Example) {
     grid_size.value = example.grid_size
     initScene(example.grid_size)
 }
-
-async function canvasReady(canvas: HTMLCanvasElement) {
-    canvasRef.value = canvas
-    await initScene(grid_size.value)
-}
-
-async function runNoise() {
-    shader_issues.value = await scene.value.updateNoiseShader(
-        noise_shader.value
-    )
-}
-
-async function runColor() {
-    shader_issues.value = await scene.value.updateColorShader(
-        color_shader.value
-    )
-}
-
-watch(grid_size, async (new_grid_size) => {
-    await initScene(new_grid_size)
-})
-
-watch([light_dir, ambient_intensity], (new_values) => {
-    scene.value.setLight(new_values[0], new_values[1])
-})
-
-watch(render_3D, (new_render_3D) => {
-    scene.value.setRender3D(new_render_3D)
-})
-
-watch(camera_view_matrix, (new_camera) => {
-    scene.value.setCamera(new_camera)
-})
 </script>
 
 <template>
     <SidePanelCanvas
         :tab-captions="['Elevation', 'Color', 'Rendering', 'Examples']"
         v-model="active_tab"
-        @canvas-ready="canvasReady"
+        @canvas-ready="
+            async (canvas: HTMLCanvasElement) => {
+                canvasRef = canvas
+                await initScene(grid_size)
+            }
+        "
         :issues="shader_issues"
     >
         <VBox>
@@ -123,6 +105,9 @@ watch(camera_view_matrix, (new_camera) => {
                 text="Grid columns"
                 :options="[4, 8, 16, 32, 64]"
                 v-model="grid_size"
+                @update:model-value="
+                    async (new_grid_size) => await initScene(new_grid_size)
+                "
             />
         </VBox>
         <template v-if="active_tab == 'Elevation'">
@@ -131,7 +116,11 @@ watch(camera_view_matrix, (new_camera) => {
                     class="run-button"
                     text="Run"
                     mdi-icon="play"
-                    @click="runNoise"
+                    @click="
+                        async () =>
+                            (shader_issues =
+                                await scene.updateNoiseShader(noise_shader))
+                    "
                 />
                 <CodeEditor class="terrain-editor" v-model="noise_shader" />
             </div>
@@ -142,7 +131,11 @@ watch(camera_view_matrix, (new_camera) => {
                     class="run-button"
                     text="Run"
                     mdi-icon="play"
-                    @click="runColor"
+                    @click="
+                        async () =>
+                            (shader_issues =
+                                await scene.updateColorShader(color_shader))
+                    "
                 />
                 <CodeEditor class="terrain-editor" v-model="color_shader" />
             </div>
@@ -154,7 +147,11 @@ watch(camera_view_matrix, (new_camera) => {
                     v-model="ambient_intensity"
                     :min="0"
                     :max="1"
-                    :step="0.1"
+                    :step="0.01"
+                    @animation="
+                        (new_ambient_intensity) =>
+                            scene.setAmbientIntensity(new_ambient_intensity)
+                    "
                 />
 
                 <p>Light angle: {{ light_deg_x }}</p>
@@ -163,6 +160,12 @@ watch(camera_view_matrix, (new_camera) => {
                     :min="0"
                     :max="90"
                     :step="1"
+                    @animation="
+                        (new_light_deg_x) =>
+                            scene.setLightDir(
+                                createLightVector(new_light_deg_x, light_deg_y)
+                            )
+                    "
                 />
 
                 <p>Light direction: {{ light_deg_y }}</p>
@@ -171,9 +174,21 @@ watch(camera_view_matrix, (new_camera) => {
                     :min="-180"
                     :max="180"
                     :step="1"
+                    @animation="
+                        (new_light_deg_y) =>
+                            scene.setLightDir(
+                                createLightVector(light_deg_x, new_light_deg_y)
+                            )
+                    "
                 />
 
-                <Checkbox name="render_3D" v-model="render_3D">
+                <Checkbox
+                    name="render_3D"
+                    v-model="render_3D"
+                    @update:model-value="
+                        (new_render_3D) => scene.setRender3D(new_render_3D!)
+                    "
+                >
                     3D view
                 </Checkbox>
 
@@ -184,6 +199,16 @@ watch(camera_view_matrix, (new_camera) => {
                         :max="0"
                         :min="-90"
                         :step="1"
+                        @animation="
+                            (new_terrain_deg_x) =>
+                                scene.setCamera(
+                                    createCameraViewmatrix(
+                                        grid_size,
+                                        new_terrain_deg_x,
+                                        terrain_deg_y
+                                    )
+                                )
+                        "
                     />
 
                     <p>View direction: {{ terrain_deg_y }}</p>
@@ -192,6 +217,16 @@ watch(camera_view_matrix, (new_camera) => {
                         :min="-180"
                         :max="180"
                         :step="1"
+                        @animation="
+                            (new_terrain_deg_y) =>
+                                scene.setCamera(
+                                    createCameraViewmatrix(
+                                        grid_size,
+                                        terrain_deg_x,
+                                        new_terrain_deg_y
+                                    )
+                                )
+                        "
                     />
                 </template>
             </VBox>

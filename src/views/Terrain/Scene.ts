@@ -54,8 +54,6 @@ export default class TerrainScene {
 
     canvas_layout!: GPUBindGroupLayout
 
-    view_matrix = new Mat4x4()
-
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         this.setup = setup
         canvas.width = setup.terrain_dims[0]
@@ -140,9 +138,8 @@ export default class TerrainScene {
             ]
         })
 
-        this.view_matrix = setup.camera_view_matrix
         const projection_view = perspectiveProjection(70, 1, 0.1, 1000).matmul(
-            this.view_matrix
+            setup.camera_view_matrix
         )
 
         this.uniforms = engine.createUniformBuffer(
@@ -348,7 +345,7 @@ export default class TerrainScene {
             1000
         )
         const projection_view_matrix = projection_matrix.matmul(
-            this.view_matrix
+            this.setup.camera_view_matrix
         )
 
         const offset = 16
@@ -441,22 +438,30 @@ export default class TerrainScene {
         device.queue.submit([cmd_encoder.finish()])
     }
 
-    setLight(dir: number[], ambient_intensity: number) {
+    setLightDir(dir: number[]) {
         this.setup.light_dir = dir
-        this.setup.ambient_light_intensity = ambient_intensity
 
         this.engine.updateBuffer(
             this.uniforms,
-            new Float32Array([
-                ...this.setup.light_dir,
-                this.setup.ambient_light_intensity
-            ])
+            new Float32Array([...this.setup.light_dir])
+        )
+        this.renderDisplay()
+    }
+
+    setAmbientIntensity(ambient_intensity: number) {
+        this.setup.ambient_light_intensity = ambient_intensity
+        const offset = 12
+
+        this.engine.updateBuffer(
+            this.uniforms,
+            new Float32Array([this.setup.ambient_light_intensity]),
+            offset
         )
         this.renderDisplay()
     }
 
     setCamera(view_matrix: Mat4x4) {
-        this.view_matrix = view_matrix
+        this.setup.camera_view_matrix = view_matrix
         this.renderDisplay()
     }
 
