@@ -29,7 +29,6 @@ const active_tab = defineModel<string>()
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-right: var(--border);
     overflow: scroll;
 }
 

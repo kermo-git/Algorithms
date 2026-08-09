@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import ColorInput from '@/components/ColorInput.vue'
-import PanelButton from '@/components/PanelButton.vue'
 import HBox from '@/components/HBox.vue'
 
 interface Props {
     modelValue: string[]
+    n: number
 }
 const props = defineProps<Props>()
 
@@ -12,37 +12,6 @@ interface Emits {
     (e: 'update:modelValue', value: string[]): void
 }
 const emit = defineEmits<Emits>()
-
-const palettes = [
-    {
-        name: 'VIP',
-        colors: ['#323232', '#FECB3E', '#FF87FD', '#009200']
-    },
-    {
-        name: 'Pastel green',
-        colors: ['#DAFFC1', '#91DB76', '#689C56', '#FFFFFF']
-    },
-    {
-        name: 'Amethyst',
-        colors: ['#E6ABFF', '#AC51E4', '#5F158B', '#FAF2FA']
-    },
-    {
-        name: 'Ice',
-        colors: ['#24D6F2', '#1B94BF', '#B1F7FF', '#0C4B8A']
-    },
-    {
-        name: 'Techno',
-        colors: ['#323232', '#00CE00', '#DB04AA', '#0144DB']
-    },
-    {
-        name: 'Funky',
-        colors: ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']
-    },
-    {
-        name: 'Magic',
-        colors: ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']
-    }
-]
 
 function onSwapClick(ev: Event) {
     const data = (ev.currentTarget as HTMLElement).dataset
@@ -59,15 +28,16 @@ function onSwapClick(ev: Event) {
 </script>
 
 <template>
-    <HBox>
-        <template v-for="(color, i) in props.modelValue" :key="i">
+    <HBox justify="center">
+        <p class="label">Colors</p>
+        <template v-for="i in n" :key="i">
             <ColorInput
-                :model-value="color"
+                :model-value="modelValue[i - 1]"
                 @update:model-value="
                     (new_color?: string) => {
                         const color_value = new_color || '#000000'
-                        const before = props.modelValue.slice(0, i)
-                        const after = props.modelValue.slice(i + 1)
+                        const before = modelValue.slice(0, i - 1)
+                        const after = modelValue.slice(i)
                         const new_palette = before
                             .concat([color_value])
                             .concat(after)
@@ -76,9 +46,9 @@ function onSwapClick(ev: Event) {
                 "
             />
             <button
-                v-if="i < props.modelValue.length - 1"
-                :data-i1="i"
-                :data-i2="i + 1"
+                v-if="i < n"
+                :data-i1="i - 1"
+                :data-i2="i"
                 class="swap"
                 @click="onSwapClick"
             >
@@ -86,21 +56,13 @@ function onSwapClick(ev: Event) {
             </button>
         </template>
     </HBox>
-    <HBox class="palette-choices">
-        <PanelButton
-            v-for="palette in palettes"
-            :key="palette.name"
-            :text="palette.name"
-            @click="
-                () => {
-                    emit('update:modelValue', palette.colors)
-                }
-            "
-        />
-    </HBox>
 </template>
 
 <style scoped>
+.label {
+    flex-grow: 1;
+}
+
 .swap {
     background-color: transparent;
     border: none;
@@ -112,10 +74,5 @@ function onSwapClick(ev: Event) {
 
 .swap:hover {
     color: var(--accent-color);
-}
-
-.palette-choices > button {
-    flex-basis: 0;
-    flex-grow: 1;
 }
 </style>

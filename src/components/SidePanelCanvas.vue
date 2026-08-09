@@ -18,9 +18,19 @@ const attrs = useAttrs()
 
 <template>
     <div class="container">
-        <TabControl :captions="props.tabCaptions" v-model="active_tab">
-            <slot />
-        </TabControl>
+        <div class="side-panel">
+            <TabControl
+                style="flex-grow: 1"
+                class="tab-control"
+                :captions="props.tabCaptions"
+                v-model="active_tab"
+            >
+                <slot />
+            </TabControl>
+            <div class="pinned-content" v-if="$slots.pinned">
+                <slot name="pinned" />
+            </div>
+        </div>
         <Canvas :issues="props.issues" v-bind="attrs" />
     </div>
 </template>
@@ -31,5 +41,21 @@ const attrs = useAttrs()
     grid-template-columns: 30% 70%;
     flex-grow: 1;
     overflow-y: scroll;
+}
+
+.side-panel {
+    border-right: var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pinned-content {
+    border-top: var(--border);
+    flex: none;
+
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 </style>

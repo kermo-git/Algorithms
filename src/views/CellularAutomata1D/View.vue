@@ -112,76 +112,74 @@ watch(hex_colors, (new_colors) => {
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
-        <VBox>
-            <template v-if="active_tab === 'Configuration'">
+        <template v-slot:default>
+            <VBox>
+                <template v-if="active_tab === 'Configuration'">
+                    <NumberSingleSelect
+                        text="Number of states"
+                        :options="[2, 3, 4]"
+                        v-model="n_states"
+                    />
+
+                    <NumberSingleSelect
+                        text="Neighborhood radius"
+                        :options="[1, 2, 3]"
+                        v-model="neighborhood_radius"
+                    />
+
+                    <TextSingleSelect
+                        v-if="n_states == 2"
+                        text="First generation initialization"
+                        :options="['Random', 'Center']"
+                        v-model="first_gen_init"
+                    />
+
+                    <label for="rule">{{ ruleNumberLabel }}</label>
+                    <PanelField
+                        container-width="100%"
+                        id="rule"
+                        type="text"
+                        inputmode="numeric"
+                        v-model="rule_number"
+                        right-button-mdi-icon="content-copy"
+                        @right-button-click="copyRuleNumber"
+                    />
+
+                    <p>Lambda: {{ lambda }}</p>
+
+                    <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
+                        <PanelButton mdi-icon="dice-5" @click="randomizeRule" />
+                    </RangeInput>
+
+                    <ColorPalette v-model="hex_colors" :n="n_states" />
+                </template>
+                <template v-if="active_tab === 'Examples'">
+                    <Menu>
+                        <MenuItem
+                            v-for="example in examples"
+                            :text="example.name"
+                            @click="
+                                () => {
+                                    rule_number = String(example.ruleNumber)
+                                    n_states = example.nStates
+                                    neighborhood_radius =
+                                        example.neighborhoodRadius
+                                    hex_colors = example.hexColors
+                                }
+                            "
+                        />
+                    </Menu>
+                </template>
+            </VBox>
+        </template>
+        <template v-slot:pinned>
+            <VBox>
                 <NumberSingleSelect
                     text="Grid size"
                     :options="[64, 128, 256, 512]"
                     v-model="grid_size"
                 />
-
-                <NumberSingleSelect
-                    text="Number of states"
-                    :options="[2, 3, 4]"
-                    v-model="n_states"
-                />
-
-                <NumberSingleSelect
-                    text="Neighborhood radius"
-                    :options="[1, 2, 3]"
-                    v-model="neighborhood_radius"
-                />
-
-                <TextSingleSelect
-                    v-if="n_states == 2"
-                    text="First generation initialization"
-                    :options="['Random', 'Center']"
-                    v-model="first_gen_init"
-                />
-
-                <label for="rule">{{ ruleNumberLabel }}</label>
-                <PanelField
-                    container-width="100%"
-                    id="rule"
-                    type="text"
-                    inputmode="numeric"
-                    v-model="rule_number"
-                    right-button-mdi-icon="content-copy"
-                    @right-button-click="copyRuleNumber"
-                />
-
-                <p>Lambda: {{ lambda }}</p>
-
-                <RangeInput :min="0" :max="1" :step="0.01" v-model="lambda">
-                    <PanelButton mdi-icon="dice-5" @click="randomizeRule" />
-                </RangeInput>
-
-                <p>Colors</p>
-
-                <ColorPalette v-model="hex_colors" />
-            </template>
-            <template v-if="active_tab === 'Examples'">
-                <Menu>
-                    <MenuItem
-                        v-for="example in examples"
-                        :text="example.name"
-                        @click="
-                            () => {
-                                rule_number = String(example.ruleNumber)
-                                n_states = example.nStates
-                                neighborhood_radius = example.neighborhoodRadius
-                                hex_colors = example.hexColors
-                            }
-                        "
-                    />
-                </Menu>
-            </template>
-        </VBox>
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
-
-<style scoped>
-#rule {
-    flex-grow: 1;
-}
-</style>

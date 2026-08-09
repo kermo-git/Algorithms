@@ -32,7 +32,8 @@ function onChange(event: Event) {
 <style scoped>
 .checkbox-wrapper {
     position: relative;
-    height: 100%;
+    height: 2.5rem;
+    width: 2.5rem;
     aspect-ratio: 1;
 }
 
@@ -44,7 +45,7 @@ function onChange(event: Event) {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    color: var(--secondary-color);
+    color: var(--accent-color);
 }
 
 input[type='checkbox'] {
@@ -60,14 +61,9 @@ input[type='checkbox']:hover {
     border: var(--accent-border);
 }
 
-input[type='checkbox']:checked + .checkbox-icon {
-    color: var(--accent-color);
-}
-
 .caption {
     flex-grow: 1;
     height: 100%;
     line-height: 2.5rem;
-    padding-left: var(--small-gap);
 }
 </style>

@@ -102,7 +102,7 @@ function setExample(example: Example) {
     >
         <VBox>
             <NumberSingleSelect
-                text="Grid columns"
+                text="Grid size"
                 :options="[4, 8, 16, 32, 64]"
                 v-model="grid_size"
                 @update:model-value="

@@ -19,7 +19,9 @@ export const COLOR_PALETTES = new Map<string, string[]>([
         'Ice & Fire',
         ['#0B90B7', '#00C7FC', '#94E3FE', '#FAB700', '#FF6A00', '#EA4F00']
     ],
-    ['Lava', ['#FEC700', '#FF6A00', '#E32400', '#606060', '#444444']]
+    ['Lava', ['#FEC700', '#FF6A00', '#E32400', '#606060', '#444444']],
+    ['Funky', ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']],
+    ['Magic', ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']]
 ])
 
 export interface Color {
