@@ -56,6 +56,7 @@ const is_running = defineModel<boolean>('is_running')
 
 .header-button:active {
     background-color: var(--accent-color);
+    color: var(--bg-color);
 }
 
 .header-button > .mdi {

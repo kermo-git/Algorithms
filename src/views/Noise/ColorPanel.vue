@@ -90,6 +90,12 @@ function onDeleteClick(ev: Event) {
             <p class="color-point-value">{{ points![i].toFixed(2) }}</p>
             <div class="button-group">
                 <PanelButton
+                    v-if="colors!.length > 2"
+                    mdi-icon="delete"
+                    :data-index="i"
+                    @click="onDeleteClick"
+                />
+                <PanelButton
                     v-if="i > 0"
                     mdi-icon="swap-vertical"
                     :data-index="i"
@@ -100,12 +106,6 @@ function onDeleteClick(ev: Event) {
                     mdi-icon="plus"
                     :data-index="i"
                     @click="onAddColorClick"
-                />
-                <PanelButton
-                    v-if="colors!.length > 2"
-                    mdi-icon="delete"
-                    :data-index="i"
-                    @click="onDeleteClick"
                 />
             </div>
         </HBox>
