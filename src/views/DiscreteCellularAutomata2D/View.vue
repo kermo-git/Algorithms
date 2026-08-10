@@ -21,7 +21,7 @@ const default_example = examples[0]
 
 const activeTab = ref('Configuration')
 const grid_size = ref(256)
-const colors = ref(default_example.colors)
+const colors = ref(default_example.colors())
 const n_states = ref(default_example.nStates)
 
 const update_shader = ref(default_example.updateShader)
@@ -58,7 +58,7 @@ async function onCanvasReady(canvas: HTMLCanvasElement) {
 }
 
 function setExample(example: Example) {
-    colors.value = example.colors
+    colors.value = example.colors()
     n_states.value = example.nStates
     update_shader.value = example.updateShader
     editor_code.value = example.updateShader

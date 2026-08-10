@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import PanelButton from '@/components/PanelButton.vue'
-import HBox from '@/components/HBox.vue'
 import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import PanelField from '@/components/PanelField.vue'
 import RangeInput from '@/components/RangeInput.vue'
@@ -23,13 +22,15 @@ import {
 import ColorPalette from './ColorPalette.vue'
 import { examples } from './Examples'
 
+const default_example = examples[0]
+
 const active_tab = ref('Configuration')
-const n_states = ref(2)
-const neighborhood_radius = ref(1)
+const n_states = ref(default_example.nStates)
+const neighborhood_radius = ref(default_example.neighborhoodRadius)
 const first_gen_init = ref<FirstGenType>('Random')
-const rule_number = ref('30')
+const rule_number = ref(String(default_example.ruleNumber))
 const lambda = ref(0)
-const hex_colors = ref(['#323232', '#FECB3E', '#FF87FD', '#009200'])
+const hex_colors = ref(default_example.hexColors())
 const grid_size = ref(128)
 
 const rule = computed(() => {
@@ -72,38 +73,23 @@ const ruleNumberLabel = computed(() => {
 const canvas_ref = ref<HTMLCanvasElement | null>(null)
 
 function onCanvasReady(canvas: HTMLCanvasElement) {
-    const aspect_ratio = canvas.clientHeight / canvas.clientWidth
-    canvas.width = grid_size.value
-    canvas.height = Math.floor(grid_size.value * aspect_ratio)
-
     canvas_ref.value = canvas
     generatePattern(canvas, first_gen.value, hex_colors.value, rule.value)
 }
 
 watch(
-    [rule, grid_size, first_gen],
-    ([new_rule, new_grid_size, new_first_gen]) => {
+    [rule, first_gen, hex_colors],
+    ([new_rule, new_first_gen, new_colors]) => {
         if (canvas_ref.value) {
-            const canvas = canvas_ref.value
-            const aspect_ratio = canvas.clientHeight / canvas.clientWidth
-
-            canvas.width = new_grid_size
-            canvas.height = Math.floor(new_grid_size * aspect_ratio)
-            generatePattern(canvas, new_first_gen, hex_colors.value, new_rule)
+            generatePattern(
+                canvas_ref.value,
+                new_first_gen,
+                new_colors,
+                new_rule
+            )
         }
     }
 )
-
-watch(hex_colors, (new_colors) => {
-    if (canvas_ref.value) {
-        const canvas = canvas_ref.value
-        const aspect_ratio = canvas.clientHeight / canvas.clientWidth
-
-        canvas.width = grid_size.value
-        canvas.height = Math.floor(grid_size.value * aspect_ratio)
-        generatePattern(canvas, first_gen.value, new_colors, rule.value)
-    }
-})
 </script>
 
 <template>
@@ -164,7 +150,7 @@ watch(hex_colors, (new_colors) => {
                                     n_states = example.nStates
                                     neighborhood_radius =
                                         example.neighborhoodRadius
-                                    hex_colors = example.hexColors
+                                    hex_colors = example.hexColors()
                                 }
                             "
                         />

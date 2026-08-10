@@ -3,27 +3,20 @@ import ColorInput from '@/components/ColorInput.vue'
 import HBox from '@/components/HBox.vue'
 
 interface Props {
-    modelValue: string[]
     n: number
 }
 const props = defineProps<Props>()
-
-interface Emits {
-    (e: 'update:modelValue', value: string[]): void
-}
-const emit = defineEmits<Emits>()
+const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
 
 function onSwapClick(ev: Event) {
     const data = (ev.currentTarget as HTMLElement).dataset
     const i1 = Number(data.i1)
     const i2 = Number(data.i2)
 
-    const new_palette = props.modelValue.slice()
-    const temp = new_palette[i1]
-    new_palette[i1] = new_palette[i2]
-    new_palette[i2] = temp
-
-    emit('update:modelValue', new_palette)
+    const temp = hex_colors.value[i1]
+    hex_colors.value[i1] = hex_colors.value[i2]
+    hex_colors.value[i2] = temp
+    hex_colors.value = hex_colors.value.slice()
 }
 </script>
 
@@ -32,16 +25,11 @@ function onSwapClick(ev: Event) {
         <p class="label">Colors</p>
         <template v-for="i in n" :key="i">
             <ColorInput
-                :model-value="modelValue[i - 1]"
+                v-model="hex_colors[i - 1]"
                 @update:model-value="
-                    (new_color?: string) => {
-                        const color_value = new_color || '#000000'
-                        const before = modelValue.slice(0, i - 1)
-                        const after = modelValue.slice(i)
-                        const new_palette = before
-                            .concat([color_value])
-                            .concat(after)
-                        emit('update:modelValue', new_palette)
+                    (new_color) => {
+                        hex_colors[i - 1] = new_color
+                        hex_colors = hex_colors.slice()
                     }
                 "
             />

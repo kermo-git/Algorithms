@@ -156,6 +156,10 @@ export function generatePattern(
     const ctx = canvas.getContext('2d')
 
     if (ctx) {
+        const aspect_ratio = canvas.clientHeight / canvas.clientWidth
+        canvas.width = first_gen.length
+        canvas.height = Math.floor(first_gen.length * aspect_ratio)
+
         const n_cols = canvas.width
         const n_rows = canvas.height
 

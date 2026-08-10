@@ -1,4 +1,4 @@
-export const COLOR_PALETTES = new Map<string, string[]>([
+const COLOR_PALETTES = new Map<string, string[]>([
     [
         'Biomes',
         ['#8AC90A', '#129145', '#9ED6F2', '#ED9C1A', '#E5D96E', '#1730DB']
@@ -23,6 +23,13 @@ export const COLOR_PALETTES = new Map<string, string[]>([
     ['Funky', ['#83DE08', '#7000DD', '#FB0D7A', '#FFF3E3']],
     ['Magic', ['#23A185', '#235DBE', '#EA93E4', '#D1E64B']]
 ])
+
+export function getColorPaletteNames() {
+    return COLOR_PALETTES.keys()
+}
+export function colorPalette(name: string) {
+    return (COLOR_PALETTES.get(name) || ['#000000', '#FFFFFF']).slice()
+}
 
 export interface Color {
     red: number

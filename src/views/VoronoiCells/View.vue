@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -8,6 +8,7 @@ import RangeInput from '@/components/RangeInput.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
 import VBox from '@/components/VBox.vue'
 
+import { colorPalette } from '@/utils/Colors'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
@@ -19,14 +20,7 @@ import VoronoiScene from './Scene'
 const active_tab = ref('Configuration')
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
-const voronoi_colors = ref([
-    '#8AC90A',
-    '#129145',
-    '#9ED6F2',
-    '#ED9C1A',
-    '#E5D96E',
-    '#1730DB'
-])
+const voronoi_colors = ref(colorPalette('Biomes'))
 const voronoi_n_columns = ref(16)
 
 const noise_algorithm = ref<string>('Simplex')

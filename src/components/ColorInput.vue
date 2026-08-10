@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const model = defineModel<string>()
+const model = defineModel<string>({ default: '#000000' })
 
 interface Emits {
     (e: 'animation', hex_color: string): void

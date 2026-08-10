@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { COLOR_PALETTES, toHexColor } from '@/utils/Colors'
+import { colorPalette, getColorPaletteNames, toHexColor } from '@/utils/Colors'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import Menu from './Menu.vue'
@@ -18,13 +18,14 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
     <div class="container">
         <Menu>
             <MenuItem
-                v-for="[name, hex_palette] in COLOR_PALETTES"
+                v-for="name in getColorPaletteNames()"
                 :key="name"
                 :text="name"
                 @click="
                     () => {
-                        emit('changeAllColors', hex_palette)
-                        hex_colors = hex_palette
+                        const palette = colorPalette(name)
+                        emit('changeAllColors', palette)
+                        hex_colors = palette
                     }
                 "
             />
