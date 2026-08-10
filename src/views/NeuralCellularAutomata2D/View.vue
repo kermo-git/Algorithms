@@ -3,7 +3,9 @@ import { onBeforeUnmount, ref, shallowRef } from 'vue'
 
 import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
+import Checkbox from '@/components/Checkbox.vue'
+import SimulationButtons from '@/components/SimulationButtons.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import Menu from '@/components/Menu.vue'
@@ -134,64 +136,42 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
-        <SimulationCodeEditor
-            :show-editor="active_tab === 'Configuration'"
-            v-model:code="editor_code"
-            v-model:is_running="is_running"
-            v-model:skip-frames="skip_frames"
-            @reset="reset"
-            @step="step"
-            @update:is_running="
-                (value) => {
-                    if (value) {
-                        run()
-                    } else {
-                        pause()
-                    }
-                }
-            "
-        />
-        <VBox>
+        <template v-slot:default>
             <template v-if="active_tab === 'Configuration'">
-                <HBox>
-                    <span :style="{ flexGrow: 1 }">Colors</span>
-                    <ColorInput
-                        v-model="color_0"
-                        @animation="
-                            (hex_color) => scene.updateColor1(hex_color)
-                        "
+                <CodeEditor class="code-editor" v-model="editor_code" />
+                <VBox>
+                    <Checkbox name="skip_frames" v-model="skip_frames">
+                        Skip every second frame
+                    </Checkbox>
+                    <HBox>
+                        <span :style="{ flexGrow: 1 }">Colors</span>
+                        <ColorInput
+                            v-model="color_0"
+                            @animation="
+                                (hex_color) => scene.updateColor1(hex_color)
+                            "
+                        />
+                        <ColorInput
+                            v-model="color_1"
+                            @animation="
+                                (hex_color) => scene.updateColor2(hex_color)
+                            "
+                        />
+                    </HBox>
+                    <NumberSingleSelect
+                        text="Kernel size"
+                        :options="[1, 2, 3, 4, 5]"
+                        v-model="kernel_radius"
+                        @update:model-value="onKernelRadiusChange"
                     />
-                    <ColorInput
-                        v-model="color_1"
-                        @animation="
-                            (hex_color) => scene.updateColor2(hex_color)
-                        "
+                    <MatrixEditor
+                        :matrix-size="2 * kernel_radius + 1"
+                        v-model:matrix="kernel"
+                        @update:matrix="onKernelEdit"
                     />
-                </HBox>
-                <NumberSingleSelect
-                    text="Grid size"
-                    :options="[256, 512, 1024]"
-                    v-model="grid_size"
-                    @update:model-value="
-                        (new_grid_size) => {
-                            scene.resizeCanvas(new_grid_size)
-                            scene.reset()
-                        }
-                    "
-                />
-                <NumberSingleSelect
-                    text="Kernel size"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="kernel_radius"
-                    @update:model-value="onKernelRadiusChange"
-                />
-                <MatrixEditor
-                    :matrix-size="2 * kernel_radius + 1"
-                    v-model:matrix="kernel"
-                    @update:matrix="onKernelEdit"
-                />
+                </VBox>
             </template>
-            <template v-if="active_tab === 'Examples'">
+            <VBox v-if="active_tab === 'Examples'">
                 <Menu>
                     <MenuItem
                         v-for="example in examples"
@@ -200,6 +180,25 @@ onBeforeUnmount(() => {
                         @click="setExample(example)"
                     />
                 </Menu>
+            </VBox>
+        </template>
+        <template v-slot:pinned>
+            <SimulationButtons
+                v-model:code="editor_code"
+                v-model:is_running="is_running"
+                @reset="reset"
+                @step="step"
+                @update:is_running="
+                    (value) => {
+                        if (value) {
+                            run()
+                        } else {
+                            pause()
+                        }
+                    }
+                "
+            />
+            <VBox>
                 <NumberSingleSelect
                     text="Grid size"
                     :options="[256, 512, 1024]"
@@ -211,12 +210,17 @@ onBeforeUnmount(() => {
                         }
                     "
                 />
-            </template>
-        </VBox>
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
 
 <style scoped>
+.code-editor {
+    border-bottom: var(--border);
+    width: 100%;
+}
+
 .matrix {
     display: grid;
     border-right: var(--border);

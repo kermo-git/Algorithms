@@ -3,7 +3,9 @@ import { onBeforeUnmount, ref, shallowRef } from 'vue'
 
 import { type ShaderIssue } from '@/WebGPU/Engine'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
-import SimulationCodeEditor from '@/components/SimulationCodeEditor.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
+import Checkbox from '@/components/Checkbox.vue'
+import SimulationButtons from '@/components/SimulationButtons.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
 import ColorPalette from '@/components/ColorPalette.vue'
 import Menu from '@/components/Menu.vue'
@@ -127,96 +129,90 @@ const onFieldChange = (ev: Event) => {
         v-model="activeTab"
         @canvas-ready="onCanvasReady"
     >
-        <SimulationCodeEditor
-            :show-editor="activeTab === 'Configuration'"
-            v-model:code="editor_code"
-            v-model:is_running="is_running"
-            v-model:skip-frames="skip_frames"
-            @reset="reset"
-            @step="step"
-            @update:is_running="
-                (value) => {
-                    if (value) {
-                        run()
-                    } else {
-                        pause()
-                    }
-                }
-            "
-        />
-        <VBox>
+        <template v-slot:default>
             <template v-if="activeTab === 'Configuration'">
-                <HBox>
-                    <p style="flex-grow: 1">
-                        Number of states (2 - {{ max_n_states }})
-                    </p>
-                    <PanelField
-                        container-width="7rem"
-                        left-button-mdi-icon="less-than"
-                        :left-button-disabled="n_states <= 2"
-                        @left-button-click="setNStates(n_states - 1)"
-                        right-button-mdi-icon="greater-than"
-                        @right-button-click="setNStates(n_states + 1)"
-                        :right-button-disabled="n_states >= 32"
-                        type="number"
-                        v-model="n_states"
-                        @change="onFieldChange"
-                    />
-                </HBox>
+                <CodeEditor class="code-editor" v-model="editor_code" />
+                <VBox>
+                    <Checkbox name="skip_frames" v-model="skip_frames">
+                        Skip every second frame
+                    </Checkbox>
+                    <HBox>
+                        <p style="flex-grow: 1">
+                            Number of states (2 - {{ max_n_states }})
+                        </p>
+                        <PanelField
+                            container-width="7rem"
+                            left-button-mdi-icon="less-than"
+                            :left-button-disabled="n_states <= 2"
+                            @left-button-click="setNStates(n_states - 1)"
+                            right-button-mdi-icon="greater-than"
+                            @right-button-click="setNStates(n_states + 1)"
+                            :right-button-disabled="n_states >= 32"
+                            type="number"
+                            v-model="n_states"
+                            @change="onFieldChange"
+                        />
+                    </HBox>
+                </VBox>
             </template>
-            <ColorPalette
-                v-if="activeTab === 'Colors'"
-                v-model="colors"
-                @change-all-colors="
-                    (new_colors) => scene.updateAllColors(new_colors)
-                "
-                @change-single-color="
-                    (index, value: string) =>
-                        scene.updateSingleColor(index, value)
-                "
-            />
-            <Menu v-if="activeTab === 'Examples'">
-                <MenuItem
-                    v-for="example in examples"
-                    :key="example.name"
-                    :text="example.name"
-                    @click="setExample(example)"
+            <VBox>
+                <ColorPalette
+                    v-if="activeTab === 'Colors'"
+                    v-model="colors"
+                    @change-all-colors="
+                        (new_colors) => scene.updateAllColors(new_colors)
+                    "
+                    @change-single-color="
+                        (index, value: string) =>
+                            scene.updateSingleColor(index, value)
+                    "
                 />
-            </Menu>
-            <NumberSingleSelect
-                text="Grid size"
-                :options="[256, 512, 1024]"
-                v-model="grid_size"
-                @update:model-value="
-                    (new_grid_size) => {
-                        scene.resizeCanvas(new_grid_size)
-                        scene.reset()
+                <Menu v-if="activeTab === 'Examples'">
+                    <MenuItem
+                        v-for="example in examples"
+                        :key="example.name"
+                        :text="example.name"
+                        @click="setExample(example)"
+                    />
+                </Menu>
+            </VBox>
+        </template>
+        <template v-slot:pinned>
+            <SimulationButtons
+                v-model:is_running="is_running"
+                v-model:skip-frames="skip_frames"
+                @reset="reset"
+                @step="step"
+                @update:is_running="
+                    (value) => {
+                        if (value) {
+                            run()
+                        } else {
+                            pause()
+                        }
                     }
                 "
             />
-        </VBox>
+            <VBox>
+                <NumberSingleSelect
+                    text="Grid size"
+                    :options="[256, 512, 1024]"
+                    v-model="grid_size"
+                    @update:model-value="
+                        (new_grid_size) => {
+                            scene.resizeCanvas(new_grid_size)
+                            scene.reset()
+                        }
+                    "
+                />
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
 
 <style scoped>
-.matrix {
-    display: grid;
-    border-right: var(--border);
-    border-top: var(--border);
-    width: 100%;
-    aspect-ratio: 1 / 1;
-}
-
-.cell {
-    border-left: var(--border);
+.code-editor {
     border-bottom: var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cell:hover {
-    background-color: var(--accent-color) !important;
-    color: var(--bg-color) !important;
+    width: 100%;
 }
 </style>

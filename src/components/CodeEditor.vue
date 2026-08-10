@@ -171,6 +171,7 @@ function setCaretOffset(el: HTMLElement, offset: number) {
 
 <style>
 .code-editor {
+    flex: none;
     font-size: inherit;
     font-family: monospace;
     padding: var(--small-gap);

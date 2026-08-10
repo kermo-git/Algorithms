@@ -9,7 +9,7 @@ import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
 import NoiseScene from './Scene'
-import type { DomainTransform, Setup } from './Shader'
+import type { DomainTransform } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
 import {
     SimplexValue2D,
@@ -191,68 +191,135 @@ const available_transforms = computed(() =>
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <VBox>
-            <template v-if="active_tab === 'Configuration'">
-                <TextSingleSelect
-                    text="Noise algorithm"
-                    :options="[
-                        'Simplex',
-                        'Simplex Value',
-                        'Perlin',
-                        'Quadratic',
-                        'Cubic',
-                        'Value',
-                        'Worley F1',
-                        'Worley F2 - F1'
-                    ]"
-                    v-model="algorithm"
-                />
-
-                <TextSingleSelect
-                    text="Noise dimension"
-                    :options="['2D', '3D', '4D']"
-                    v-model="dimension"
-                />
-
-                <template v-if="dimension !== '2D'">
-                    <p>Z coordinate: {{ z_coord }}</p>
-                    <RangeInput
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        v-model="z_coord"
-                        @animation="(value) => scene.updateZCoord(value)"
+        <template v-slot:default>
+            <VBox>
+                <template v-if="active_tab === 'Configuration'">
+                    <TextSingleSelect
+                        text="Noise algorithm"
+                        :options="[
+                            'Simplex',
+                            'Simplex Value',
+                            'Perlin',
+                            'Quadratic',
+                            'Cubic',
+                            'Value',
+                            'Worley F1',
+                            'Worley F2 - F1'
+                        ]"
+                        v-model="algorithm"
                     />
 
-                    <template v-if="dimension === '4D'">
-                        <p>W coordinate: {{ w_coord }}</p>
+                    <TextSingleSelect
+                        text="Noise dimension"
+                        :options="['2D', '3D', '4D']"
+                        v-model="dimension"
+                    />
+
+                    <template v-if="dimension !== '2D'">
+                        <p>Z coordinate: {{ z_coord }}</p>
                         <RangeInput
                             :min="0"
                             :max="1"
                             :step="0.01"
-                            v-model="w_coord"
-                            @animation="(value) => scene.updateWCoord(value)"
+                            v-model="z_coord"
+                            @animation="(value) => scene.updateZCoord(value)"
+                        />
+
+                        <template v-if="dimension === '4D'">
+                            <p>W coordinate: {{ w_coord }}</p>
+                            <RangeInput
+                                :min="0"
+                                :max="1"
+                                :step="0.01"
+                                v-model="w_coord"
+                                @animation="
+                                    (value) => scene.updateWCoord(value)
+                                "
+                            />
+                        </template>
+                    </template>
+
+                    <TextSingleSelect
+                        text="Domain transformation"
+                        :options="available_transforms"
+                        v-model="domain_transform"
+                    />
+
+                    <template v-if="domain_transform.startsWith('Warp')">
+                        <p>Warp strength: {{ warp_strength }}</p>
+                        <RangeInput
+                            :min="0.01"
+                            :max="1"
+                            :step="0.01"
+                            v-model="warp_strength"
+                            @animation="
+                                (value) => scene.updateWarpStrength(value)
+                            "
+                        />
+                    </template>
+                    <NumberSingleSelect
+                        v-if="domain_transform.startsWith('Warp')"
+                        text="Warp octaves"
+                        :options="[1, 2, 3, 4, 5]"
+                        v-model="n_warp_octaves"
+                        @update:model-value="
+                            (value) => scene.updateNWarpOctaves(value)
+                        "
+                    />
+
+                    <NumberSingleSelect
+                        :text="
+                            domain_transform.startsWith('Warp')
+                                ? 'Main octaves'
+                                : 'Octaves'
+                        "
+                        :options="[1, 2, 3, 4, 5]"
+                        v-model="n_main_octaves"
+                        @update:model-value="
+                            (value) => scene.updateNMainOctaves(value)
+                        "
+                    />
+
+                    <template
+                        v-if="
+                            n_main_octaves > 1 ||
+                            (domain_transform.startsWith('Warp') &&
+                                n_warp_octaves > 1)
+                        "
+                    >
+                        <p>Persistence: {{ persistence }}</p>
+                        <RangeInput
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            v-model="persistence"
+                            @animation="
+                                (value) => scene.updatePersistence(value)
+                            "
                         />
                     </template>
                 </template>
-
-                <TextSingleSelect
-                    text="Domain transformation"
-                    :options="available_transforms"
-                    v-model="domain_transform"
-                />
-
-                <template v-if="domain_transform.startsWith('Warp')">
-                    <p>Warp strength: {{ warp_strength }}</p>
-                    <RangeInput
-                        :min="0.01"
-                        :max="1"
-                        :step="0.01"
-                        v-model="warp_strength"
-                        @animation="(value) => scene.updateWarpStrength(value)"
+                <template v-else>
+                    <ColorPanel
+                        v-model:colors="colors"
+                        v-model:points="color_points"
+                        @change-single-color="
+                            (index, color) => scene.updateColor(index, color)
+                        "
+                        @change-single-point="
+                            (index, value) =>
+                                scene.updateColorPoint(index, value)
+                        "
+                        @change-all-color-points="
+                            (colors, points) =>
+                                scene.updateColorData(colors, points)
+                        "
                     />
                 </template>
-
+            </VBox>
+        </template>
+        <template v-slot:pinned>
+            <VBox>
                 <NumberSingleSelect
                     text="Grid size"
                     :options="[4, 8, 16, 32, 64]"
@@ -261,64 +328,8 @@ const available_transforms = computed(() =>
                         (value) => scene.updateGridDimensions(value)
                     "
                 />
-
-                <NumberSingleSelect
-                    v-if="domain_transform.startsWith('Warp')"
-                    text="Warp octaves"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="n_warp_octaves"
-                    @update:model-value="
-                        (value) => scene.updateNWarpOctaves(value)
-                    "
-                />
-
-                <NumberSingleSelect
-                    :text="
-                        domain_transform.startsWith('Warp')
-                            ? 'Main octaves'
-                            : 'Octaves'
-                    "
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="n_main_octaves"
-                    @update:model-value="
-                        (value) => scene.updateNMainOctaves(value)
-                    "
-                />
-
-                <template
-                    v-if="
-                        n_main_octaves > 1 ||
-                        (domain_transform.startsWith('Warp') &&
-                            n_warp_octaves > 1)
-                    "
-                >
-                    <p>Persistence: {{ persistence }}</p>
-                    <RangeInput
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        v-model="persistence"
-                        @animation="(value) => scene.updatePersistence(value)"
-                    />
-                </template>
-            </template>
-            <template v-else>
-                <ColorPanel
-                    v-model:colors="colors"
-                    v-model:points="color_points"
-                    @change-single-color="
-                        (index, color) => scene.updateColor(index, color)
-                    "
-                    @change-single-point="
-                        (index, value) => scene.updateColorPoint(index, value)
-                    "
-                    @change-all-color-points="
-                        (colors, points) =>
-                            scene.updateColorData(colors, points)
-                    "
-                />
-            </template>
-        </VBox>
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
 

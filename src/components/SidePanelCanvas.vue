@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useAttrs } from 'vue'
-
 import type { ShaderIssue } from '@/WebGPU/Engine'
 import Canvas from './Canvas.vue'
 import TabControl from './TabControl.vue'
@@ -13,7 +11,6 @@ const props = defineProps<Props>()
 const active_tab = defineModel<string>()
 
 defineOptions({ inheritAttrs: false })
-const attrs = useAttrs()
 </script>
 
 <template>
@@ -31,7 +28,7 @@ const attrs = useAttrs()
                 <slot name="pinned" />
             </div>
         </div>
-        <Canvas :issues="props.issues" v-bind="attrs" />
+        <Canvas :issues="props.issues" v-bind="$attrs" />
     </div>
 </template>
 

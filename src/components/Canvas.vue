@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, useTemplateRef } from 'vue'
+import { onMounted, useTemplateRef, getCurrentInstance } from 'vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
 import PanelButton from '@/components/PanelButton.vue'
@@ -10,17 +10,24 @@ interface Props {
 
 interface Emits {
     (e: 'canvasReady', canvas: HTMLCanvasElement): void
+    (e: 'drag', move_x: number, move_y: number): void
 }
+const emit = defineEmits<Emits>()
 const props = defineProps<Props>()
+const drag_event_assigned = getCurrentInstance()?.vnode.props?.onDrag
 
-function issue_class() {
-    if (props.issues && props.issues.length > 0) {
-        return 'issues'
+function getClassName() {
+    let class_name = 'display-canvas '
+
+    if (drag_event_assigned) {
+        class_name += 'drag '
     }
-    return 'props.issues && props.issues.length > 0'
+    if (props.issues && props.issues.length > 0) {
+        class_name += 'issues '
+    }
+    return class_name
 }
 const canvasRef = useTemplateRef('canvas')
-const emit = defineEmits<Emits>()
 
 onMounted(() => {
     if (!canvasRef.value) {
@@ -28,6 +35,45 @@ onMounted(() => {
     }
     emit('canvasReady', canvasRef.value)
 })
+
+let last_pointer_x = 0
+let last_pointer_y = 0
+
+let current_pointer_x = 0
+let current_pointer_y = 0
+
+let frame_id = 0
+
+function dragStart(ev: PointerEvent) {
+    last_pointer_x = ev.clientX
+    last_pointer_y = ev.clientY
+    ev.target?.addEventListener('pointermove', onDrag)
+}
+
+function dragEnd(ev: PointerEvent) {
+    last_pointer_x = ev.clientX
+    last_pointer_y = ev.clientY
+    ev.target?.removeEventListener('pointermove', onDrag)
+}
+
+function onDrag(ev: Event) {
+    current_pointer_x = (ev as PointerEvent).clientX
+    current_pointer_y = (ev as PointerEvent).clientY
+
+    if (!frame_id) {
+        frame_id = requestAnimationFrame(() => {
+            let move_x = current_pointer_x - last_pointer_x
+            let move_y = current_pointer_y - last_pointer_y
+
+            last_pointer_x = current_pointer_x
+            last_pointer_y = current_pointer_y
+
+            frame_id = 0
+
+            emit('drag', move_x, move_y)
+        })
+    }
+}
 
 function download() {
     if (canvasRef.value) {
@@ -52,7 +98,7 @@ function download() {
 </script>
 
 <template>
-    <div :class="`main-container ${issue_class()}`">
+    <div :class="`main-container ${getClassName()}`">
         <template v-for="(issue, i) in props.issues" :key="i">
             <p class="issue">{{ issue.message }}</p>
             <p class="issue">
@@ -61,7 +107,19 @@ function download() {
                 }}
             </p>
         </template>
-        <canvas :class="`display-canvas ${issue_class()}`" ref="canvas" />
+        <canvas
+            v-bind="
+                drag_event_assigned
+                    ? {
+                          onPointerdown: dragStart,
+                          onPointerup: dragEnd,
+                          onPointerleave: dragEnd
+                      }
+                    : {}
+            "
+            :class="getClassName()"
+            ref="canvas"
+        />
         <PanelButton @click="download" class="save-button" mdi-icon="floppy" />
     </div>
 </template>
@@ -88,6 +146,14 @@ function download() {
 
 .display-canvas.issues {
     display: none;
+}
+
+.display-canvas.drag {
+    cursor: grab;
+}
+
+.display-canvas.drag:active {
+    cursor: grabbing;
 }
 
 .save-button {

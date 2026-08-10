@@ -113,8 +113,100 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <VBox>
-            <template v-if="active_tab === 'Configuration'">
+        <template v-slot:default>
+            <VBox>
+                <template v-if="active_tab === 'Configuration'">
+                    <TextSingleSelect
+                        text="Distance measure"
+                        :options="['Euclidean', 'Manhattan']"
+                        v-model="voronoi_distance"
+                    />
+
+                    <p>Noise strength: {{ noise_warp_strength }}</p>
+                    <RangeInput
+                        :min="0"
+                        :max="5"
+                        :step="0.01"
+                        v-model="noise_warp_strength"
+                        @animation="
+                            (value) => scene.updateNoiseWarpStrength(value)
+                        "
+                    />
+
+                    <TextSingleSelect
+                        text="Noise algorithm"
+                        :options="['Simplex', 'Perlin', 'Value', 'Worley']"
+                        v-model="noise_algorithm"
+                    />
+
+                    <TextSingleSelect
+                        text="Noise dimension"
+                        :options="['2D', '3D']"
+                        v-model="noise_dimension"
+                    />
+
+                    <template v-if="noise_dimension !== '2D'">
+                        <p>Noise Z coordinate: {{ noise_z }}</p>
+                        <RangeInput
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            v-model="noise_z"
+                            @animation="
+                                (value) => scene.updateNoiseZCoord(value)
+                            "
+                        />
+                    </template>
+
+                    <NumberSingleSelect
+                        text="Noise octaves"
+                        :options="[1, 2, 3, 4, 5]"
+                        v-model="noise_n_octaves"
+                        @update:model-value="
+                            (value) => scene.updateNoiseNOctaves(value)
+                        "
+                    />
+
+                    <template v-if="noise_n_octaves > 1">
+                        <p>Noise persistence: {{ noise_persistence }}</p>
+                        <RangeInput
+                            :min="0"
+                            :max="1"
+                            :step="0.01"
+                            v-model="noise_persistence"
+                            @animation="
+                                (value) => scene.updateNoisePersistence(value)
+                            "
+                        />
+                    </template>
+
+                    <p>
+                        Noise scale relative to Voronoi cells: {{ noise_scale }}
+                    </p>
+                    <RangeInput
+                        :min="0.1"
+                        :max="5"
+                        :step="0.01"
+                        v-model="noise_scale"
+                        @animation="(value) => scene.updateNoiseScale(value)"
+                    />
+                </template>
+                <template v-else>
+                    <ColorPalette
+                        v-model="voronoi_colors"
+                        @change-single-color="
+                            (index, value) =>
+                                scene.updateSingleColor(index, value)
+                        "
+                        @change-all-colors="
+                            (colors) => scene.updateAllColors(colors)
+                        "
+                    />
+                </template>
+            </VBox>
+        </template>
+        <template v-slot:pinned>
+            <VBox>
                 <NumberSingleSelect
                     text="Grid size"
                     :options="[4, 8, 16, 32, 64]"
@@ -123,86 +215,7 @@ onBeforeUnmount(() => {
                         (value) => scene.updateVoronoiNColumns(value)
                     "
                 />
-                <TextSingleSelect
-                    text="Distance measure"
-                    :options="['Euclidean', 'Manhattan']"
-                    v-model="voronoi_distance"
-                />
-
-                <p>Noise strength: {{ noise_warp_strength }}</p>
-                <RangeInput
-                    :min="0"
-                    :max="5"
-                    :step="0.01"
-                    v-model="noise_warp_strength"
-                    @animation="(value) => scene.updateNoiseWarpStrength(value)"
-                />
-
-                <TextSingleSelect
-                    text="Noise algorithm"
-                    :options="['Simplex', 'Perlin', 'Value', 'Worley']"
-                    v-model="noise_algorithm"
-                />
-
-                <TextSingleSelect
-                    text="Noise dimension"
-                    :options="['2D', '3D']"
-                    v-model="noise_dimension"
-                />
-
-                <template v-if="noise_dimension !== '2D'">
-                    <p>Noise Z coordinate: {{ noise_z }}</p>
-                    <RangeInput
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        v-model="noise_z"
-                        @animation="(value) => scene.updateNoiseZCoord(value)"
-                    />
-                </template>
-
-                <NumberSingleSelect
-                    text="Noise octaves"
-                    :options="[1, 2, 3, 4, 5]"
-                    v-model="noise_n_octaves"
-                    @update:model-value="
-                        (value) => scene.updateNoiseNOctaves(value)
-                    "
-                />
-
-                <template v-if="noise_n_octaves > 1">
-                    <p>Noise persistence: {{ noise_persistence }}</p>
-                    <RangeInput
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        v-model="noise_persistence"
-                        @animation="
-                            (value) => scene.updateNoisePersistence(value)
-                        "
-                    />
-                </template>
-
-                <p>Noise scale relative to Voronoi cells: {{ noise_scale }}</p>
-                <RangeInput
-                    :min="0.1"
-                    :max="5"
-                    :step="0.01"
-                    v-model="noise_scale"
-                    @animation="(value) => scene.updateNoiseScale(value)"
-                />
-            </template>
-            <template v-else>
-                <ColorPalette
-                    v-model="voronoi_colors"
-                    @change-single-color="
-                        (index, value) => scene.updateSingleColor(index, value)
-                    "
-                    @change-all-colors="
-                        (colors) => scene.updateAllColors(colors)
-                    "
-                />
-            </template>
-        </VBox>
+            </VBox>
+        </template>
     </SidePanelCanvas>
 </template>
