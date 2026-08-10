@@ -22,7 +22,7 @@ defineOptions({ inheritAttrs: false })
                 :captions="props.tabCaptions"
                 v-model="active_tab"
             >
-                <slot />
+                <slot name="tabs" />
             </TabControl>
             <div class="pinned-content" v-if="$slots.pinned">
                 <slot name="pinned" />

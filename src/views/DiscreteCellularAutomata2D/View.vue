@@ -11,11 +11,11 @@ import ColorPalette from '@/components/ColorPalette.vue'
 import Menu from '@/components/Menu.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import VBox from '@/components/VBox.vue'
+import HBox from '@/components/HBox.vue'
+import IntegerField from '@/components/IntegerField.vue'
 
 import { AutomatonScene } from './Scene'
 import { examples, type Example } from './Examples'
-import HBox from '@/components/HBox.vue'
-import PanelField from '@/components/PanelField.vue'
 
 const default_example = examples[0]
 
@@ -66,12 +66,6 @@ function setExample(example: Example) {
     initScene()
 }
 
-function setNStates(new_n_states: number) {
-    n_states.value = new_n_states
-    scene.value.setNStates(new_n_states)
-    scene.value.reset()
-}
-
 function reset() {
     if (editor_code.value != update_shader.value) {
         update_shader.value = editor_code.value
@@ -113,13 +107,6 @@ onBeforeUnmount(() => {
     pause()
     scene.value.cleanup()
 })
-
-const onFieldChange = (ev: Event) => {
-    const str_value = (ev.target as HTMLInputElement).value
-    const number_value = Number(str_value)
-    const fixed_value = Math.max(Math.min(number_value, max_n_states), 2)
-    setNStates(fixed_value)
-}
 </script>
 
 <template>
@@ -129,7 +116,7 @@ const onFieldChange = (ev: Event) => {
         v-model="activeTab"
         @canvas-ready="onCanvasReady"
     >
-        <template v-slot:default>
+        <template v-slot:tabs>
             <template v-if="activeTab === 'Configuration'">
                 <CodeEditor class="code-editor" v-model="editor_code" />
                 <VBox>
@@ -140,17 +127,17 @@ const onFieldChange = (ev: Event) => {
                         <p style="flex-grow: 1">
                             Number of states (2 - {{ max_n_states }})
                         </p>
-                        <PanelField
-                            container-width="7rem"
-                            left-button-mdi-icon="less-than"
-                            :left-button-disabled="n_states <= 2"
-                            @left-button-click="setNStates(n_states - 1)"
-                            right-button-mdi-icon="greater-than"
-                            @right-button-click="setNStates(n_states + 1)"
-                            :right-button-disabled="n_states >= 32"
-                            type="number"
+                        <IntegerField
+                            :min="2"
+                            :max="max_n_states"
+                            width="7rem"
                             v-model="n_states"
-                            @change="onFieldChange"
+                            @update:model-value="
+                                (new_n_states: number) => {
+                                    scene.setNStates(new_n_states)
+                                    scene.reset()
+                                }
+                            "
                         />
                     </HBox>
                 </VBox>

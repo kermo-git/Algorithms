@@ -2,6 +2,8 @@
 import { COLOR_PALETTES, toHexColor } from '@/utils/Colors'
 import PanelButton from '@/components/PanelButton.vue'
 import ColorInput from '@/components/ColorInput.vue'
+import Menu from './Menu.vue'
+import MenuItem from './MenuItem.vue'
 
 interface Emits {
     (e: 'changeSingleColor', i: number, hex_color: string): void
@@ -14,7 +16,20 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
 
 <template>
     <div class="container">
-        <div class="column">
+        <Menu>
+            <MenuItem
+                v-for="[name, hex_palette] in COLOR_PALETTES"
+                :key="name"
+                :text="name"
+                @click="
+                    () => {
+                        emit('changeAllColors', hex_palette)
+                        hex_colors = hex_palette
+                    }
+                "
+            />
+        </Menu>
+        <div class="color-column">
             <PanelButton
                 mdi-icon="plus"
                 @click="
@@ -53,19 +68,6 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
                 />
             </div>
         </div>
-        <div class="column">
-            <PanelButton
-                v-for="[name, hex_palette] in COLOR_PALETTES"
-                :key="name"
-                :text="name"
-                @click="
-                    () => {
-                        emit('changeAllColors', hex_palette)
-                        hex_colors = hex_palette
-                    }
-                "
-            />
-        </div>
     </div>
 </template>
 
@@ -73,10 +75,10 @@ const hex_colors = defineModel<string[]>({ default: () => ['#000000'] })
 .container {
     width: 100%;
     display: flex;
-    justify-content: space-around;
+    gap: var(--small-gap);
 }
 
-.column {
+.color-column {
     display: flex;
     flex-direction: column;
     gap: var(--small-gap);

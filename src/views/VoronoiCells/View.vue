@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="initScene"
     >
-        <template v-slot:default>
+        <template v-slot:tabs>
             <VBox>
                 <template v-if="active_tab === 'Configuration'">
                     <TextSingleSelect

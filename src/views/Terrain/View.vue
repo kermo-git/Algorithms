@@ -97,7 +97,7 @@ function setExample(example: Example) {
         "
         :issues="shader_issues"
     >
-        <template v-slot:default>
+        <template v-slot:tabs>
             <template v-if="active_tab == 'Elevation'">
                 <div class="editor-container">
                     <PanelButton

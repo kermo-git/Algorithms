@@ -112,7 +112,7 @@ watch(hex_colors, (new_colors) => {
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
-        <template v-slot:default>
+        <template v-slot:tabs>
             <VBox>
                 <template v-if="active_tab === 'Configuration'">
                     <NumberSingleSelect

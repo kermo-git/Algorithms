@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
-        <template v-slot:default>
+        <template v-slot:tabs>
             <template v-if="active_tab === 'Configuration'">
                 <CodeEditor class="code-editor" v-model="editor_code" />
                 <VBox>
