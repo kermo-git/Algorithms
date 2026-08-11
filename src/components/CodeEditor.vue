@@ -94,16 +94,24 @@ function getCaretOffset(el: HTMLElement): number {
     const selection = window.getSelection()!
     const range = selection.getRangeAt(0)
     let offset = 0
+    let prev_is_BR = false // We keep track of BR nodes to see where a DIV follows a BR
 
     function walk(node: Node, is_root = false) {
         if (!is_root) {
             if (node.nodeType === Node.TEXT_NODE) {
+                prev_is_BR = false
                 if (node === range.endContainer) {
                     offset += range.endOffset
                     return true
                 }
                 offset += (node as Text).length
-            } else if (node.nodeName === 'BR' || node.nodeName === 'DIV') {
+            } else if (
+                node.nodeName === 'BR' || // BR always causes a linebreak, increase offset by 1
+                (node.nodeName === 'DIV' && // DIV also causes a linebreak ...
+                    node.textContent != '' && // ... except when it's text is empty
+                    !prev_is_BR) // ... except when it immediately follows a BR
+            ) {
+                prev_is_BR = node.nodeName === 'BR'
                 offset += 1
                 if (node === range.endContainer) {
                     return true
