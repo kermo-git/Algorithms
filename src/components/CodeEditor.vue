@@ -118,9 +118,13 @@ function getCaretOffset(el: HTMLElement): number {
                     return true
                 }
             }
-        } else if (node === range.endContainer) {
-            // When the root node (contenteditable DIV)
-            // is the selection range endContainer, the endOffset
+        }
+
+        if (
+            ['DIV', 'SPAN'].includes(node.nodeName) &&
+            node === range.endContainer
+        ) {
+            // When a DIV or SPAN node is the selection range endContainer, the endOffset
             // attribute tells the number of child nodes before the text caret,
             // not the number of characters inside a text node.
             for (let i = 0; i < range.endOffset; i++) {
@@ -131,6 +135,7 @@ function getCaretOffset(el: HTMLElement): number {
             }
             return true
         }
+
         for (const child of node.childNodes) {
             if (walk(child)) {
                 return true
