@@ -93,6 +93,7 @@ function syntaxHighlight(text: string) {
 function getCaretOffset(el: HTMLElement): number {
     const selection = window.getSelection()!
     const range = selection.getRangeAt(0)
+
     let offset = 0
     let prev_is_BR = false // We keep track of BR nodes to see where a DIV follows a BR
 
@@ -117,6 +118,18 @@ function getCaretOffset(el: HTMLElement): number {
                     return true
                 }
             }
+        } else if (node === range.endContainer) {
+            // When the root node (contenteditable DIV)
+            // is the selection range endContainer, the endOffset
+            // attribute tells the number of child nodes before the text caret,
+            // not the number of characters inside a text node.
+            for (let i = 0; i < range.endOffset; i++) {
+                const child = node.childNodes[i]
+                // Linebreak elements (BR or BR inside DIV)
+                // don't have textContent, but they still count as 1 character
+                offset += child.textContent?.length || 1
+            }
+            return true
         }
         for (const child of node.childNodes) {
             if (walk(child)) {
@@ -144,7 +157,7 @@ function setCaretOffset(el: HTMLElement, offset: number) {
                     return true
                 }
                 current_offset = next_offset
-            } else if (node.nodeName === 'BR' || node.nodeName === 'DIV') {
+            } else if (node.nodeName === 'BR') {
                 current_offset += 1
                 if (offset === current_offset) {
                     range.setStartAfter(node)
