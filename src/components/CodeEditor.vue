@@ -106,17 +106,19 @@ function getCaretOffset(el: HTMLElement): number {
                     return true
                 }
                 offset += (node as Text).length
-            } else if (
-                node.nodeName === 'BR' || // BR always causes a linebreak, increase offset by 1
-                (node.nodeName === 'DIV' && // DIV also causes a linebreak ...
-                    node.textContent != '' && // ... except when it's text is empty
-                    !prev_is_BR) // ... except when it immediately follows a BR
-            ) {
-                prev_is_BR = node.nodeName === 'BR'
+            } else if (node.nodeName === 'BR') {
+                // BR always causes a linebreak, increase offset by 1
+                prev_is_BR = true
                 offset += 1
                 if (node === range.endContainer) {
                     return true
                 }
+            } else if (
+                node.nodeName === 'DIV' && // DIV also causes a linebreak ...
+                node.textContent != '' && // ... except when it's text is empty
+                !prev_is_BR // ... except when it immediately follows a BR
+            ) {
+                offset += 1
             }
         }
 
@@ -178,7 +180,13 @@ function setCaretOffset(el: HTMLElement, offset: number) {
         }
         return false
     }
-    walk(el, true)
+
+    if (offset === 0 && el.childNodes[0].nodeName === 'BR') {
+        range.setStartBefore(el.childNodes[0])
+        range.collapse(true)
+    } else {
+        walk(el, true)
+    }
 
     const selection = window.getSelection()!
     selection.removeAllRanges()
