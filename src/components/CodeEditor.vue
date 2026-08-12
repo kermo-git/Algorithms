@@ -11,6 +11,38 @@ onMounted(() => {
     }
 })
 
+function onBeforeInput(ev: InputEvent) {
+    const bracket_map = new Map([
+        ['(', ')'],
+        ['{', '}']
+    ])
+
+    if (ev.inputType === 'insertText' && ev.data) {
+        const closing_bracket = bracket_map.get(ev.data)
+        if (closing_bracket) {
+            ev.preventDefault()
+
+            const selection = window.getSelection()!
+            const range = selection.getRangeAt(0)
+
+            const opening_bracket_node = new Text(ev.data)
+            const selected_text = range.cloneContents()
+            const closing_bracket_node = new Text(closing_bracket)
+
+            range.deleteContents()
+            range.insertNode(closing_bracket_node)
+            range.insertNode(selected_text)
+            range.insertNode(opening_bracket_node)
+
+            range.setStartAfter(opening_bracket_node)
+            range.setEndBefore(closing_bracket_node)
+
+            selection.removeAllRanges()
+            selection.addRange(range)
+        }
+    }
+}
+
 function onInput(ev: InputEvent) {
     const el = ev.target as HTMLTextAreaElement
     const text = el.innerText
@@ -200,6 +232,7 @@ function setCaretOffset(el: HTMLElement, offset: number) {
         class="code-editor"
         contenteditable="true"
         @input="onInput"
+        @beforeinput="onBeforeInput"
     />
 </template>
 
