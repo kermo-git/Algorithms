@@ -21,7 +21,8 @@ function onBeforeInput(ev: InputEvent) {
     const selection = window.getSelection()!
     const range = selection.getRangeAt(0)
 
-    caret_offset = getCaretOffset(ev.target as HTMLDivElement)
+    const caret_info = getCaretInfo(ev.target as HTMLDivElement, range)
+    caret_offset = caret_info.offset
 
     if (['insertText', 'insertParagraph'].includes(ev.inputType)) {
         caret_offset += 1
@@ -135,54 +136,84 @@ function syntaxHighlight(text: string) {
         .replace(FUNCTION_REGEX, '<span class="code-function">$1</span>')
 }
 
-function getCaretOffset(el: HTMLDivElement): number {
-    const selection = window.getSelection()!
-    const range = selection.getRangeAt(0)
-
+function getCaretInfo(el: HTMLDivElement, range: Range) {
     let offset = 0
+    let line_offset = 0
+    let caret_found = false
+    let text_line = ''
 
     function walk(node: Node, is_root = false) {
         if (!is_root) {
             if (node.nodeType === Node.TEXT_NODE) {
+                const node_text = node.textContent || ''
+                text_line += node_text
+
                 if (node === range.endContainer) {
+                    caret_found = true
                     offset += range.endOffset
-                    return true
+                    line_offset += range.endOffset
+                } else if (!caret_found) {
+                    offset += node_text.length
+                    line_offset += node_text.length
                 }
-                offset += (node as Text).length
             } else if (node.nodeName === 'BR') {
-                offset += 1
-                if (node === range.endContainer) {
+                if (node === range.endContainer || !caret_found) {
+                    offset += 1
+                    line_offset = 0
+                    text_line = ''
+                }
+                if (node === range.endContainer || caret_found) {
                     return true
                 }
             }
         }
 
-        for (const child of node.childNodes) {
-            if (walk(child)) {
-                return true
+        if (
+            node === range.endContainer &&
+            ['DIV', 'SPAN'].includes(node.nodeName)
+        ) {
+            // When a DIV node is the selection range endContainer, the endOffset
+            // attribute tells the number of child nodes before the text caret,
+            // not the number of characters inside a text node.
+            caret_found = true
+
+            for (let i = 0; i < node.childNodes.length; i++) {
+                const child = node.childNodes[i]
+                if (child.nodeName === 'BR') {
+                    if (i < range.endOffset) {
+                        text_line = ''
+                        line_offset = 0
+                        offset += 1
+                    } else {
+                        return true
+                    }
+                } else {
+                    const node_text = child.textContent || ''
+                    text_line += node_text
+
+                    if (i < range.endOffset) {
+                        line_offset += node_text.length
+                        offset += node_text.length
+                    }
+                }
+            }
+        } else {
+            for (const child of node.childNodes) {
+                if (walk(child)) {
+                    return true
+                }
             }
         }
-
         return false
     }
 
-    if (el === range.endContainer) {
-        // When a DIV node is the selection range endContainer, the endOffset
-        // attribute tells the number of child nodes before the text caret,
-        // not the number of characters inside a text node.
-        for (let i = 0; i < range.endOffset; i++) {
-            const child = el.childNodes[i]
+    walk(el, true)
 
-            if (child.nodeName === 'BR') {
-                offset += 1
-            } else {
-                offset += child.textContent?.length || 0
-            }
-        }
-    } else {
-        walk(el, true)
+    return {
+        offset,
+        before: text_line.slice(0, line_offset),
+        after: text_line.slice(line_offset)
     }
-    return offset
 }
 
 function setCaretOffset(el: HTMLElement, offset: number) {
