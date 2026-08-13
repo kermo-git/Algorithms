@@ -3,6 +3,7 @@ import { onMounted, useTemplateRef } from 'vue'
 
 const code = defineModel<string>()
 const editor_ref = useTemplateRef('editor')
+let caret_offset = 0
 
 onMounted(() => {
     if (editor_ref.value) {
@@ -17,17 +18,30 @@ function onBeforeInput(ev: InputEvent) {
         ['{', '}']
     ])
 
+    const selection = window.getSelection()!
+    const range = selection.getRangeAt(0)
+
+    caret_offset = getCaretOffset(ev.target as HTMLDivElement)
+
+    if (['insertText', 'insertParagraph'].includes(ev.inputType)) {
+        caret_offset += 1
+    } else if (ev.inputType === 'insertFromPaste') {
+        const measure_div = document.createElement('div')
+        measure_div.innerHTML = ev.dataTransfer?.getData('text/html') || ''
+        const paste_text = measure_div.innerText
+        caret_offset += paste_text.length
+    } else if (ev.inputType === 'deleteContentBackward') {
+        caret_offset -= Math.max(1, selection.toString().length)
+    }
+
     if (ev.inputType === 'insertText' && ev.data) {
         const closing_bracket = bracket_map.get(ev.data)
         if (closing_bracket) {
             ev.preventDefault()
 
-            const selection = window.getSelection()!
-            const range = selection.getRangeAt(0)
-
             const opening_bracket_node = new Text(ev.data)
-            const selected_text = range.cloneContents()
             const closing_bracket_node = new Text(closing_bracket)
+            const selected_text = range.cloneContents()
 
             range.deleteContents()
             range.insertNode(closing_bracket_node)
@@ -47,7 +61,6 @@ function onInput(ev: InputEvent) {
     const el = ev.target as HTMLTextAreaElement
     const text = el.innerText
 
-    const caret_offset = getCaretOffset(el)
     el.innerHTML = syntaxHighlight(text)
     setCaretOffset(el, caret_offset)
     code.value = text.replace(/\u{A0}/gu, '\u{20}')
@@ -122,52 +135,26 @@ function syntaxHighlight(text: string) {
         .replace(FUNCTION_REGEX, '<span class="code-function">$1</span>')
 }
 
-function getCaretOffset(el: HTMLElement): number {
+function getCaretOffset(el: HTMLDivElement): number {
     const selection = window.getSelection()!
     const range = selection.getRangeAt(0)
 
     let offset = 0
-    let prev_is_BR = false // We keep track of BR nodes to see where a DIV follows a BR
 
     function walk(node: Node, is_root = false) {
         if (!is_root) {
             if (node.nodeType === Node.TEXT_NODE) {
-                prev_is_BR = false
                 if (node === range.endContainer) {
                     offset += range.endOffset
                     return true
                 }
                 offset += (node as Text).length
             } else if (node.nodeName === 'BR') {
-                // BR always causes a linebreak, increase offset by 1
-                prev_is_BR = true
                 offset += 1
                 if (node === range.endContainer) {
                     return true
                 }
-            } else if (
-                node.nodeName === 'DIV' && // DIV also causes a linebreak ...
-                node.textContent != '' && // ... except when it's text is empty
-                !prev_is_BR // ... except when it immediately follows a BR
-            ) {
-                offset += 1
             }
-        }
-
-        if (
-            ['DIV', 'SPAN'].includes(node.nodeName) &&
-            node === range.endContainer
-        ) {
-            // When a DIV or SPAN node is the selection range endContainer, the endOffset
-            // attribute tells the number of child nodes before the text caret,
-            // not the number of characters inside a text node.
-            for (let i = 0; i < range.endOffset; i++) {
-                const child = node.childNodes[i]
-                // Linebreak elements (BR or BR inside DIV)
-                // don't have textContent, but they still count as 1 character
-                offset += child.textContent?.length || 1
-            }
-            return true
         }
 
         for (const child of node.childNodes) {
@@ -175,9 +162,26 @@ function getCaretOffset(el: HTMLElement): number {
                 return true
             }
         }
+
         return false
     }
-    walk(el, true)
+
+    if (el === range.endContainer) {
+        // When a DIV node is the selection range endContainer, the endOffset
+        // attribute tells the number of child nodes before the text caret,
+        // not the number of characters inside a text node.
+        for (let i = 0; i < range.endOffset; i++) {
+            const child = el.childNodes[i]
+
+            if (child.nodeName === 'BR') {
+                offset += 1
+            } else {
+                offset += child.textContent?.length || 0
+            }
+        }
+    } else {
+        walk(el, true)
+    }
     return offset
 }
 
