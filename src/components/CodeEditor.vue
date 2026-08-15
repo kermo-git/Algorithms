@@ -12,30 +12,26 @@ onMounted(() => {
     }
 })
 
-function onBeforeInput(ev: InputEvent) {
-    const bracket_map = new Map([
-        ['(', ')'],
-        ['{', '}']
-    ])
+const bracket_map = new Map([
+    ['(', ')'],
+    ['{', '}']
+])
 
+const INDENT_REGEX = /^\s+/g
+const OPEN_PAREN_REGEX = /(\()[^){]*$/g
+const OPEN_CURLY_REGEX = /({)[^}(]*$/g
+const CLOSE_PAREN_REGEX = /^[^}(]*(\))/g
+const CLOSE_CURLY_REGEX = /^[^){]*(})/g
+
+function onBeforeInput(ev: InputEvent) {
     const selection = window.getSelection()!
     const range = selection.getRangeAt(0)
 
     const caret_info = getCaretInfo(ev.target as HTMLDivElement, range)
     caret_offset = caret_info.offset
 
-    if (['insertText', 'insertParagraph'].includes(ev.inputType)) {
-        caret_offset += 1
-    } else if (ev.inputType === 'insertFromPaste') {
-        const measure_div = document.createElement('div')
-        measure_div.innerHTML = ev.dataTransfer?.getData('text/html') || ''
-        const paste_text = measure_div.innerText
-        caret_offset += paste_text.length
-    } else if (ev.inputType === 'deleteContentBackward') {
-        caret_offset -= Math.max(1, selection.toString().length)
-    }
-
     if (ev.inputType === 'insertText' && ev.data) {
+        caret_offset += 1
         const closing_bracket = bracket_map.get(ev.data)
         if (closing_bracket) {
             ev.preventDefault()
@@ -55,6 +51,51 @@ function onBeforeInput(ev: InputEvent) {
             selection.removeAllRanges()
             selection.addRange(range)
         }
+    } else if (ev.inputType === 'insertFromPaste') {
+        const measure_div = document.createElement('div')
+        measure_div.innerHTML = ev.dataTransfer?.getData('text/html') || ''
+        const paste_text = measure_div.innerText
+        caret_offset += paste_text.length
+    } else if (ev.inputType === 'deleteContentBackward') {
+        caret_offset -= Math.max(1, selection.toString().length)
+    } else if (ev.inputType === 'insertParagraph') {
+        ev.preventDefault()
+
+        const { before, after } = caret_info
+
+        const indent_match = before.match(INDENT_REGEX)
+        let current_indentation = ''
+        if (indent_match) {
+            current_indentation = indent_match[0].replace(/\u{20}/gu, '\u{A0}')
+        }
+        let open_paren = !!before.match(OPEN_PAREN_REGEX)
+        let open_curly = !!before.match(OPEN_CURLY_REGEX)
+        let close_paren = !!after.match(CLOSE_PAREN_REGEX)
+        let close_curly = !!after.match(CLOSE_CURLY_REGEX)
+
+        let open_block = open_paren || open_curly
+        let close_block =
+            (open_paren && close_paren) || (open_curly && close_curly)
+
+        let new_line_indentation = new Text(
+            current_indentation + (open_block ? '\u{A0}\u{A0}\u{A0}\u{A0}' : '')
+        )
+
+        range.deleteContents()
+
+        if (close_block) {
+            range.insertNode(new Text(current_indentation))
+            range.insertNode(document.createElement('br'))
+        }
+
+        range.insertNode(new_line_indentation)
+        range.insertNode(document.createElement('br'))
+
+        range.setStartAfter(new_line_indentation)
+        range.setEndAfter(new_line_indentation)
+
+        selection.removeAllRanges()
+        selection.addRange(range)
     }
 }
 
