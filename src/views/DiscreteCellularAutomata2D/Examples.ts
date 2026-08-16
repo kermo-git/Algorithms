@@ -8,13 +8,18 @@ export interface Example {
     skipFrames: boolean
 }
 
-function basic_cyclic_CA_shader(threshold: number, shift_size: number) {
-    return /* wgsl */ `const radius = 1;
+function basic_cyclic_CA_shader(
+    radius: number,
+    threshold: number,
+    shift_size: number,
+    neighborhood: 'Moore' | 'Neumann'
+) {
+    return /* wgsl */ `const radius = ${radius};
 const threshold = ${threshold};
 const shift_size = ${shift_size};
 
 fn update(pos: vec2u, state: u32) -> u32 {
-    let c = moore_count(
+    let c = ${neighborhood === 'Moore' ? 'moore_count' : 'neumann_count'}(
         pos, radius, shift(state, 1)
     );
     if c >= threshold {
@@ -42,14 +47,28 @@ export const examples: Example[] = [
         name: 'Rainbow',
         colors: () => colorPalette('Rainbow'),
         nStates: 24,
-        updateShader: basic_cyclic_CA_shader(1, 1),
+        updateShader: basic_cyclic_CA_shader(1, 1, 1, 'Moore'),
+        skipFrames: false
+    },
+    {
+        name: 'Boiling',
+        colors: () => colorPalette('Funky'),
+        nStates: 6,
+        updateShader: basic_cyclic_CA_shader(2, 2, 1, 'Neumann'),
         skipFrames: false
     },
     {
         name: 'Roses',
         colors: () => ['#4b0089', '#b55bff'],
         nStates: 24,
-        updateShader: basic_cyclic_CA_shader(1, 3),
+        updateShader: basic_cyclic_CA_shader(1, 1, 3, 'Moore'),
+        skipFrames: false
+    },
+    {
+        name: 'Cubism',
+        colors: () => ['#83DE08', '#9a53ff', '#f6fe4b'],
+        nStates: 3,
+        updateShader: basic_cyclic_CA_shader(2, 5, 1, 'Neumann'),
         skipFrames: false
     },
     {
