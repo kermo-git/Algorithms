@@ -76,7 +76,7 @@ nav {
     position: relative;
 }
 
-.router-link:hover {
+.router-link:not(.router-link-active):hover {
     border-radius: 1em;
     background-color: var(--secondary-color);
 }

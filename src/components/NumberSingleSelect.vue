@@ -62,7 +62,7 @@ const model = defineModel()
     border: var(--border);
 }
 
-.options button:hover {
+.options button[aria-checked='false']:hover {
     background-color: var(--secondary-color);
     cursor: pointer;
 }

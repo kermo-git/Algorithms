@@ -61,6 +61,7 @@ const active_tab = defineModel<string>()
 
 .tab.inactive:hover {
     background-color: var(--secondary-color);
+    cursor: pointer;
 }
 
 .tab-content {

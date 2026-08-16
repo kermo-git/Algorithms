@@ -27,7 +27,7 @@ button {
     justify-content: center;
 }
 
-button:not([disabled]):hover {
+button:not([aria-checked='true'], [disabled]):hover {
     border: var(--accent-border);
     cursor: pointer;
 }

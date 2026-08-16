@@ -55,6 +55,7 @@ input[type='checkbox'] {
     border-radius: var(--border-radius);
     border: var(--border);
     appearance: none;
+    cursor: pointer;
 }
 
 input[type='checkbox']:hover {
@@ -65,5 +66,6 @@ input[type='checkbox']:hover {
     flex-grow: 1;
     height: 100%;
     line-height: 2.5rem;
+    cursor: pointer;
 }
 </style>

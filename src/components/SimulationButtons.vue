@@ -9,16 +9,16 @@ const is_running = defineModel<boolean>('is_running')
 </script>
 
 <template>
-    <div class="header" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
-        <button class="header-button" @click="emits('reset')">
+    <div class="container" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
+        <button class="simulation-button" @click="emits('reset')">
             <span class="mdi mdi-reload" />
             <span>Reset</span>
         </button>
-        <button class="header-button" @click="emits('step')">
+        <button class="simulation-button" @click="emits('step')">
             <span class="mdi mdi-step-forward" />
             <span>Step</span>
         </button>
-        <button class="header-button" @click="is_running = !is_running">
+        <button class="simulation-button" @click="is_running = !is_running">
             <span :class="`mdi mdi-${is_running ? 'pause' : 'play'}`" />
             <span>{{ is_running ? 'Pause' : 'Run' }}</span>
         </button>
@@ -26,7 +26,7 @@ const is_running = defineModel<boolean>('is_running')
 </template>
 
 <style scoped>
-.header {
+.container {
     width: 100%;
     display: grid;
     gap: 2pt;
@@ -34,7 +34,7 @@ const is_running = defineModel<boolean>('is_running')
     border-bottom: var(--border);
 }
 
-.header-button {
+.simulation-button {
     height: var(--button-height);
     background-color: var(--bg-color);
     font-size: inherit;
@@ -46,20 +46,21 @@ const is_running = defineModel<boolean>('is_running')
     gap: var(--small-gap);
 }
 
-.header-button:first-child {
+.simulation-button:first-child {
     border-left: none;
 }
 
-.header-button:hover {
+.simulation-button:hover {
     background-color: var(--secondary-color);
+    cursor: pointer;
 }
 
-.header-button:active {
+.simulation-button:active {
     background-color: var(--accent-color);
     color: var(--bg-color);
 }
 
-.header-button > .mdi {
+.simulation-button > .mdi {
     font-size: 20pt;
 }
 </style>
