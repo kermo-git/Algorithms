@@ -138,7 +138,7 @@ export default class TerrainScene {
             ]
         })
 
-        const projection_view = perspectiveProjection(70, 1, 0.1, 1000).matmul(
+        const projection_view = this.createProjection(1).matmul(
             setup.camera_view_matrix
         )
 
@@ -162,6 +162,10 @@ export default class TerrainScene {
         this.renderNoise()
 
         engine.watchResize(() => this.renderDisplay())
+    }
+
+    private createProjection(aspect_ratio: number) {
+        return perspectiveProjection(60, aspect_ratio, 0.1, 1000)
     }
 
     private async createIndexBuffer() {
@@ -338,12 +342,7 @@ export default class TerrainScene {
         const main_texture = this.engine.getTexture()
         const aspect_ratio = main_texture.width / main_texture.height
 
-        const projection_matrix = perspectiveProjection(
-            70,
-            aspect_ratio,
-            0.1,
-            1000
-        )
+        const projection_matrix = this.createProjection(aspect_ratio)
         const projection_view_matrix = projection_matrix.matmul(
             this.setup.camera_view_matrix
         )
