@@ -1,10 +1,12 @@
 import { invertedGaussian, sigmoid } from './Shader'
+import { KernelSymmetry } from './Types'
 
 export interface Example {
     name: string
     color_0: string
     color_1: string
     kernel_radius: number
+    kernel_symmetry: KernelSymmetry
     get_kernel: () => number[]
     activation: string
     skipFrames: boolean
@@ -61,6 +63,7 @@ export const examples: Example[] = [
         color_1: '#4842FF',
 
         kernel_radius: 5,
+        kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
             return mazeKernel()
         },
@@ -73,6 +76,7 @@ export const examples: Example[] = [
         color_1: '#4842FF',
 
         kernel_radius: 5,
+        kernel_symmetry: KernelSymmetry.NONE,
         get_kernel: () => {
             const kernel = mazeKernel()
             kernel[22] = 1
@@ -88,6 +92,7 @@ export const examples: Example[] = [
         color_1: '#EBEBEB',
 
         kernel_radius: 4,
+        kernel_symmetry: KernelSymmetry.VERTICAL_HORIZONTAL,
         get_kernel: () => {
             const N = -1
             const P = 1
@@ -115,6 +120,7 @@ export const examples: Example[] = [
         color_1: '#D585FF',
 
         kernel_radius: 1,
+        kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
             const X = -0.7
             const Y = 0.2
@@ -136,6 +142,7 @@ export const examples: Example[] = [
         color_1: '#FFFC41',
 
         kernel_radius: 1,
+        kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
             const X = -0.85
             const Y = -0.2
@@ -157,6 +164,7 @@ export const examples: Example[] = [
         color_1: '#00CE00',
 
         kernel_radius: 1,
+        kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
             const X = 0.88
             const Y = 0.4
@@ -177,6 +185,7 @@ export const examples: Example[] = [
         color_1: '#aaff00',
 
         kernel_radius: 1,
+        kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
             const X = -0.8
             const Y = -0.5

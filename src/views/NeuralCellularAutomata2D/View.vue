@@ -8,22 +8,25 @@ import Checkbox from '@/components/Checkbox.vue'
 import SimulationButtons from '@/components/SimulationButtons.vue'
 import ColorInput from '@/components/ColorInput.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
+import TextSingleSelect from '@/components/TextSingleSelect.vue'
 import Menu from '@/components/Menu.vue'
 import MenuItem from '@/components/MenuItem.vue'
 import HBox from '@/components/HBox.vue'
 import VBox from '@/components/VBox.vue'
 
-import { NeuralScene } from './Scene'
+import { KernelSymmetry } from './Types'
 import MatrixEditor from './MatrixEditor.vue'
 import { examples, type Example } from './Examples'
+import { NeuralScene } from './Scene'
 
 const default_example = examples[0]
 
-const active_tab = ref('Configuration')
+const active_tab = ref('Activation')
 const grid_size = ref(256)
 const color_0 = ref(default_example.color_0)
 const color_1 = ref(default_example.color_1)
 const kernel_radius = ref(default_example.kernel_radius)
+const kernel_symmetry = ref<KernelSymmetry>(default_example.kernel_symmetry)
 const kernel = ref<number[]>(default_example.get_kernel())
 
 const editor_code = ref(default_example.activation)
@@ -82,6 +85,7 @@ function setExample(example: Example) {
     color_0.value = example.color_0
     color_1.value = example.color_1
     kernel_radius.value = example.kernel_radius
+    kernel_symmetry.value = example.kernel_symmetry
     kernel.value = example.get_kernel()
     activation_shader = example.activation
     editor_code.value = example.activation
@@ -131,13 +135,13 @@ onBeforeUnmount(() => {
 
 <template>
     <SidePanelCanvas
-        :tab-captions="['Configuration', 'Examples']"
+        :tab-captions="['Activation', 'Kernel', 'Examples']"
         :issues="shader_issues"
         v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
         <template v-slot:tabs>
-            <template v-if="active_tab === 'Configuration'">
+            <template v-if="active_tab === 'Activation'">
                 <CodeEditor class="code-editor" v-model="editor_code" />
                 <VBox>
                     <Checkbox name="skip_frames" v-model="skip_frames">
@@ -158,6 +162,10 @@ onBeforeUnmount(() => {
                             "
                         />
                     </HBox>
+                </VBox>
+            </template>
+            <template v-if="active_tab === 'Kernel'">
+                <VBox>
                     <NumberSingleSelect
                         text="Kernel size"
                         :options="[1, 2, 3, 4, 5]"
@@ -166,8 +174,14 @@ onBeforeUnmount(() => {
                     />
                     <MatrixEditor
                         :matrix-size="2 * kernel_radius + 1"
+                        :symmetry="kernel_symmetry"
                         v-model:matrix="kernel"
                         @update:matrix="onKernelEdit"
+                    />
+                    <TextSingleSelect
+                        text="Kernel symmetry"
+                        :options="Object.values(KernelSymmetry)"
+                        v-model="kernel_symmetry"
                     />
                 </VBox>
             </template>
