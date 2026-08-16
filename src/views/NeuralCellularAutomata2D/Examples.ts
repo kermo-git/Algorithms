@@ -166,9 +166,9 @@ export const examples: Example[] = [
         kernel_radius: 1,
         kernel_symmetry: KernelSymmetry.FULL,
         get_kernel: () => {
-            const X = 0.88
-            const Y = 0.4
-            const Z = -0.939
+            const X = 0.79
+            const Y = 0.55
+            const Z = -0.86
 
             return [
                 [Z, X, Z],

@@ -1,16 +1,5 @@
 import { WG_DIM } from '@/WebGPU/Engine'
 
-export const invertedGaussian = /* wgsl */ `// Inverted Gaussian function
-fn activate(x: f32) -> f32 {
-    return -1/(0.9 * pow(x, 2) + 1) + 1;
-}`
-
-export const sigmoid = /* wgsl */ `// Sigmoid function
-fn activate(x: f32) -> f32 {
-    let exp_x = exp(x);
-    return exp_x / (exp_x + 1);
-}`
-
 export interface Setup {
     n_states: number
     max_n_states: number
