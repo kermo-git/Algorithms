@@ -84,5 +84,6 @@ nav {
 .router-link-active {
     outline: var(--border);
     border-radius: 1em;
+    cursor: default;
 }
 </style>
