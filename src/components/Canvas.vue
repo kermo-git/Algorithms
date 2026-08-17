@@ -101,14 +101,16 @@ function download() {
 
 <template>
     <div :class="`main-container`">
-        <template v-for="(issue, i) in props.issues" :key="i">
-            <p class="issue">{{ issue.message }}</p>
-            <p class="issue">
-                &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{
-                    issue.codeLine
-                }}
-            </p>
-        </template>
+        <div class="issues" v-if="hasIssues()">
+            <template v-for="(issue, i) in props.issues" :key="i">
+                <p class="issue">{{ issue.message }}</p>
+                <p class="issue">
+                    &NonBreakingSpace;&NonBreakingSpace;&NonBreakingSpace;{{
+                        issue.codeLine
+                    }}
+                </p>
+            </template>
+        </div>
         <canvas
             v-bind="
                 drag_event_assigned
@@ -120,7 +122,6 @@ function download() {
                     : {}
             "
             :class="getCanvasClassName()"
-            v-show="!hasIssues()"
             ref="canvas"
         />
         <PanelButton @click="download" class="save-button" mdi-icon="floppy" />
@@ -150,6 +151,15 @@ function download() {
 
 .display-canvas.drag:active {
     cursor: grabbing;
+}
+
+.issues {
+    position: absolute;
+    background: black;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .save-button {

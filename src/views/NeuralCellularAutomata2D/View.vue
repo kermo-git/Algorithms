@@ -104,6 +104,11 @@ async function setExample(example: Example) {
     await initScene()
 }
 
+async function resetCanvas(new_grid_size: number) {
+    const no_issues = await applyChanges()
+    scene.value.resetCanvas(new_grid_size, no_issues && !is_running.value)
+}
+
 async function reset() {
     if (await applyChanges()) {
         scene.value.reset(!is_running.value)
@@ -226,10 +231,7 @@ onBeforeUnmount(() => {
                     text="Grid size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
-                    @update:model-value="
-                        (new_grid_size) =>
-                            scene.resetCanvas(new_grid_size, !is_running)
-                    "
+                    @update:model-value="resetCanvas"
                 />
             </VBox>
         </template>
