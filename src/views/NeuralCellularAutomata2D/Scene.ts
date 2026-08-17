@@ -250,6 +250,5 @@ export class NeuralScene {
         this.generation_A?.destroy()
         this.generation_B?.destroy()
         this.color_kernel?.destroy()
-        this.color_kernel?.destroy()
     }
 }
