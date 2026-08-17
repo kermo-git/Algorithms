@@ -42,8 +42,20 @@ const scene = shallowRef(new NeuralScene())
 let activation_shader = default_example.activation
 let kernel_changed = false
 
-function setupChanged() {
-    return editor_code.value != activation_shader || kernel_changed
+async function applyChanges() {
+    if (kernel_changed) {
+        kernel_changed = false
+        scene.value.setKernel(kernel_radius.value, kernel.value)
+    }
+    if (editor_code.value != activation_shader) {
+        activation_shader = editor_code.value
+        shader_issues.value = await scene.value.setActivation(editor_code.value)
+    }
+    const no_issues = shader_issues.value.length === 0
+    if (!no_issues) {
+        pause()
+    }
+    return no_issues
 }
 
 function onKernelRadiusChange(new_radius: number) {
@@ -67,7 +79,7 @@ async function initScene() {
                 activation_shader: activation_shader,
                 canvas_width: grid_size.value,
                 kernel_radius: kernel_radius.value,
-                kernel: new Float32Array(kernel.value),
+                kernel: kernel.value,
                 color_1: color_0.value,
                 color_2: color_1.value
             },
@@ -81,43 +93,37 @@ async function onCanvasReady(canvas: HTMLCanvasElement) {
     initScene()
 }
 
-function setExample(example: Example) {
+async function setExample(example: Example) {
     color_0.value = example.color_0
     color_1.value = example.color_1
     kernel_radius.value = example.kernel_radius
     kernel_symmetry.value = example.kernel_symmetry
     kernel.value = example.get_kernel()
-    activation_shader = example.activation
     editor_code.value = example.activation
     skip_frames.value = example.skipFrames
-    initScene()
+    await initScene()
 }
 
-function reset() {
-    if (setupChanged()) {
-        initScene()
-    } else {
-        scene.value.reset()
+async function reset() {
+    if (await applyChanges()) {
+        scene.value.reset(!is_running.value)
     }
 }
 
-function step() {
-    if (setupChanged()) {
-        initScene()
-    } else {
+async function step() {
+    if (await applyChanges()) {
         scene.value.step(skip_frames.value ? 2 : 1)
     }
 }
 
-function run() {
-    if (setupChanged()) {
-        initScene()
+async function run() {
+    if (await applyChanges()) {
+        const fps = 60
+        interval_ref.value = setInterval(
+            () => scene.value.step(skip_frames.value ? 2 : 1),
+            1000 / fps
+        )
     }
-    const fps = 60
-    interval_ref.value = setInterval(
-        () => scene.value.step(skip_frames.value ? 2 : 1),
-        1000 / fps
-    )
 }
 
 function pause() {
@@ -125,6 +131,7 @@ function pause() {
         clearInterval(interval_ref.value)
     }
     interval_ref.value = null
+    is_running.value = false
 }
 
 onBeforeUnmount(() => {
@@ -152,13 +159,15 @@ onBeforeUnmount(() => {
                         <ColorInput
                             v-model="color_0"
                             @animation="
-                                (hex_color) => scene.updateColor1(hex_color)
+                                (hex_color) =>
+                                    scene.setColor1(hex_color, !is_running)
                             "
                         />
                         <ColorInput
                             v-model="color_1"
                             @animation="
-                                (hex_color) => scene.updateColor2(hex_color)
+                                (hex_color) =>
+                                    scene.setColor2(hex_color, !is_running)
                             "
                         />
                     </HBox>
@@ -218,10 +227,8 @@ onBeforeUnmount(() => {
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
                     @update:model-value="
-                        (new_grid_size) => {
-                            scene.resizeCanvas(new_grid_size)
-                            scene.reset()
-                        }
+                        (new_grid_size) =>
+                            scene.resetCanvas(new_grid_size, !is_running)
                     "
                 />
             </VBox>

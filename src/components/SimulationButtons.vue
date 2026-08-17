@@ -4,17 +4,21 @@ interface Emits {
     (e: 'step'): void
 }
 
-const emits = defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 const is_running = defineModel<boolean>('is_running')
 </script>
 
 <template>
     <div class="container" :style="{ gridTemplateColumns: 'repeat(3, 1fr)' }">
-        <button class="simulation-button" @click="emits('reset')">
+        <button class="simulation-button" @click="emit('reset')">
             <span class="mdi mdi-reload" />
             <span>Reset</span>
         </button>
-        <button class="simulation-button" @click="emits('step')">
+        <button
+            :disabled="is_running"
+            class="simulation-button"
+            @click="emit('step')"
+        >
             <span class="mdi mdi-step-forward" />
             <span>Step</span>
         </button>
@@ -50,14 +54,18 @@ const is_running = defineModel<boolean>('is_running')
     border-left: none;
 }
 
-.simulation-button:hover {
+.simulation-button:not(:disabled):hover {
     background-color: var(--secondary-color);
     cursor: pointer;
 }
 
-.simulation-button:active {
+.simulation-button:not(:disabled):active {
     background-color: var(--accent-color);
     color: var(--bg-color);
+}
+
+.simulation-button:disabled {
+    color: var(--secondary-color);
 }
 
 .simulation-button > .mdi {

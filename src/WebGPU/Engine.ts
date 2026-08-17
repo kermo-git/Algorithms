@@ -3,7 +3,7 @@ export const WG_DIM = 8
 export type FloatArray = Float32Array<ArrayBuffer>
 export type IntArray = Int32Array<ArrayBuffer>
 export type UIntArray = Uint32Array<ArrayBuffer>
-type BufferData = IntArray | UIntArray | FloatArray | Uint8Array<ArrayBuffer>
+type TypedArray = IntArray | UIntArray | FloatArray
 
 export interface ShaderIssue {
     message: string
@@ -176,16 +176,16 @@ export default class Engine {
         this.updateBuffer(buffer, new Uint32Array([value]))
     }
 
-    createUniformBuffer(data: BufferData, size: number = 0): GPUBuffer {
+    createUniformBuffer(data: TypedArray, size: number = 0): GPUBuffer {
         return this.createBuffer(data, size, GPUBufferUsage.UNIFORM)
     }
 
-    createStorageBuffer(data: BufferData | null, size: number = 0): GPUBuffer {
+    createStorageBuffer(data: TypedArray | null, size: number = 0): GPUBuffer {
         return this.createBuffer(data, size, GPUBufferUsage.STORAGE)
     }
 
     createBuffer(
-        data: BufferData | null,
+        data: TypedArray | null,
         size: number = 0,
         usage: GPUFlagsConstant
     ): GPUBuffer {
@@ -199,7 +199,7 @@ export default class Engine {
         return buffer
     }
 
-    updateBuffer(buffer: GPUBuffer, data: BufferData, offset = 0) {
+    updateBuffer(buffer: GPUBuffer, data: TypedArray, offset = 0) {
         this.device.queue.writeBuffer(buffer, offset, data, 0, data.length)
     }
 

@@ -14,19 +14,21 @@ interface Emits {
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<Props>()
-const drag_event_assigned = getCurrentInstance()?.vnode.props?.onDrag
 
-function getClassName() {
+const drag_event_assigned = getCurrentInstance()?.vnode.props?.onDrag
+function hasIssues() {
+    return props.issues ? props.issues.length > 0 : false
+}
+
+function getCanvasClassName() {
     let class_name = 'display-canvas '
 
     if (drag_event_assigned) {
-        class_name += 'drag '
-    }
-    if (props.issues && props.issues.length > 0) {
-        class_name += 'issues '
+        class_name += 'drag'
     }
     return class_name
 }
+
 const canvasRef = useTemplateRef('canvas')
 
 onMounted(() => {
@@ -98,7 +100,7 @@ function download() {
 </script>
 
 <template>
-    <div :class="`main-container ${getClassName()}`">
+    <div :class="`main-container`">
         <template v-for="(issue, i) in props.issues" :key="i">
             <p class="issue">{{ issue.message }}</p>
             <p class="issue">
@@ -117,7 +119,8 @@ function download() {
                       }
                     : {}
             "
-            :class="getClassName()"
+            :class="getCanvasClassName()"
+            v-show="!hasIssues()"
             ref="canvas"
         />
         <PanelButton @click="download" class="save-button" mdi-icon="floppy" />
@@ -131,9 +134,6 @@ function download() {
     height: 100%;
     width: 100%;
     overflow: hidden;
-}
-
-.main-container.issues {
     background-color: black;
 }
 
@@ -142,10 +142,6 @@ function download() {
     width: 100%;
     image-rendering: pixelated;
     display: block;
-}
-
-.display-canvas.issues {
-    display: none;
 }
 
 .display-canvas.drag {
