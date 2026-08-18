@@ -58,7 +58,7 @@ export function createShader(
         @group(1) @binding(0) var<storage, read> prev_generation: array<f32>;
         @group(1) @binding(1) var<storage, read_write> next_generation: array<f32>;
 
-        @group(2) @binding(0) var<storage> ck: ColorKernel;
+        @group(2) @binding(0) var<storage, read> ck: ColorKernel;
 
         ${activation_shader}
         

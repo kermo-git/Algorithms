@@ -11,6 +11,11 @@ import {
 export class NeuralScene {
     engine!: Engine
 
+    canvas_layout!: GPUBindGroupLayout
+    generation_layout!: GPUBindGroupLayout
+    color_kernel_layout!: GPUBindGroupLayout
+    shader_layout!: GPUPipelineLayout
+
     generation_A_is_current = true
     generation_A!: GPUBuffer
     generation_B!: GPUBuffer
@@ -32,7 +37,8 @@ export class NeuralScene {
         this.engine = new Engine()
         await this.engine.init(canvas)
 
-        const issues = await this.compileShader(setup.activation_shader)
+        this.createLayout()
+        const issues = await this.setActivation(setup.activation_shader)
         this.initColorKernel(setup)
         this.resetCanvas(setup.canvas_width, true)
 
@@ -60,39 +66,64 @@ export class NeuralScene {
         this.createColorKernelGroup()
     }
 
-    private async compileShader(activation_shader: string) {
-        const shader_code = createShader(
-            activation_shader,
-            this.engine.canvas_color_format
-        )
-        const { module, issues } = await this.engine.compileShader(shader_code)
+    private createLayout() {
+        const { device, canvas_color_format } = this.engine
 
-        this.pipeline = this.engine.device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: module
-            }
-        })
-        return issues
-    }
-
-    private createColorKernelGroup() {
-        this.color_kernel_group = this.engine.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(2),
+        this.canvas_layout = device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
-                    resource: {
-                        buffer: this.color_kernel
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        format: canvas_color_format
                     }
                 }
+            ]
+        })
+
+        this.generation_layout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0, // generation A/B
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                },
+                {
+                    binding: 1, // generation A/B
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {
+                        type: 'storage'
+                    }
+                }
+            ]
+        })
+
+        this.color_kernel_layout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                }
+            ]
+        })
+
+        this.shader_layout = device.createPipelineLayout({
+            bindGroupLayouts: [
+                this.canvas_layout,
+                this.generation_layout,
+                this.color_kernel_layout
             ]
         })
     }
 
     private createGenerationGroups() {
         this.generation_group_AB = this.engine.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(1),
+            layout: this.generation_layout,
             entries: [
                 {
                     binding: 0,
@@ -110,7 +141,7 @@ export class NeuralScene {
         })
 
         this.generation_group_BA = this.engine.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(1),
+            layout: this.generation_layout,
             entries: [
                 {
                     binding: 0,
@@ -128,6 +159,36 @@ export class NeuralScene {
         })
     }
 
+    private createColorKernelGroup() {
+        this.color_kernel_group = this.engine.device.createBindGroup({
+            layout: this.color_kernel_layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.color_kernel
+                    }
+                }
+            ]
+        })
+    }
+
+    async setActivation(activation_shader: string) {
+        const shader_code = createShader(
+            activation_shader,
+            this.engine.canvas_color_format
+        )
+        const { module, issues } = await this.engine.compileShader(shader_code)
+
+        this.pipeline = this.engine.device.createComputePipeline({
+            layout: this.shader_layout,
+            compute: {
+                module: module
+            }
+        })
+        return issues
+    }
+
     private redraw() {
         this.generation_A_is_current = !this.generation_A_is_current
         this.step()
@@ -143,15 +204,6 @@ export class NeuralScene {
         float_view.set(data, 1)
 
         this.engine.updateBuffer(this.color_kernel, float_view, 32)
-    }
-
-    async setActivation(activation_shader: string) {
-        const issues = await this.compileShader(activation_shader)
-
-        this.createGenerationGroups()
-        this.createColorKernelGroup()
-
-        return issues
     }
 
     resetCanvas(canvas_width: number, redraw: boolean) {
@@ -192,7 +244,7 @@ export class NeuralScene {
         const encoder = this.engine.beginComputePass()
 
         const canvas_bind_group = device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
+            layout: this.canvas_layout,
             entries: [
                 {
                     binding: 0,
