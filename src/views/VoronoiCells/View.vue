@@ -66,7 +66,7 @@ function createNoiseAlgorithm(name: string, dimension: string) {
         case 'Worley':
             return dimension === '2D' ? Worley2D : Worley3D
         default:
-            return dimension === '2D' ? Simplex2D : Simplex3D
+            return dimension === '2D' ? new Simplex2D() : new Simplex3D()
     }
 }
 

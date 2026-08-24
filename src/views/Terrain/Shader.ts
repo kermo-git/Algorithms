@@ -10,7 +10,6 @@ import type { NoiseAlgorithm } from '@/Noise/Types'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
-import { SimplexValue2D, SimplexValue3D } from '@/Noise/Algorithms/SimplexValue'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D } from '@/Noise/Algorithms/WorleyF2'
@@ -89,11 +88,11 @@ function noiseFunctionShader(group: number) {
         ${createNoiseFunctions(new Perlin2D(true), 'quadratic_2d', 'unit_vectors_2D')}
         ${createNoiseFunctions(new Perlin3D(true), 'quadratic_3d', 'unit_vectors_3D')}
 
-        ${createNoiseFunctions(Simplex2D, 'simplex_2d', 'unit_vectors_2D')}
-        ${createNoiseFunctions(Simplex3D, 'simplex_3d', 'unit_vectors_3D')}
+        ${createNoiseFunctions(new Simplex2D(), 'simplex_2d', 'unit_vectors_2D')}
+        ${createNoiseFunctions(new Simplex3D(), 'simplex_3d', 'unit_vectors_3D')}
 
-        ${createNoiseFunctions(SimplexValue2D, 'simplex_value_2d')}
-        ${createNoiseFunctions(SimplexValue3D, 'simplex_value_3d')}
+        ${createNoiseFunctions(new Simplex2D(true), 'simplex_value_2d')}
+        ${createNoiseFunctions(new Simplex3D(true), 'simplex_value_3d')}
 
         ${createNoiseFunctions(Worley2D, 'worley_2d')}
         ${createNoiseFunctions(Worley3D, 'worley_3d')}

@@ -1,6 +1,6 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import type { NoiseAlgorithm, Config } from '../Types'
+import type { NoiseAlgorithm, Config, VecType } from '../Types'
 import {
     generateUnitVectors2D,
     generateUnitVectors3D,
@@ -8,8 +8,11 @@ import {
 } from '../UnitVectors'
 import {
     pcd2d_1u,
+    pcd2d_1f,
     pcd3d_1u,
+    pcd3d_1f,
     pcd4d_1u,
+    pcd4d_1f,
     scramble_2d,
     scramble_3d,
     scramble_4d
@@ -23,22 +26,56 @@ function get_unskew_constant(n_dimensions: number) {
     return (1 - 1 / Math.sqrt(n_dimensions + 1)) / n_dimensions
 }
 
-export const Simplex2D: NoiseAlgorithm = {
-    pos_type: 'vec2f',
-    extra_data_type: 'array<vec2f>',
+export class Simplex2D implements NoiseAlgorithm {
+    pos_type: VecType = 'vec2f'
+    extra_data_type: string
+    value_noise: boolean
+
+    constructor(value_noise?: boolean) {
+        this.value_noise = value_noise || false
+        this.extra_data_type = value_noise ? '' : 'array<vec2f>'
+    }
 
     generateExtraData() {
         return generateUnitVectors2D(16)
-    },
+    }
 
     createShaderDependencies() {
         return `
             ${scramble_2d}
-            ${pcd2d_1u}
+            ${this.value_noise ? pcd2d_1f : pcd2d_1u}
         `
-    },
+    }
+
+    influenceFunction({ name, extraBufferName }: Config) {
+        if (this.value_noise) {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                    let t = 0.5 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let vertex_value = pcd2d_1f(skew_c)*2 - 1;
+                    return t * t * t * t * vertex_value;
+                }
+            `
+        } else {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                    let t = 0.5 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let hash = pcd2d_1u(skew_c) >> 28;
+                    let gradient = ${extraBufferName}[hash];
+                    return t * t * t * t * dot(gradient, c_pos);
+                }
+            `
+        }
+    }
 
     createShader({ name, extraBufferName }: Config) {
+        const norm_constant = this.value_noise ? 16 : 99
         const influence = `${name}_influence`
         const skew = `${name}_skew`
         const unskew = `${name}_unskew`
@@ -47,15 +84,7 @@ export const Simplex2D: NoiseAlgorithm = {
         const UNSKEW_CONST = get_unskew_constant(2)
 
         return /* wgsl */ `
-            fn ${influence}(skew_c: vec2u, c_pos: vec2f) -> f32 {
-                let t = 0.5 - dot(c_pos, c_pos);
-                if (t < 0) {
-                    return 0;
-                }
-                let hash = pcd2d_1u(skew_c) >> 28;
-                let gradient = ${extraBufferName}[hash];
-                return t * t * t * t * dot(gradient, c_pos);
-            }
+            ${this.influenceFunction({ name, extraBufferName })}
             
             fn ${skew}(v: vec2f) -> vec2f {
                 return v + (v.x + v.y) * ${SKEW_CONST};
@@ -90,29 +119,63 @@ export const Simplex2D: NoiseAlgorithm = {
                 let i1 = ${influence}(skew_c1, c1_pos);
                 let i2 = ${influence}(skew_c2, c2_pos);
 
-                let n = 99 * (i0 + i1 + i2);
+                let n = ${norm_constant} * (i0 + i1 + i2);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
             }
         `
     }
 }
 
-export const Simplex3D: NoiseAlgorithm = {
-    pos_type: 'vec3f',
-    extra_data_type: 'array<vec3f>',
+export class Simplex3D implements NoiseAlgorithm {
+    pos_type: VecType = 'vec3f'
+    extra_data_type: string
+    value_noise: boolean
+
+    constructor(value_noise?: boolean) {
+        this.value_noise = value_noise || false
+        this.extra_data_type = value_noise ? '' : 'array<vec3f>'
+    }
 
     generateExtraData() {
         return generateUnitVectors3D(64)
-    },
+    }
 
     createShaderDependencies() {
         return `
             ${scramble_3d}
-            ${pcd3d_1u}
+            ${this.value_noise ? pcd3d_1f : pcd3d_1u}
         `
-    },
+    }
+
+    influenceFunction({ name, extraBufferName }: Config) {
+        if (this.value_noise) {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                    let t = 0.6 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let vertex_value = pcd3d_1f(skew_c)*2 - 1;
+                    return t * t * t * t * vertex_value;
+                }
+            `
+        } else {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                    let t = 0.6 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let hash = pcd3d_1u(skew_c) >> 26;
+                    let gradient = ${extraBufferName}[hash];
+                    return t * t * t * t * dot(gradient, c_pos);
+                }
+            `
+        }
+    }
 
     createShader({ name, extraBufferName }: Config) {
+        const norm_constant = this.value_noise ? 8 : 42
         const influence = `${name}_influence`
         const skew = `${name}_skew`
         const unskew = `${name}_unskew`
@@ -121,15 +184,7 @@ export const Simplex3D: NoiseAlgorithm = {
         const UNSKEW_CONST = get_unskew_constant(3)
 
         return /* wgsl */ `
-            fn ${influence}(skew_c: vec3u, c_pos: vec3f) -> f32 {
-                let t = 0.6 - dot(c_pos, c_pos);
-                if (t < 0) {
-                    return 0;
-                }
-                let hash = pcd3d_1u(skew_c) >> 26;
-                let gradient = ${extraBufferName}[hash];
-                return t * t * t * t * dot(gradient, c_pos);
-            }
+            ${this.influenceFunction({ name, extraBufferName })}
             
             fn ${skew}(v: vec3f) -> vec3f {
                 return v + (v.x + v.y + v.z) * ${SKEW_CONST};
@@ -190,29 +245,63 @@ export const Simplex3D: NoiseAlgorithm = {
                 let i2 = ${influence}(skew_c2, c2_pos);
                 let i3 = ${influence}(skew_c3, c3_pos);
 
-                let n = 42 * (i0 + i1 + i2 + i3);
+                let n = ${norm_constant} * (i0 + i1 + i2 + i3);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
             }
         `
     }
 }
 
-export const Simplex4D: NoiseAlgorithm = {
-    pos_type: 'vec4f',
-    extra_data_type: 'array<vec4f>',
+export class Simplex4D implements NoiseAlgorithm {
+    pos_type: VecType = 'vec4f'
+    extra_data_type: string
+    value_noise: boolean
+
+    constructor(value_noise?: boolean) {
+        this.value_noise = value_noise || false
+        this.extra_data_type = value_noise ? '' : 'array<vec4f>'
+    }
 
     generateExtraData() {
-        return generateUnitVectors4D(256)
-    },
+        return generateUnitVectors4D(64)
+    }
 
     createShaderDependencies() {
         return `
             ${scramble_4d}
-            ${pcd4d_1u}
+            ${this.value_noise ? pcd4d_1f : pcd4d_1u}
         `
-    },
+    }
+
+    influenceFunction({ name, extraBufferName }: Config) {
+        if (this.value_noise) {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                    let t = 0.6 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let vertex_value = pcd4d_1f(skew_c)*2 - 1;
+                    return t * t * t * t * vertex_value;
+                }
+            `
+        } else {
+            return /* wgsl */ `
+                fn ${name}_influence(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                    let t = 0.6 - dot(c_pos, c_pos);
+                    if (t < 0) {
+                        return 0;
+                    }
+                    let hash = pcd4d_1u(skew_c) >> 26;
+                    let gradient = ${extraBufferName}[hash];
+                    return t * t * t * t * dot(gradient, c_pos);
+                }
+            `
+        }
+    }
 
     createShader({ name, extraBufferName }: Config) {
+        const norm_constant = this.value_noise ? 8 : 42
         const influence = `${name}_influence`
         const skew = `${name}_skew`
         const unskew = `${name}_unskew`
@@ -221,15 +310,7 @@ export const Simplex4D: NoiseAlgorithm = {
         const UNSKEW_CONST = get_unskew_constant(4)
 
         return /* wgsl */ `
-            fn ${influence}(skew_c: vec4u, c_pos: vec4f) -> f32 {
-                let t = 0.6 - dot(c_pos, c_pos);
-                if (t < 0) {
-                    return 0;
-                }
-                let hash = pcd4d_1u(skew_c) >> 24;
-                let gradient = ${extraBufferName}[hash];
-                return t * t * t * t * dot(gradient, c_pos);
-            }
+            ${this.influenceFunction({ name, extraBufferName })}
             
             fn ${skew}(v: vec4f) -> vec4f {
                 return v + (v.x + v.y + v.z + v.w) * ${SKEW_CONST};
@@ -417,7 +498,7 @@ export const Simplex4D: NoiseAlgorithm = {
                 let i3 = ${influence}(skew_c3, c3_pos);
                 let i4 = ${influence}(skew_c4, c4_pos);
 
-                let n = 42 * (i0 + i1 + i2 + i3 + i4);
+                let n = ${norm_constant} * (i0 + i1 + i2 + i3 + i4);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
             }
         `

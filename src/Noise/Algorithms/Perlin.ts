@@ -178,7 +178,7 @@ export class Perlin4D implements NoiseAlgorithm {
     }
 
     generateExtraData() {
-        return generateUnitVectors4D(256)
+        return generateUnitVectors4D(64)
     }
 
     createShaderDependencies() {
@@ -195,7 +195,7 @@ export class Perlin4D implements NoiseAlgorithm {
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec4u, local_vec: vec4f) -> f32 {
                 let hash = pcd4d_1u(grid_pos);
-                let result = dot(${extraBufferName}[hash >> 24], local_vec);
+                let result = dot(${extraBufferName}[hash >> 26], local_vec);
                 ${gradientCalculation(this.quadratic)}
             }
 
