@@ -33,30 +33,26 @@ export function generateUnitVectors3D(n: number) {
     return data
 }
 
-// TODO: 4D version of Fibonacci sphere
 // https://math.stackexchange.com/questions/3291489/can-the-fibonacci-lattice-be-extended-to-dimensions-higher-than-3
 // https://marcalexa.github.io/superfibonacci/
 export function generateUnitVectors4D(n: number) {
     const data = new Float32Array(4 * n)
 
+    const phi = Math.SQRT2
+    const psi = 1.533751168755204288118041
+
     for (let i = 0; i < n; i++) {
-        const theta_1 = Math.PI * Math.random()
-        const theta_2 = Math.PI * Math.random()
-        const phi = 2 * Math.PI * Math.random()
-
-        const sin_theta_1 = Math.sin(theta_1)
-        const sin_theta_2 = Math.sin(theta_2)
-
-        const x = Math.cos(theta_1)
-        const y = sin_theta_1 * Math.cos(theta_2)
-        const z = sin_theta_1 * sin_theta_2 * Math.cos(phi)
-        const w = sin_theta_1 * sin_theta_2 * Math.sin(phi)
+        const s = i + 0.5
+        const r = Math.sqrt(s / n)
+        const R = Math.sqrt(1 - s / n)
+        const alpha = (2.0 * Math.PI * s) / phi
+        const beta = (2.0 * Math.PI * s) / psi
 
         const offset = 4 * i
-        data[offset] = x
-        data[offset + 1] = y
-        data[offset + 2] = z
-        data[offset + 4] = w
+        data[offset] = r * Math.sin(alpha)
+        data[offset + 1] = r * Math.cos(alpha)
+        data[offset + 2] = R * Math.sin(beta)
+        data[offset + 3] = R * Math.cos(beta)
     }
 
     return data
