@@ -1,11 +1,11 @@
 import type { NoiseAlgorithm, Config } from '../Types'
 import {
-    pcd2d_2f,
-    pcd3d_3f,
-    pcd4d_4f,
-    scramble_2d,
-    scramble_3d,
-    scramble_4d
+    hash_2u_2f,
+    hash_3u_3f,
+    hash_4u_4f,
+    seed_2d,
+    seed_3d,
+    seed_4d
 } from './Common'
 
 export const WorleyF22D: NoiseAlgorithm = {
@@ -13,8 +13,8 @@ export const WorleyF22D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_2d}
-            ${pcd2d_2f}
+            ${seed_2d}
+            ${hash_2u_2f}
         `
     },
 
@@ -29,7 +29,7 @@ export const WorleyF22D: NoiseAlgorithm = {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
 
                         let neighbor = grid_pos + vec2i(offset_x, offset_y);
-                        let point = pcd2d_2f(scramble_2d(neighbor, channel));
+                        let point = hash_2u_2f(seed_2d(neighbor, channel));
                         
                         let v_pos_point = vec2f(neighbor) + point - pos;
                         let dist_sqr = dot(v_pos_point, v_pos_point);
@@ -53,8 +53,8 @@ export const WorleyF23D: NoiseAlgorithm = {
 
     createShaderDependencies: function (): string {
         return `
-            ${scramble_3d}
-            ${pcd3d_3f}
+            ${seed_3d}
+            ${hash_3u_3f}
         `
     },
 
@@ -70,7 +70,7 @@ export const WorleyF23D: NoiseAlgorithm = {
                         for (var offset_z = -1; offset_z < 2; offset_z++) {
 
                             let neighbor = grid_pos + vec3i(offset_x, offset_y, offset_z);
-                            let point = pcd3d_3f(scramble_3d(neighbor, channel));
+                            let point = hash_3u_3f(seed_3d(neighbor, channel));
 
                             let v_pos_point = vec3f(neighbor) + point - pos;
                             let dist_sqr = dot(v_pos_point, v_pos_point);
@@ -95,8 +95,8 @@ export const WorleyF24D: NoiseAlgorithm = {
 
     createShaderDependencies: function (): string {
         return `
-            ${scramble_4d}
-            ${pcd4d_4f}
+            ${seed_4d}
+            ${hash_4u_4f}
         `
     },
 
@@ -113,7 +113,7 @@ export const WorleyF24D: NoiseAlgorithm = {
                             for (var offset_w = -1; offset_w < 2; offset_w++) {
                                 
                                 let neighbor = grid_pos + vec4i(offset_x, offset_y, offset_z, offset_w);
-                                let point = pcd4d_4f(scramble_4d(neighbor, channel));
+                                let point = hash_4u_4f(seed_4d(neighbor, channel));
 
                                 let v_pos_point = vec4f(neighbor) + point - pos;
                                 let dist_sqr = dot(v_pos_point, v_pos_point);

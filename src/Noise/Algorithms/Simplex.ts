@@ -7,15 +7,15 @@ import {
     generateUnitVectors4D
 } from '../UnitVectors'
 import {
-    pcd2d_1u,
-    pcd2d_1f,
-    pcd3d_1u,
-    pcd3d_1f,
-    pcd4d_1u,
-    pcd4d_1f,
-    scramble_2d,
-    scramble_3d,
-    scramble_4d
+    hash_2u_1u,
+    hash_2u_1f,
+    hash_3u_1u,
+    hash_3u_1f,
+    hash_4u_1u,
+    hash_4u_1f,
+    seed_2d,
+    seed_3d,
+    seed_4d
 } from './Common'
 
 function get_skew_constant(n_dimensions: number) {
@@ -42,8 +42,8 @@ export class Simplex2D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_2d}
-            ${this.value_noise ? pcd2d_1f : pcd2d_1u}
+            ${seed_2d}
+            ${this.value_noise ? hash_2u_1f : hash_2u_1u}
         `
     }
 
@@ -55,7 +55,7 @@ export class Simplex2D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let vertex_value = pcd2d_1f(skew_c)*2 - 1;
+                    let vertex_value = hash_2u_1f(skew_c)*2 - 1;
                     return t * t * t * t * vertex_value;
                 }
             `
@@ -66,7 +66,7 @@ export class Simplex2D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let hash = pcd2d_1u(skew_c) >> 28;
+                    let hash = hash_2u_1u(skew_c) >> 28;
                     let gradient = ${extraBufferName}[hash];
                     return t * t * t * t * dot(gradient, c_pos);
                 }
@@ -111,7 +111,7 @@ export class Simplex2D implements NoiseAlgorithm {
                 let c1_pos = c0_pos - c0_c1;
                 let c2_pos = c0_pos - c0_c2;
 
-                let skew_c0 = scramble_2d(vec2i(f_skew_c0), channel);
+                let skew_c0 = seed_2d(vec2i(f_skew_c0), channel);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
 
@@ -142,8 +142,8 @@ export class Simplex3D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_3d}
-            ${this.value_noise ? pcd3d_1f : pcd3d_1u}
+            ${seed_3d}
+            ${this.value_noise ? hash_3u_1f : hash_3u_1u}
         `
     }
 
@@ -155,7 +155,7 @@ export class Simplex3D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let vertex_value = pcd3d_1f(skew_c)*2 - 1;
+                    let vertex_value = hash_3u_1f(skew_c)*2 - 1;
                     return t * t * t * t * vertex_value;
                 }
             `
@@ -166,7 +166,7 @@ export class Simplex3D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let hash = pcd3d_1u(skew_c) >> 26;
+                    let hash = hash_3u_1u(skew_c) >> 26;
                     let gradient = ${extraBufferName}[hash];
                     return t * t * t * t * dot(gradient, c_pos);
                 }
@@ -235,7 +235,7 @@ export class Simplex3D implements NoiseAlgorithm {
                 let c2_pos = c0_pos - c0_c2;
                 let c3_pos = c0_pos - c0_c3;
 
-                let skew_c0 = scramble_3d(vec3i(f_skew_c0), channel);
+                let skew_c0 = seed_3d(vec3i(f_skew_c0), channel);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
                 let skew_c3 = skew_c0 + skew_c0_c3;
@@ -268,8 +268,8 @@ export class Simplex4D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_4d}
-            ${this.value_noise ? pcd4d_1f : pcd4d_1u}
+            ${seed_4d}
+            ${this.value_noise ? hash_4u_1f : hash_4u_1u}
         `
     }
 
@@ -281,7 +281,7 @@ export class Simplex4D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let vertex_value = pcd4d_1f(skew_c)*2 - 1;
+                    let vertex_value = hash_4u_1f(skew_c)*2 - 1;
                     return t * t * t * t * vertex_value;
                 }
             `
@@ -292,7 +292,7 @@ export class Simplex4D implements NoiseAlgorithm {
                     if (t < 0) {
                         return 0;
                     }
-                    let hash = pcd4d_1u(skew_c) >> 26;
+                    let hash = hash_4u_1u(skew_c) >> 26;
                     let gradient = ${extraBufferName}[hash];
                     return t * t * t * t * dot(gradient, c_pos);
                 }
@@ -486,7 +486,7 @@ export class Simplex4D implements NoiseAlgorithm {
                 let c3_pos = c0_pos - c0_c3;
                 let c4_pos = c0_pos - c0_c4;
 
-                let skew_c0 = scramble_4d(vec4i(f_skew_c0), channel);
+                let skew_c0 = seed_4d(vec4i(f_skew_c0), channel);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
                 let skew_c3 = skew_c0 + skew_c0_c3;

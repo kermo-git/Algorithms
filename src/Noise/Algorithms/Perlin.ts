@@ -8,12 +8,12 @@ import {
     fade_2d,
     fade_3d,
     fade_4d,
-    pcd2d_1u,
-    pcd3d_1u,
-    pcd4d_1u,
-    scramble_2d,
-    scramble_3d,
-    scramble_4d
+    hash_2u_1u,
+    hash_3u_1u,
+    hash_4u_1u,
+    seed_2d,
+    seed_3d,
+    seed_4d
 } from './Common'
 
 function gradientCalculation(quadratic: boolean) {
@@ -44,8 +44,8 @@ export class Perlin2D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_2d}
-            ${pcd2d_1u}
+            ${seed_2d}
+            ${hash_2u_1u}
             ${fade_2d}
         `
     }
@@ -56,7 +56,7 @@ export class Perlin2D implements NoiseAlgorithm {
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec2u, local_vec: vec2f) -> f32 {
-                let hash = pcd2d_1u(grid_pos);
+                let hash = hash_2u_1u(grid_pos);
                 let result = dot(${extraBufferName}[hash >> 28], local_vec);
                 ${gradientCalculation(this.quadratic)}
             }
@@ -66,7 +66,7 @@ export class Perlin2D implements NoiseAlgorithm {
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
 
-                let p0 = scramble_2d(vec2i(floor_pos), channel);
+                let p0 = seed_2d(vec2i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
                 let a = ${name}_gradient(p0, u0);
@@ -104,8 +104,8 @@ export class Perlin3D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_3d}
-            ${pcd3d_1u}
+            ${seed_3d}
+            ${hash_3u_1u}
             ${fade_3d}
         `
     }
@@ -115,7 +115,7 @@ export class Perlin3D implements NoiseAlgorithm {
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec3u, local_vec: vec3f) -> f32 {
-                let hash = pcd3d_1u(grid_pos);
+                let hash = hash_3u_1u(grid_pos);
                 let result = dot(${extraBufferName}[hash >> 26], local_vec);
                 ${gradientCalculation(this.quadratic)}
             }
@@ -125,7 +125,7 @@ export class Perlin3D implements NoiseAlgorithm {
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
 
-                let p0 = scramble_3d(vec3i(floor_pos), channel);
+                let p0 = seed_3d(vec3i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
                 let a = ${name}_gradient(p0, u0);
@@ -183,8 +183,8 @@ export class Perlin4D implements NoiseAlgorithm {
 
     createShaderDependencies() {
         return `
-            ${scramble_4d}
-            ${pcd4d_1u}
+            ${seed_4d}
+            ${hash_4u_1u}
             ${fade_4d}
         `
     }
@@ -194,7 +194,7 @@ export class Perlin4D implements NoiseAlgorithm {
 
         return /* wgsl */ `
             fn ${name}_gradient(grid_pos: vec4u, local_vec: vec4f) -> f32 {
-                let hash = pcd4d_1u(grid_pos);
+                let hash = hash_4u_1u(grid_pos);
                 let result = dot(${extraBufferName}[hash >> 26], local_vec);
                 ${gradientCalculation(this.quadratic)}
             }
@@ -204,7 +204,7 @@ export class Perlin4D implements NoiseAlgorithm {
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
 
-                let p0 = scramble_4d(vec4i(floor_pos), channel);
+                let p0 = seed_4d(vec4i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
                 let a = ${name}_gradient(p0, u0);

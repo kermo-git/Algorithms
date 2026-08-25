@@ -3,12 +3,12 @@ import {
     fade_2d,
     fade_3d,
     fade_4d,
-    pcd2d_1f,
-    pcd3d_1f,
-    pcd4d_1f,
-    scramble_2d,
-    scramble_3d,
-    scramble_4d
+    hash_2u_1f,
+    hash_3u_1f,
+    hash_4u_1f,
+    seed_2d,
+    seed_3d,
+    seed_4d
 } from './Common'
 
 export const Value2D: NoiseAlgorithm = {
@@ -16,8 +16,8 @@ export const Value2D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_2d}
-            ${pcd2d_1f}
+            ${seed_2d}
+            ${hash_2u_1f}
             ${fade_2d}
         `
     },
@@ -26,13 +26,13 @@ export const Value2D: NoiseAlgorithm = {
         return /* wgsl */ `
             fn ${name}(pos: vec2f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = scramble_2d(vec2i(floor_pos), channel);
+                let p0 = seed_2d(vec2i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = pcd2d_1f(p0);
-                let b = pcd2d_1f(vec2u(p1.x, p0.y));
-                let c = pcd2d_1f(vec2u(p0.x, p1.y));
-                let d = pcd2d_1f(p1);
+                let a = hash_2u_1f(p0);
+                let b = hash_2u_1f(vec2u(p1.x, p0.y));
+                let c = hash_2u_1f(vec2u(p0.x, p1.y));
+                let d = hash_2u_1f(p1);
                 
                 let local_pos = pos - floor_pos;
                 let s = fade_2d(local_pos);
@@ -48,8 +48,8 @@ export const Value3D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_3d}
-            ${pcd3d_1f}
+            ${seed_3d}
+            ${hash_3u_1f}
             ${fade_3d}
         `
     },
@@ -58,17 +58,17 @@ export const Value3D: NoiseAlgorithm = {
         return /* wgsl */ `
             fn ${name}(pos: vec3f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = scramble_3d(vec3i(floor_pos), channel);
+                let p0 = seed_3d(vec3i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = pcd3d_1f(p0);
-                let b = pcd3d_1f(vec3u(p1.x, p0.y, p0.z));
-                let c = pcd3d_1f(vec3u(p0.x, p1.y, p0.z));
-                let d = pcd3d_1f(vec3u(p1.x, p1.y, p0.z));
-                let e = pcd3d_1f(vec3u(p0.x, p0.y, p1.z));
-                let f = pcd3d_1f(vec3u(p1.x, p0.y, p1.z));
-                let g = pcd3d_1f(vec3u(p0.x, p1.y, p1.z));
-                let h = pcd3d_1f(p1);
+                let a = hash_3u_1f(p0);
+                let b = hash_3u_1f(vec3u(p1.x, p0.y, p0.z));
+                let c = hash_3u_1f(vec3u(p0.x, p1.y, p0.z));
+                let d = hash_3u_1f(vec3u(p1.x, p1.y, p0.z));
+                let e = hash_3u_1f(vec3u(p0.x, p0.y, p1.z));
+                let f = hash_3u_1f(vec3u(p1.x, p0.y, p1.z));
+                let g = hash_3u_1f(vec3u(p0.x, p1.y, p1.z));
+                let h = hash_3u_1f(p1);
                 
                 let local_pos = pos - floor_pos;
                 let s = fade_3d(local_pos);
@@ -88,8 +88,8 @@ export const Value4D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_4d}
-            ${pcd4d_1f}
+            ${seed_4d}
+            ${hash_4u_1f}
             ${fade_4d}
         `
     },
@@ -98,26 +98,26 @@ export const Value4D: NoiseAlgorithm = {
         return /* wgsl */ `
             fn ${name}(pos: vec4f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = scramble_4d(vec4i(floor_pos), channel);
+                let p0 = seed_4d(vec4i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = pcd4d_1f(p0);
-                let b = pcd4d_1f(vec4u(p1.x, p0.y, p0.z, p0.w));
-                let c = pcd4d_1f(vec4u(p0.x, p1.y, p0.z, p0.w));
-                let d = pcd4d_1f(vec4u(p1.x, p1.y, p0.z, p0.w));
-                let e = pcd4d_1f(vec4u(p0.x, p0.y, p1.z, p0.w));
-                let f = pcd4d_1f(vec4u(p1.x, p0.y, p1.z, p0.w));
-                let g = pcd4d_1f(vec4u(p0.x, p1.y, p1.z, p0.w));
-                let h = pcd4d_1f(vec4u(p1.x, p1.y, p1.z, p0.w));
+                let a = hash_4u_1f(p0);
+                let b = hash_4u_1f(vec4u(p1.x, p0.y, p0.z, p0.w));
+                let c = hash_4u_1f(vec4u(p0.x, p1.y, p0.z, p0.w));
+                let d = hash_4u_1f(vec4u(p1.x, p1.y, p0.z, p0.w));
+                let e = hash_4u_1f(vec4u(p0.x, p0.y, p1.z, p0.w));
+                let f = hash_4u_1f(vec4u(p1.x, p0.y, p1.z, p0.w));
+                let g = hash_4u_1f(vec4u(p0.x, p1.y, p1.z, p0.w));
+                let h = hash_4u_1f(vec4u(p1.x, p1.y, p1.z, p0.w));
 
-                let i = pcd4d_1f(vec4u(p0.x, p0.y, p0.z, p1.w));
-                let j = pcd4d_1f(vec4u(p1.x, p0.y, p0.z, p1.w));
-                let k = pcd4d_1f(vec4u(p0.x, p1.y, p0.z, p1.w));
-                let l = pcd4d_1f(vec4u(p1.x, p1.y, p0.z, p1.w));
-                let m = pcd4d_1f(vec4u(p0.x, p0.y, p1.z, p1.w));
-                let n = pcd4d_1f(vec4u(p1.x, p0.y, p1.z, p1.w));
-                let o = pcd4d_1f(vec4u(p0.x, p1.y, p1.z, p1.w));
-                let p = pcd4d_1f(p1);
+                let i = hash_4u_1f(vec4u(p0.x, p0.y, p0.z, p1.w));
+                let j = hash_4u_1f(vec4u(p1.x, p0.y, p0.z, p1.w));
+                let k = hash_4u_1f(vec4u(p0.x, p1.y, p0.z, p1.w));
+                let l = hash_4u_1f(vec4u(p1.x, p1.y, p0.z, p1.w));
+                let m = hash_4u_1f(vec4u(p0.x, p0.y, p1.z, p1.w));
+                let n = hash_4u_1f(vec4u(p1.x, p0.y, p1.z, p1.w));
+                let o = hash_4u_1f(vec4u(p0.x, p1.y, p1.z, p1.w));
+                let p = hash_4u_1f(p1);
                 
                 let local_pos = pos - floor_pos;
                 let s = fade_4d(local_pos);

@@ -4,12 +4,12 @@
 import type { Config, NoiseAlgorithm } from '../Types'
 import {
     cubic_interpolation,
-    scramble_2d,
-    pcd2d_1f,
-    scramble_3d,
-    pcd3d_1f,
-    scramble_4d,
-    pcd4d_1f
+    seed_2d,
+    hash_2u_1f,
+    seed_3d,
+    hash_3u_1f,
+    seed_4d,
+    hash_4u_1f
 } from './Common'
 
 export const Cubic2D: NoiseAlgorithm = {
@@ -17,8 +17,8 @@ export const Cubic2D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_2d}
-            ${pcd2d_1f}
+            ${seed_2d}
+            ${hash_2u_1f}
             ${cubic_interpolation}
         `
     },
@@ -29,7 +29,7 @@ export const Cubic2D: NoiseAlgorithm = {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
                 
-                let corner = scramble_2d(vec2i(floor_pos), channel);
+                let corner = seed_2d(vec2i(floor_pos), channel);
 
                 let x0 = corner.x - 1;
                 let x2 = corner.x + 1;
@@ -41,10 +41,10 @@ export const Cubic2D: NoiseAlgorithm = {
                     let yi = corner.y - 1 + i;
 
                     interpolated_x[i] = cubic_interpolation(
-                        pcd2d_1f(vec2u(x0, yi)),
-                        pcd2d_1f(vec2u(corner.x, yi)),
-                        pcd2d_1f(vec2u(x2, yi)),
-                        pcd2d_1f(vec2u(x3, yi)),
+                        hash_2u_1f(vec2u(x0, yi)),
+                        hash_2u_1f(vec2u(corner.x, yi)),
+                        hash_2u_1f(vec2u(x2, yi)),
+                        hash_2u_1f(vec2u(x3, yi)),
                         local_pos.x
                     );
                 }
@@ -72,8 +72,8 @@ export const Cubic3D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_3d}
-            ${pcd3d_1f}
+            ${seed_3d}
+            ${hash_3u_1f}
             ${cubic_interpolation}
         `
     },
@@ -84,7 +84,7 @@ export const Cubic3D: NoiseAlgorithm = {
             let floor_pos = floor(pos);
             let local_pos = pos - floor_pos;
 
-            let corner = scramble_3d(vec3i(floor_pos), channel);
+            let corner = seed_3d(vec3i(floor_pos), channel);
 
             let x0 = corner.x - 1;
             let x2 = corner.x + 1;
@@ -100,10 +100,10 @@ export const Cubic3D: NoiseAlgorithm = {
                     let yj = corner.y - 1 + j;
 
                     interpolated_x[j] = cubic_interpolation(
-                        pcd3d_1f(vec3u(x0, yj, zi)),
-                        pcd3d_1f(vec3u(corner.x, yj, zi)),
-                        pcd3d_1f(vec3u(x2, yj, zi)),
-                        pcd3d_1f(vec3u(x3, yj, zi)),
+                        hash_3u_1f(vec3u(x0, yj, zi)),
+                        hash_3u_1f(vec3u(corner.x, yj, zi)),
+                        hash_3u_1f(vec3u(x2, yj, zi)),
+                        hash_3u_1f(vec3u(x3, yj, zi)),
                         local_pos.x
                     );
                 }
@@ -140,8 +140,8 @@ export const Cubic4D: NoiseAlgorithm = {
 
     createShaderDependencies() {
         return `
-            ${scramble_4d}
-            ${pcd4d_1f}
+            ${seed_4d}
+            ${hash_4u_1f}
             ${cubic_interpolation}
         `
     },
@@ -152,7 +152,7 @@ export const Cubic4D: NoiseAlgorithm = {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
 
-                let corner = scramble_4d(vec4i(floor_pos), channel);
+                let corner = seed_4d(vec4i(floor_pos), channel);
 
                 let x0 = corner.x - 1;
                 let x2 = corner.x + 1;
@@ -172,10 +172,10 @@ export const Cubic4D: NoiseAlgorithm = {
                             let yk = corner.y - 1 + k;
 
                             interpolated_x[k] = cubic_interpolation(
-                                pcd4d_1f(vec4u(x0, yk, zj, wi)),
-                                pcd4d_1f(vec4u(corner.x, yk, zj, wi)),
-                                pcd4d_1f(vec4u(x2, yk, zj, wi)),
-                                pcd4d_1f(vec4u(x3, yk, zj, wi)),
+                                hash_4u_1f(vec4u(x0, yk, zj, wi)),
+                                hash_4u_1f(vec4u(corner.x, yk, zj, wi)),
+                                hash_4u_1f(vec4u(x2, yk, zj, wi)),
+                                hash_4u_1f(vec4u(x3, yk, zj, wi)),
                                 local_pos.x
                             );
                         }
