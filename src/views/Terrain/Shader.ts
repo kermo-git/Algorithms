@@ -50,18 +50,18 @@ export function vertexIndexShader(setup: Setup): string {
 function noiseFunctionShader(group: number) {
     function createNoiseFunctions(
         algorithm: NoiseAlgorithm,
-        name: string,
+        functionName: string,
         extraBufferName?: string
     ) {
         return `
             ${algorithm.createShader({
-                name,
+                functionName,
                 extraBufferName
             })}
 
             ${octaveNoiseShader({
-                func_name: `${name}_octaves`,
-                noise_name: name,
+                func_name: `${functionName}_octaves`,
+                noise_name: functionName,
                 pos_type: algorithm.pos_type
             })}
         `

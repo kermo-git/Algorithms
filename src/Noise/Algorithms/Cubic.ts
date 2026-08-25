@@ -23,9 +23,9 @@ export const Cubic2D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
                 
@@ -78,9 +78,9 @@ export const Cubic3D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-        fn ${name}(pos: vec3f, channel: u32) -> f32 {
+        fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
             let floor_pos = floor(pos);
             let local_pos = pos - floor_pos;
 
@@ -146,9 +146,9 @@ export const Cubic4D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
 

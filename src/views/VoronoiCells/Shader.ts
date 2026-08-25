@@ -93,7 +93,7 @@ export function createShader(
         ${warp_algorithm.createShaderDependencies()}
 
         ${warp_algorithm.createShader({
-            name: 'noise',
+            functionName: 'noise',
             extraBufferName: 'noise_data'
         })}
         

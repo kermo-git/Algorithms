@@ -3,7 +3,7 @@ import type { FloatArray } from '@/WebGPU/Engine'
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
 export interface Config {
-    name: string
+    functionName: string
     extraBufferName?: string
 }
 

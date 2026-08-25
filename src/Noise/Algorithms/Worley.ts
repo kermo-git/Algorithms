@@ -18,9 +18,9 @@ export const Worley2D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
                 let grid_pos = vec2i(floor(pos));
                 var min_dist_sqr = 10.0;
 
@@ -51,9 +51,9 @@ export const Worley3D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec3f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
                 let grid_pos = vec3i(floor(pos));
                 var min_dist_sqr = 10.0;
 
@@ -86,9 +86,9 @@ export const Worley4D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
                 let grid_pos = vec4i(floor(pos));
                 var min_dist_sqr = 10.0;
 

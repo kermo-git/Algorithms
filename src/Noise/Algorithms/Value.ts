@@ -22,9 +22,9 @@ export const Value2D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let p0 = seed_2d(vec2i(floor_pos), channel);
                 let p1 = p0 + 1u;
@@ -54,9 +54,9 @@ export const Value3D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec3f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let p0 = seed_3d(vec3i(floor_pos), channel);
                 let p1 = p0 + 1u;
@@ -94,9 +94,9 @@ export const Value4D: NoiseAlgorithm = {
         `
     },
 
-    createShader({ name }: Config) {
+    createShader({ functionName }: Config) {
         return /* wgsl */ `
-            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let p0 = seed_4d(vec4i(floor_pos), channel);
                 let p1 = p0 + 1u;

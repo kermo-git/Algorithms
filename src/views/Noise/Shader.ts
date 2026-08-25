@@ -68,7 +68,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
         ${algorithm.createShaderDependencies()}
         
         ${algorithm.createShader({
-            name: 'noise',
+            functionName: 'noise',
             extraBufferName: 'noise_data'
         })}
         ${octaveNoiseShader({

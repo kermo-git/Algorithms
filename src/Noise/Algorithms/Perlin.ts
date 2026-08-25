@@ -50,18 +50,20 @@ export class Perlin2D implements NoiseAlgorithm {
         `
     }
 
-    createShader({ name, extraBufferName }: Config) {
+    createShader({ functionName, extraBufferName }: Config) {
         // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
         const norm_constant = this.quadratic ? 1.35 : 1.6
+        const contribution = `${functionName}_contribution`
 
         return /* wgsl */ `
-            fn ${name}_gradient(grid_pos: vec2u, local_vec: vec2f) -> f32 {
-                let hash = hash_2u_1u(grid_pos);
-                let result = dot(${extraBufferName}[hash >> 28], local_vec);
+            fn ${contribution}(grid_corner: vec2u, vec_corner_to_pos: vec2f) -> f32 {
+                let hash = hash_2u_1u(grid_corner);
+                let gradient = ${extraBufferName}[hash >> 28];
+                let result = dot(gradient, vec_corner_to_pos);
                 ${gradientCalculation(this.quadratic)}
             }
 
-            fn ${name}(pos: vec2f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
@@ -69,16 +71,10 @@ export class Perlin2D implements NoiseAlgorithm {
                 let p0 = seed_2d(vec2i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = ${name}_gradient(p0, u0);
-                let b = ${name}_gradient(
-                    vec2u(p1.x, p0.y), 
-                    vec2f(u1.x, u0.y)
-                );
-                let c = ${name}_gradient(
-                    vec2u(p0.x, p1.y),
-                    vec2f(u0.x, u1.y)
-                );
-                let d = ${name}_gradient(p1, u1);
+                let a = ${contribution}(p0, u0);
+                let b = ${contribution}(vec2u(p1.x, p0.y), vec2f(u1.x, u0.y));
+                let c = ${contribution}(vec2u(p0.x, p1.y), vec2f(u0.x, u1.y));
+                let d = ${contribution}(p1, u1);
 
                 let s = fade_2d(u0);
                 let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
@@ -110,17 +106,19 @@ export class Perlin3D implements NoiseAlgorithm {
         `
     }
 
-    createShader({ name, extraBufferName }: Config) {
+    createShader({ functionName, extraBufferName }: Config) {
         const norm_constant = this.quadratic ? 1.5 : 1.7
+        const contribution = `${functionName}_contribution`
 
         return /* wgsl */ `
-            fn ${name}_gradient(grid_pos: vec3u, local_vec: vec3f) -> f32 {
-                let hash = hash_3u_1u(grid_pos);
-                let result = dot(${extraBufferName}[hash >> 26], local_vec);
+            fn ${contribution}(grid_corner: vec3u, vec_corner_to_pos: vec3f) -> f32 {
+                let hash = hash_3u_1u(grid_corner);
+                let gradient = ${extraBufferName}[hash >> 26];
+                let result = dot(gradient, vec_corner_to_pos);
                 ${gradientCalculation(this.quadratic)}
             }
 
-            fn ${name}(pos: vec3f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
@@ -128,32 +126,14 @@ export class Perlin3D implements NoiseAlgorithm {
                 let p0 = seed_3d(vec3i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = ${name}_gradient(p0, u0);
-                let b = ${name}_gradient(
-                    vec3u(p1.x, p0.yz), 
-                    vec3f(u1.x, u0.yz)
-                );
-                let c = ${name}_gradient(
-                    vec3u(p0.x, p1.y, p0.z), 
-                    vec3f(u0.x, u1.y, u0.z)
-                );
-                let d = ${name}_gradient(
-                    vec3u(p1.xy, p0.z), 
-                    vec3f(u1.xy, u0.z)
-                );
-                let e = ${name}_gradient(
-                    vec3u(p0.xy, p1.z), 
-                    vec3f(u0.xy, u1.z)
-                );
-                let f = ${name}_gradient(
-                    vec3u(p1.x, p0.y, p1.z), 
-                    vec3f(u1.x, u0.y, u1.z)
-                );
-                let g = ${name}_gradient(
-                    vec3u(p0.x, p1.yz), 
-                    vec3f(u0.x, u1.yz)
-                );
-                let h = ${name}_gradient(p1, u1);
+                let a = ${contribution}(p0, u0);
+                let b = ${contribution}(vec3u(p1.x, p0.y, p0.z), vec3f(u1.x, u0.y, u0.z));
+                let c = ${contribution}(vec3u(p0.x, p1.y, p0.z), vec3f(u0.x, u1.y, u0.z));
+                let d = ${contribution}(vec3u(p1.x, p1.y, p0.z), vec3f(u1.x, u1.y, u0.z));
+                let e = ${contribution}(vec3u(p0.x, p0.y, p1.z), vec3f(u0.x, u0.y, u1.z));
+                let f = ${contribution}(vec3u(p1.x, p0.y, p1.z), vec3f(u1.x, u0.y, u1.z));
+                let g = ${contribution}(vec3u(p0.x, p1.y, p1.z), vec3f(u0.x, u1.y, u1.z));
+                let h = ${contribution}(p1, u1);
 
                 let s = fade_3d(u0);
                 
@@ -189,17 +169,19 @@ export class Perlin4D implements NoiseAlgorithm {
         `
     }
 
-    createShader({ name, extraBufferName }: Config) {
+    createShader({ functionName, extraBufferName }: Config) {
         const norm_constant = this.quadratic ? 1.5 : 1.7
+        const contribution = `${functionName}_contribution`
 
         return /* wgsl */ `
-            fn ${name}_gradient(grid_pos: vec4u, local_vec: vec4f) -> f32 {
-                let hash = hash_4u_1u(grid_pos);
-                let result = dot(${extraBufferName}[hash >> 26], local_vec);
+            fn ${contribution}(grid_corner: vec4u, vec_corner_to_pos: vec4f) -> f32 {
+                let hash = hash_4u_1u(grid_corner);
+                let gradient = ${extraBufferName}[hash >> 26];
+                let result = dot(gradient, vec_corner_to_pos);
                 ${gradientCalculation(this.quadratic)}
             }
 
-            fn ${name}(pos: vec4f, channel: u32) -> f32 {
+            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
                 let floor_pos = floor(pos);
                 let u0 = pos - floor_pos;
                 let u1 = u0 - 1;
@@ -207,23 +189,23 @@ export class Perlin4D implements NoiseAlgorithm {
                 let p0 = seed_4d(vec4i(floor_pos), channel);
                 let p1 = p0 + 1u;
                 
-                let a = ${name}_gradient(p0, u0);
-                let b = ${name}_gradient(vec4u(p1.x, p0.y, p0.z, p0.w), vec4f(u1.x, u0.y, u0.z, u0.w));
-                let c = ${name}_gradient(vec4u(p0.x, p1.y, p0.z, p0.w), vec4f(u0.x, u1.y, u0.z, u0.w));
-                let d = ${name}_gradient(vec4u(p1.x, p1.y, p0.z, p0.w), vec4f(u1.x, u1.y, u0.z, u0.w));
-                let e = ${name}_gradient(vec4u(p0.x, p0.y, p1.z, p0.w), vec4f(u0.x, u0.y, u1.z, u0.w));
-                let f = ${name}_gradient(vec4u(p1.x, p0.y, p1.z, p0.w), vec4f(u1.x, u0.y, u1.z, u0.w));
-                let g = ${name}_gradient(vec4u(p0.x, p1.y, p1.z, p0.w), vec4f(u0.x, u1.y, u1.z, u0.w));
-                let h = ${name}_gradient(vec4u(p1.x, p1.y, p1.z, p0.w), vec4f(u1.x, u1.y, u1.z, u0.w));
+                let a = ${contribution}(p0, u0);
+                let b = ${contribution}(vec4u(p1.x, p0.y, p0.z, p0.w), vec4f(u1.x, u0.y, u0.z, u0.w));
+                let c = ${contribution}(vec4u(p0.x, p1.y, p0.z, p0.w), vec4f(u0.x, u1.y, u0.z, u0.w));
+                let d = ${contribution}(vec4u(p1.x, p1.y, p0.z, p0.w), vec4f(u1.x, u1.y, u0.z, u0.w));
+                let e = ${contribution}(vec4u(p0.x, p0.y, p1.z, p0.w), vec4f(u0.x, u0.y, u1.z, u0.w));
+                let f = ${contribution}(vec4u(p1.x, p0.y, p1.z, p0.w), vec4f(u1.x, u0.y, u1.z, u0.w));
+                let g = ${contribution}(vec4u(p0.x, p1.y, p1.z, p0.w), vec4f(u0.x, u1.y, u1.z, u0.w));
+                let h = ${contribution}(vec4u(p1.x, p1.y, p1.z, p0.w), vec4f(u1.x, u1.y, u1.z, u0.w));
 
-                let i = ${name}_gradient(vec4u(p0.x, p0.y, p0.z, p1.w), vec4f(u0.x, u0.y, u0.z, u1.w));
-                let j = ${name}_gradient(vec4u(p1.x, p0.y, p0.z, p1.w), vec4f(u1.x, u0.y, u0.z, u1.w));
-                let k = ${name}_gradient(vec4u(p0.x, p1.y, p0.z, p1.w), vec4f(u0.x, u1.y, u0.z, u1.w));
-                let l = ${name}_gradient(vec4u(p1.x, p1.y, p0.z, p1.w), vec4f(u1.x, u1.y, u0.z, u1.w));
-                let m = ${name}_gradient(vec4u(p0.x, p0.y, p1.z, p1.w), vec4f(u0.x, u0.y, u1.z, u1.w));
-                let n = ${name}_gradient(vec4u(p1.x, p0.y, p1.z, p1.w), vec4f(u1.x, u0.y, u1.z, u1.w));
-                let o = ${name}_gradient(vec4u(p0.x, p1.y, p1.z, p1.w), vec4f(u0.x, u1.y, u1.z, u1.w));
-                let p = ${name}_gradient(p1, u1);
+                let i = ${contribution}(vec4u(p0.x, p0.y, p0.z, p1.w), vec4f(u0.x, u0.y, u0.z, u1.w));
+                let j = ${contribution}(vec4u(p1.x, p0.y, p0.z, p1.w), vec4f(u1.x, u0.y, u0.z, u1.w));
+                let k = ${contribution}(vec4u(p0.x, p1.y, p0.z, p1.w), vec4f(u0.x, u1.y, u0.z, u1.w));
+                let l = ${contribution}(vec4u(p1.x, p1.y, p0.z, p1.w), vec4f(u1.x, u1.y, u0.z, u1.w));
+                let m = ${contribution}(vec4u(p0.x, p0.y, p1.z, p1.w), vec4f(u0.x, u0.y, u1.z, u1.w));
+                let n = ${contribution}(vec4u(p1.x, p0.y, p1.z, p1.w), vec4f(u1.x, u0.y, u1.z, u1.w));
+                let o = ${contribution}(vec4u(p0.x, p1.y, p1.z, p1.w), vec4f(u0.x, u1.y, u1.z, u1.w));
+                let p = ${contribution}(p1, u1);
 
                 let s = fade_4d(u0);
                 
