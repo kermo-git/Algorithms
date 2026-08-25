@@ -7,7 +7,7 @@ export interface Config {
     extraBufferName?: string
 }
 
-export interface NoiseAlgorithm {
+export interface NoiseShaderFactory {
     pos_type: VecType
     extra_data_type?: string
     generateExtraData?: () => FloatArray

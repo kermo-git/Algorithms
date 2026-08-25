@@ -6,7 +6,7 @@ import {
     unitVector2DShader,
     unitVector3DShader
 } from '@/Noise/ShaderUtils'
-import type { NoiseAlgorithm } from '@/Noise/Types'
+import type { NoiseShaderFactory } from '@/Noise/Types'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
@@ -49,7 +49,7 @@ export function vertexIndexShader(setup: Setup): string {
 
 function noiseFunctionShader(group: number) {
     function createNoiseFunctions(
-        algorithm: NoiseAlgorithm,
+        algorithm: NoiseShaderFactory,
         functionName: string,
         extraBufferName?: string
     ) {

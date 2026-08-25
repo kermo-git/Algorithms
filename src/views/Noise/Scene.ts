@@ -3,7 +3,7 @@ import Engine from '@/WebGPU/Engine'
 import createNoiseShader, { type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
 
-export default class NoiseScene {
+export default class WebGPUScene {
     setup!: Setup
 
     engine!: Engine
@@ -29,7 +29,7 @@ export default class NoiseScene {
         await this.engine.init(canvas)
 
         const { device, canvas_color_format } = this.engine
-        const { algorithm, transform } = this.setup
+        const { shader_factory: algorithm, transform } = this.setup
 
         const shader_code = createNoiseShader(this.setup, canvas_color_format)
 

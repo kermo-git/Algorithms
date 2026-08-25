@@ -8,7 +8,7 @@ import {
     kernelBufferSize
 } from './Shader'
 
-export class NeuralScene {
+export class WebGPUScene {
     engine!: Engine
 
     canvas_layout!: GPUBindGroupLayout

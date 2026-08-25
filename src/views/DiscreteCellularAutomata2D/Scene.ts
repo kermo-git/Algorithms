@@ -3,7 +3,7 @@ import { lerpColorArray, shaderColorArray } from '@/utils/Colors'
 
 import { createShader, type Setup } from './Shader'
 
-export class AutomatonScene {
+export class WebGPUScene {
     engine!: Engine
 
     generation_A_is_current = true

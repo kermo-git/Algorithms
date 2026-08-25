@@ -21,7 +21,7 @@ import {
     generateUnitVectors3D
 } from '@/Noise/UnitVectors'
 
-export default class TerrainScene {
+export default class WebGPUScene {
     setup!: Setup
     engine!: Engine
 

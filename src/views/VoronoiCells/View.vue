@@ -15,7 +15,7 @@ import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 
 import { type DistanceMeasure } from './Shader'
-import VoronoiScene from './Scene'
+import WebGPUScene from './Scene'
 
 const active_tab = ref('Configuration')
 
@@ -31,7 +31,7 @@ const noise_persistence = ref(0.5)
 const noise_warp_strength = ref(0)
 const noise_z = ref(0)
 
-const scene = shallowRef(new VoronoiScene())
+const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 async function initScene(canvas: HTMLCanvasElement) {
@@ -41,7 +41,7 @@ async function initScene(canvas: HTMLCanvasElement) {
             distance_measure: voronoi_distance.value,
             voronoi_n_columns: voronoi_n_columns.value,
             voronoi_colors: voronoi_colors.value,
-            warp_algorithm: createNoiseAlgorithm(
+            warp: createNoiseAlgorithm(
                 noise_algorithm.value,
                 noise_dimension.value
             ),
@@ -80,10 +80,7 @@ watch(
                     distance_measure: new_measure,
                     voronoi_n_columns: voronoi_n_columns.value,
                     voronoi_colors: voronoi_colors.value,
-                    warp_algorithm: createNoiseAlgorithm(
-                        new_algorithm,
-                        new_dimension
-                    ),
+                    warp: createNoiseAlgorithm(new_algorithm, new_dimension),
                     noise_scale: noise_scale.value,
                     noise_warp_strength: noise_warp_strength.value,
                     noise_z: noise_z.value,

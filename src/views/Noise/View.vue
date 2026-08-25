@@ -8,14 +8,15 @@ import RangeInput from '@/components/RangeInput.vue'
 import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
-import NoiseScene from './Scene'
-import type { DomainTransform } from './Shader'
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
 import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
+
+import type { DomainTransform } from './Shader'
+import WebGPUScene from './Scene'
 
 const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])
@@ -30,7 +31,7 @@ const w_coord = ref(0)
 const warp_strength = ref(0.1)
 const n_warp_octaves = ref(1)
 const active_tab = ref('Configuration')
-const scene = shallowRef(new NoiseScene())
+const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
@@ -114,7 +115,10 @@ async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     await scene.value.init(
         {
-            algorithm: createNoiseAlgorithm(algorithm.value, dimension.value),
+            shader_factory: createNoiseAlgorithm(
+                algorithm.value,
+                dimension.value
+            ),
             transform: domain_transform.value,
             n_grid_columns: n_grid_columns.value,
             n_main_octaves: n_main_octaves.value,
@@ -146,7 +150,7 @@ watch(
             scene.value.cleanup()
             scene.value.init(
                 {
-                    algorithm: createNoiseAlgorithm(
+                    shader_factory: createNoiseAlgorithm(
                         new_algorithm,
                         new_dimension
                     ),

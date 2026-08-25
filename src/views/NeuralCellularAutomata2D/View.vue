@@ -17,7 +17,7 @@ import VBox from '@/components/VBox.vue'
 import { KernelSymmetry } from './Types'
 import MatrixEditor from './MatrixEditor.vue'
 import { examples, type Example } from './Examples'
-import { NeuralScene } from './Scene'
+import { WebGPUScene } from './Scene'
 
 const default_example = examples[0]
 
@@ -37,7 +37,7 @@ const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const scene = shallowRef(new NeuralScene())
+const scene = shallowRef(new WebGPUScene())
 
 let activation_shader = default_example.activation
 let kernel_changed = false

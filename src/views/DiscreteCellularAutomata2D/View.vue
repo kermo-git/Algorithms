@@ -14,7 +14,7 @@ import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
 import IntegerField from '@/components/IntegerField.vue'
 
-import { AutomatonScene } from './Scene'
+import { WebGPUScene } from './Scene'
 import { examples, type Example } from './Examples'
 
 const default_example = examples[0]
@@ -33,7 +33,7 @@ const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const scene = shallowRef(new AutomatonScene())
+const scene = shallowRef(new WebGPUScene())
 const max_n_states = 32
 
 async function initScene() {

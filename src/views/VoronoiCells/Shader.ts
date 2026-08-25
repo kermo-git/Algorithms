@@ -1,5 +1,5 @@
 import { octaveNoiseShader } from '@/Noise/ShaderUtils'
-import type { NoiseAlgorithm } from '@/Noise/Types'
+import type { NoiseShaderFactory } from '@/Noise/Types'
 import { WG_DIM } from '@/WebGPU/Engine'
 
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
@@ -7,7 +7,7 @@ export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 
 export interface Setup {
     distance_measure: DistanceMeasure
-    warp_algorithm: NoiseAlgorithm
+    warp: NoiseShaderFactory
     voronoi_n_columns?: number
     voronoi_colors?: string[]
     noise_scale?: number
@@ -18,11 +18,11 @@ export interface Setup {
 }
 
 export function createShader(
-    { distance_measure, warp_algorithm }: Setup,
+    { distance_measure, warp }: Setup,
     canvas_color_format: GPUTextureFormat
 ) {
-    const pos_type = warp_algorithm.pos_type
-    const noise_data = warp_algorithm.extra_data_type ? '' : '//'
+    const pos_type = warp.pos_type
+    const noise_data = warp.extra_data_type ? '' : '//'
     const only_3D = pos_type === 'vec3f' ? '' : '//'
 
     let pos_expr = ''
@@ -55,7 +55,7 @@ export function createShader(
         @group(1) @binding(3) var<uniform> noise_persistence: f32;
         @group(1) @binding(4) var<uniform> noise_warp_strength: f32;
         ${only_3D} @group(1) @binding(5) var<uniform> noise_z: f32;
-        ${noise_data} @group(1) @binding(6) var<storage> noise_data: ${warp_algorithm.extra_data_type};
+        ${noise_data} @group(1) @binding(6) var<storage> noise_data: ${warp.extra_data_type};
 
         @group(2) @binding(0) var<storage> voronoi_colors: array<vec4f>;
         @group(2) @binding(1) var<uniform> n_colors: u32;
@@ -90,9 +90,9 @@ export function createShader(
             return voronoi_colors[x % n_colors];
         }
 
-        ${warp_algorithm.createShaderDependencies()}
+        ${warp.createShaderDependencies()}
 
-        ${warp_algorithm.createShader({
+        ${warp.createShader({
             functionName: 'noise',
             extraBufferName: 'noise_data'
         })}
@@ -100,7 +100,7 @@ export function createShader(
         ${octaveNoiseShader({
             func_name: 'octave_noise',
             noise_name: 'noise',
-            pos_type: warp_algorithm.pos_type
+            pos_type: warp.pos_type
         })}
 
         fn warp_pos(voronoi_pos: vec2f, noise_pos: ${pos_type}) -> vec2f {

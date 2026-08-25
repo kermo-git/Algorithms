@@ -1,4 +1,4 @@
-import type { NoiseAlgorithm, Config } from '../Types'
+import type { NoiseShaderFactory, Config } from '../Types'
 import {
     seed_2d,
     hash_2u_2f,
@@ -8,7 +8,7 @@ import {
     hash_4u_4f
 } from './Common'
 
-export const Worley2D: NoiseAlgorithm = {
+export const Worley2D: NoiseShaderFactory = {
     pos_type: 'vec2f',
 
     createShaderDependencies() {
@@ -41,7 +41,7 @@ export const Worley2D: NoiseAlgorithm = {
     }
 }
 
-export const Worley3D: NoiseAlgorithm = {
+export const Worley3D: NoiseShaderFactory = {
     pos_type: 'vec3f',
 
     createShaderDependencies() {
@@ -76,7 +76,7 @@ export const Worley3D: NoiseAlgorithm = {
     }
 }
 
-export const Worley4D: NoiseAlgorithm = {
+export const Worley4D: NoiseShaderFactory = {
     pos_type: 'vec4f',
 
     createShaderDependencies() {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { ref, shallowRef } from 'vue'
 
 import type { ShaderIssue } from '@/WebGPU/Engine'
 import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
@@ -14,12 +14,12 @@ import MenuItem from '@/components/MenuItem.vue'
 import Menu from '@/components/Menu.vue'
 
 import { examples, type Example } from './Examples'
-import TerrainScene from './Scene'
+import WebGPUScene from './Scene'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const scene = shallowRef(new TerrainScene())
+const scene = shallowRef(new WebGPUScene())
 
 const grid_size = ref(4)
 const noise_shader = ref(examples[0].elevation_shader)

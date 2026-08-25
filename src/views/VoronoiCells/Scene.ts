@@ -3,7 +3,7 @@ import Engine from '@/WebGPU/Engine'
 import { type Setup, createShader } from './Shader'
 import { parseHexColor, shaderColorArray } from '@/utils/Colors'
 
-export default class VoronoiScene {
+export default class WebGPUScene {
     setup!: Setup
 
     engine!: Engine
@@ -30,7 +30,7 @@ export default class VoronoiScene {
         await this.engine.init(canvas)
 
         const { device, canvas_color_format } = this.engine
-        const { warp_algorithm } = this.setup
+        const { warp: warp_algorithm } = this.setup
 
         const shader_code = `${createShader(this.setup, canvas_color_format)}`
 

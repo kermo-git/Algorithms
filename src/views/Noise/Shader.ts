@@ -6,12 +6,12 @@ import {
     unitVector2DShader,
     unitVector3DShader
 } from '@/Noise/ShaderUtils'
-import type { NoiseAlgorithm } from '@/Noise/Types'
+import type { NoiseShaderFactory } from '@/Noise/Types'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 
 export interface Setup {
-    algorithm: NoiseAlgorithm
+    shader_factory: NoiseShaderFactory
     transform: DomainTransform
     n_grid_columns?: number
     n_main_octaves?: number
@@ -61,7 +61,7 @@ function warp3DShader() {
     `
 }
 
-function createNoiseFunctions({ algorithm, transform }: Setup) {
+function createNoiseFunctions({ shader_factory: algorithm, transform }: Setup) {
     let noise_functions = `
         const main_channel = bitcast<u32>(i32(${Date.now() >> 0}));
 
@@ -119,7 +119,7 @@ function createNoiseFunctions({ algorithm, transform }: Setup) {
     }
 }
 
-function noisePosCode(algorithm: NoiseAlgorithm) {
+function noisePosCode(algorithm: NoiseShaderFactory) {
     switch (algorithm.pos_type) {
         case 'vec2f':
             return /* wgsl */ `
@@ -142,7 +142,7 @@ export default function createNoiseShader(
     setup: Setup,
     canvas_color_format: GPUTextureFormat
 ): string {
-    const { algorithm, transform } = setup
+    const { shader_factory: algorithm, transform } = setup
     const noise_data = algorithm.extra_data_type ? '' : '//'
     const not_2D = algorithm.pos_type !== 'vec2f' ? '' : '//'
     const only_4D = algorithm.pos_type === 'vec4f' ? '' : '//'

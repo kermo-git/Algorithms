@@ -1,4 +1,4 @@
-import type { NoiseAlgorithm, Config } from '../Types'
+import type { NoiseShaderFactory, Config } from '../Types'
 import {
     fade_2d,
     fade_3d,
@@ -11,7 +11,7 @@ import {
     seed_4d
 } from './Common'
 
-export const Value2D: NoiseAlgorithm = {
+export const Value2D: NoiseShaderFactory = {
     pos_type: 'vec2f',
 
     createShaderDependencies() {
@@ -43,7 +43,7 @@ export const Value2D: NoiseAlgorithm = {
     }
 }
 
-export const Value3D: NoiseAlgorithm = {
+export const Value3D: NoiseShaderFactory = {
     pos_type: 'vec3f',
 
     createShaderDependencies() {
@@ -83,7 +83,7 @@ export const Value3D: NoiseAlgorithm = {
     }
 }
 
-export const Value4D: NoiseAlgorithm = {
+export const Value4D: NoiseShaderFactory = {
     pos_type: 'vec4f',
 
     createShaderDependencies() {

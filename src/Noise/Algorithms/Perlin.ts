@@ -3,7 +3,7 @@ import {
     generateUnitVectors3D,
     generateUnitVectors4D
 } from '../UnitVectors'
-import { type NoiseAlgorithm, type Config, type VecType } from '../Types'
+import { type NoiseShaderFactory, type Config, type VecType } from '../Types'
 import {
     fade_2d,
     fade_3d,
@@ -28,7 +28,7 @@ function gradientCalculation(quadratic: boolean) {
     }
 }
 
-export class Perlin2D implements NoiseAlgorithm {
+export class Perlin2D implements NoiseShaderFactory {
     pos_type: VecType = 'vec2f'
     extra_data_type = 'array<vec2f>'
     // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
@@ -85,7 +85,7 @@ export class Perlin2D implements NoiseAlgorithm {
     }
 }
 
-export class Perlin3D implements NoiseAlgorithm {
+export class Perlin3D implements NoiseShaderFactory {
     pos_type: VecType = 'vec3f'
     extra_data_type = 'array<vec3f>'
     quadratic: boolean
@@ -148,7 +148,7 @@ export class Perlin3D implements NoiseAlgorithm {
     }
 }
 
-export class Perlin4D implements NoiseAlgorithm {
+export class Perlin4D implements NoiseShaderFactory {
     pos_type: VecType = 'vec4f'
     extra_data_type = 'array<vec4f>'
     quadratic: boolean

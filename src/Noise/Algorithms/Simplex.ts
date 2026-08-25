@@ -1,6 +1,6 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import type { NoiseAlgorithm, Config, VecType } from '../Types'
+import type { NoiseShaderFactory, Config, VecType } from '../Types'
 import {
     generateUnitVectors2D,
     generateUnitVectors3D,
@@ -26,7 +26,7 @@ function get_unskew_constant(n_dimensions: number) {
     return (1 - 1 / Math.sqrt(n_dimensions + 1)) / n_dimensions
 }
 
-export class Simplex2D implements NoiseAlgorithm {
+export class Simplex2D implements NoiseShaderFactory {
     pos_type: VecType = 'vec2f'
     extra_data_type: string
     value_noise: boolean
@@ -47,10 +47,10 @@ export class Simplex2D implements NoiseAlgorithm {
         `
     }
 
-    influenceFunction({ functionName, extraBufferName }: Config) {
+    contributionFunction({ functionName, extraBufferName }: Config) {
         if (this.value_noise) {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec2u, c_pos: vec2f) -> f32 {
                     let t = 0.5 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -61,7 +61,7 @@ export class Simplex2D implements NoiseAlgorithm {
             `
         } else {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec2u, c_pos: vec2f) -> f32 {
                     let t = 0.5 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -76,7 +76,7 @@ export class Simplex2D implements NoiseAlgorithm {
 
     createShader({ functionName, extraBufferName }: Config) {
         const norm_constant = this.value_noise ? 16 : 99
-        const influence = `${functionName}_influence`
+        const contribution = `${functionName}_contribution`
         const skew = `${functionName}_skew`
         const unskew = `${functionName}_unskew`
 
@@ -84,7 +84,7 @@ export class Simplex2D implements NoiseAlgorithm {
         const UNSKEW_CONST = get_unskew_constant(2)
 
         return /* wgsl */ `
-            ${this.influenceFunction({ functionName, extraBufferName })}
+            ${this.contributionFunction({ functionName, extraBufferName })}
             
             fn ${skew}(v: vec2f) -> vec2f {
                 return v + (v.x + v.y) * ${SKEW_CONST};
@@ -115,9 +115,9 @@ export class Simplex2D implements NoiseAlgorithm {
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
 
-                let i0 = ${influence}(skew_c0, c0_pos);
-                let i1 = ${influence}(skew_c1, c1_pos);
-                let i2 = ${influence}(skew_c2, c2_pos);
+                let i0 = ${contribution}(skew_c0, c0_pos);
+                let i1 = ${contribution}(skew_c1, c1_pos);
+                let i2 = ${contribution}(skew_c2, c2_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
@@ -126,7 +126,7 @@ export class Simplex2D implements NoiseAlgorithm {
     }
 }
 
-export class Simplex3D implements NoiseAlgorithm {
+export class Simplex3D implements NoiseShaderFactory {
     pos_type: VecType = 'vec3f'
     extra_data_type: string
     value_noise: boolean
@@ -147,10 +147,10 @@ export class Simplex3D implements NoiseAlgorithm {
         `
     }
 
-    influenceFunction({ functionName, extraBufferName }: Config) {
+    contributionFunction({ functionName, extraBufferName }: Config) {
         if (this.value_noise) {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec3u, c_pos: vec3f) -> f32 {
                     let t = 0.6 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -161,7 +161,7 @@ export class Simplex3D implements NoiseAlgorithm {
             `
         } else {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec3u, c_pos: vec3f) -> f32 {
                     let t = 0.6 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -176,7 +176,7 @@ export class Simplex3D implements NoiseAlgorithm {
 
     createShader({ functionName, extraBufferName }: Config) {
         const norm_constant = this.value_noise ? 8 : 42
-        const influence = `${functionName}_influence`
+        const contribution = `${functionName}_contribution`
         const skew = `${functionName}_skew`
         const unskew = `${functionName}_unskew`
 
@@ -184,7 +184,7 @@ export class Simplex3D implements NoiseAlgorithm {
         const UNSKEW_CONST = get_unskew_constant(3)
 
         return /* wgsl */ `
-            ${this.influenceFunction({ functionName, extraBufferName })}
+            ${this.contributionFunction({ functionName, extraBufferName })}
             
             fn ${skew}(v: vec3f) -> vec3f {
                 return v + (v.x + v.y + v.z) * ${SKEW_CONST};
@@ -240,10 +240,10 @@ export class Simplex3D implements NoiseAlgorithm {
                 let skew_c2 = skew_c0 + skew_c0_c2;
                 let skew_c3 = skew_c0 + skew_c0_c3;
 
-                let i0 = ${influence}(skew_c0, c0_pos);
-                let i1 = ${influence}(skew_c1, c1_pos);
-                let i2 = ${influence}(skew_c2, c2_pos);
-                let i3 = ${influence}(skew_c3, c3_pos);
+                let i0 = ${contribution}(skew_c0, c0_pos);
+                let i1 = ${contribution}(skew_c1, c1_pos);
+                let i2 = ${contribution}(skew_c2, c2_pos);
+                let i3 = ${contribution}(skew_c3, c3_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2 + i3);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
@@ -252,7 +252,7 @@ export class Simplex3D implements NoiseAlgorithm {
     }
 }
 
-export class Simplex4D implements NoiseAlgorithm {
+export class Simplex4D implements NoiseShaderFactory {
     pos_type: VecType = 'vec4f'
     extra_data_type: string
     value_noise: boolean
@@ -273,10 +273,10 @@ export class Simplex4D implements NoiseAlgorithm {
         `
     }
 
-    influenceFunction({ functionName, extraBufferName }: Config) {
+    contributionFunction({ functionName, extraBufferName }: Config) {
         if (this.value_noise) {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec4u, c_pos: vec4f) -> f32 {
                     let t = 0.6 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -287,7 +287,7 @@ export class Simplex4D implements NoiseAlgorithm {
             `
         } else {
             return /* wgsl */ `
-                fn ${functionName}_influence(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                fn ${functionName}_contribution(skew_c: vec4u, c_pos: vec4f) -> f32 {
                     let t = 0.6 - dot(c_pos, c_pos);
                     if (t < 0) {
                         return 0;
@@ -302,7 +302,7 @@ export class Simplex4D implements NoiseAlgorithm {
 
     createShader({ functionName, extraBufferName }: Config) {
         const norm_constant = this.value_noise ? 8 : 42
-        const influence = `${functionName}_influence`
+        const contribution = `${functionName}_contribution`
         const skew = `${functionName}_skew`
         const unskew = `${functionName}_unskew`
 
@@ -310,7 +310,7 @@ export class Simplex4D implements NoiseAlgorithm {
         const UNSKEW_CONST = get_unskew_constant(4)
 
         return /* wgsl */ `
-            ${this.influenceFunction({ functionName, extraBufferName })}
+            ${this.contributionFunction({ functionName, extraBufferName })}
             
             fn ${skew}(v: vec4f) -> vec4f {
                 return v + (v.x + v.y + v.z + v.w) * ${SKEW_CONST};
@@ -492,11 +492,11 @@ export class Simplex4D implements NoiseAlgorithm {
                 let skew_c3 = skew_c0 + skew_c0_c3;
                 let skew_c4 = skew_c0 + skew_c0_c4;
 
-                let i0 = ${influence}(skew_c0, c0_pos);
-                let i1 = ${influence}(skew_c1, c1_pos);
-                let i2 = ${influence}(skew_c2, c2_pos);
-                let i3 = ${influence}(skew_c3, c3_pos);
-                let i4 = ${influence}(skew_c4, c4_pos);
+                let i0 = ${contribution}(skew_c0, c0_pos);
+                let i1 = ${contribution}(skew_c1, c1_pos);
+                let i2 = ${contribution}(skew_c2, c2_pos);
+                let i3 = ${contribution}(skew_c3, c3_pos);
+                let i4 = ${contribution}(skew_c4, c4_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2 + i3 + i4);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
