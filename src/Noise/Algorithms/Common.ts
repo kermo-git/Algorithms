@@ -1,3 +1,193 @@
+import { ShaderModule } from '@/WebGPU/ShaderModuleSystem'
+
+function create_fade_fn(d: 2 | 3 | 4) {
+    const name = `fade_${d}d`
+    const vec_type = `vec${d}f`
+
+    return /* wgsl */ `
+        fn ${name}(t: ${vec_type}) -> ${vec_type} {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+    `
+}
+
+function create_seed_fn(d: 2 | 3 | 4) {
+    const name = `fade_${d}d`
+    const vec_i = `vec${d}i`
+    const vec_u = `vec${d}u`
+
+    return /* wgsl */ `
+        fn ${name}(coords: ${vec_i}, seed: u32) -> ${vec_u} {
+            return bitcast<${vec_u}>(coords) + seed * 0x9E3779B9;
+        }
+    `
+}
+
+// https://www.shadertoy.com/view/XlGcRh
+// https://www.jcgt.org/published/0009/03/02/
+
+const float_factor = /* wgsl */ `(1.0 / f32(0xFFFFFFFFu))`
+
+const pcg2d_scramble = /* wgsl */ `
+    var h = v * 1664525u + 1013904223u;
+
+    h.x += h.y * 1664525u;
+    h.y += h.x * 1664525u;
+
+    h = h ^ (h >> vec2u(16u));
+`
+
+const pcg2d_x = /* wgsl */ `
+    ${pcg2d_scramble}
+
+    h.x += h.y * 1664525u;
+    h.x ^= h.x >> 16u;
+`
+
+const pcg2d_xy = /* wgsl */ `
+    ${pcg2d_scramble}
+
+    h.x += h.y * 1664525u;
+    h.y += h.x * 1664525u;
+    h = h ^ (h >> vec2u(16u));
+`
+
+const pcg3d_x = /* wgsl */ `
+    var h = v * 1664525u + 1013904223u;
+
+    h.x += h.y*h.z;
+    h.y += h.z*h.x;
+    h.z += h.x*h.y;
+
+    h ^= h >> vec3u(16u);
+
+    h.x += h.y*h.z;
+`
+
+const pcg3d_xyz = /* wgsl */ `
+    ${pcg3d_x}
+    h.y += h.z*h.x;
+    h.z += h.x*h.y;
+`
+
+const pcg4d_x = /* wgsl */ `
+    var h = v * 1664525u + 1013904223u;
+    
+    h.x += h.y*h.w;
+    h.y += h.z*h.x;
+    h.z += h.x*h.y;
+    h.w += h.y*h.z;
+    
+    h ^= h >> vec4u(16u);
+
+    h.x += h.y*h.w;
+`
+
+const pcg4d_xyzw = /* wgsl */ `
+    ${pcg4d_x}
+    h.y += h.z*h.x;
+    h.z += h.x*h.y;
+    h.w += h.y*h.z;
+`
+
+const shader_functions = new Map<string, string>([
+    ['fade_2d', create_fade_fn(2)],
+    ['fade_3d', create_fade_fn(3)],
+    ['fade_4d', create_fade_fn(4)],
+    ['seed_2d', create_seed_fn(2)],
+    ['seed_3d', create_seed_fn(3)],
+    ['seed_4d', create_seed_fn(4)],
+    [
+        'cubic_interpolation',
+        /* wgsl */ `
+        fn cubic_interpolation(a: f32, b: f32, c: f32, d: f32, t: f32) -> f32 {
+            let p = d - c - (a - b);
+            return t * (t * (t * p + (a - b - p)) + (c - a)) + b;
+        }`
+    ],
+    [
+        'hash_2u_1f',
+        /* wgsl */ `
+        fn hash_2u_1f(v: vec2u) -> f32 {
+            ${pcg2d_x}
+            return f32(h.x) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_2u_2f',
+        /* wgsl */ `
+        fn hash_2u_2f(v: vec2u) -> vec2f {
+            ${pcg2d_xy}
+            return vec2f(h.xy) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_2u_1u',
+        /* wgsl */ `
+        fn hash_2u_1u(v: vec2u) -> u32 {
+            ${pcg2d_x}
+            return h.x;
+        }`
+    ],
+    [
+        'hash_3u_1f',
+        /* wgsl */ `
+        fn hash_3u_1f(v: vec3u) -> f32 {
+            ${pcg3d_x}
+            return f32(h.x) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_3u_3f',
+        /* wgsl */ `
+        fn hash_3u_3f(v: vec3u) -> vec3f {
+            ${pcg3d_xyz}
+            return vec3f(h.xyz) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_3u_1u',
+        /* wgsl */ `
+        fn hash_3u_1u(v: vec3u) -> u32 {
+            ${pcg3d_x}
+            return h.x;
+        }`
+    ],
+    [
+        'hash_4u_1f',
+        /* wgsl */ `
+        fn hash_4u_1f(v: vec4u) -> f32 {
+            ${pcg4d_x}
+            return f32(h.x) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_4u_4f',
+        /* wgsl */ `
+        fn hash_4u_4f(v: vec4u) -> vec4f {
+            ${pcg4d_xyzw}
+            return vec4f(h.xyzw) * ${float_factor};
+        }`
+    ],
+    [
+        'hash_4u_1u',
+        /* wgsl */ `
+        fn hash_4u_1u(v: vec4u) -> u32 {
+            ${pcg4d_x}
+            return h.x;
+        }`
+    ]
+])
+
+export function createModule(name: string): ShaderModule {
+    const code = shader_functions.get(name) || ''
+
+    return {
+        name: name,
+        emitShaderCode: () => code
+    }
+}
+
 export const fade_2d = /* wgsl */ `
     fn fade_2d(t: vec2f) -> vec2f {
         return t * t * t * (t * (t * 6 - 15) + 10);
@@ -43,35 +233,6 @@ export const seed_4d = /* wgsl */ `
     }
 `
 
-// https://www.shadertoy.com/view/XlGcRh
-// https://www.jcgt.org/published/0009/03/02/
-
-const float_factor = /* wgsl */ `(1.0 / f32(0xFFFFFFFFu))`
-
-const pcg2d_scramble = /* wgsl */ `
-    var h = v * 1664525u + 1013904223u;
-
-    h.x += h.y * 1664525u;
-    h.y += h.x * 1664525u;
-
-    h = h ^ (h >> vec2u(16u));
-`
-
-const pcg2d_x = /* wgsl */ `
-    ${pcg2d_scramble}
-
-    h.x += h.y * 1664525u;
-    h.x ^= h.x >> 16u;
-`
-
-const pcg2d_xy = /* wgsl */ `
-    ${pcg2d_scramble}
-
-    h.x += h.y * 1664525u;
-    h.y += h.x * 1664525u;
-    h = h ^ (h >> vec2u(16u));
-`
-
 export const hash_2u_1f = /* wgsl */ `
     fn hash_2u_1f(v: vec2u) -> f32 {
         ${pcg2d_x}
@@ -93,24 +254,6 @@ export const hash_2u_1u = /* wgsl */ `
     }
 `
 
-const pcg3d_x = /* wgsl */ `
-    var h = v * 1664525u + 1013904223u;
-
-    h.x += h.y*h.z;
-    h.y += h.z*h.x;
-    h.z += h.x*h.y;
-
-    h ^= h >> vec3u(16u);
-
-    h.x += h.y*h.z;
-`
-
-const pcg3d_xyz = /* wgsl */ `
-    ${pcg3d_x}
-    h.y += h.z*h.x;
-    h.z += h.x*h.y;
-`
-
 export const hash_3u_1f = /* wgsl */ `
     fn hash_3u_1f(v: vec3u) -> f32 {
         ${pcg3d_x}
@@ -130,26 +273,6 @@ export const hash_3u_1u = /* wgsl */ `
         ${pcg3d_x}
         return h.x;
     }
-`
-
-const pcg4d_x = /* wgsl */ `
-    var h = v * 1664525u + 1013904223u;
-    
-    h.x += h.y*h.w;
-    h.y += h.z*h.x;
-    h.z += h.x*h.y;
-    h.w += h.y*h.z;
-    
-    h ^= h >> vec4u(16u);
-
-    h.x += h.y*h.w;
-`
-
-const pcg4d_xyzw = /* wgsl */ `
-    ${pcg4d_x}
-    h.y += h.z*h.x;
-    h.z += h.x*h.y;
-    h.w += h.y*h.z;
 `
 
 export const hash_4u_1f = /* wgsl */ `
