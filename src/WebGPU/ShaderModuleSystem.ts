@@ -1,56 +1,61 @@
-export interface ResourceDefinition {
+export interface ShaderResource {
     name: string
-    dataType: string
     usage: GPUFlagsConstant
-    
-    bindingType: GPUBufferBindingType // TODO: use bindingType of ResourceBinding
-    visibility?: GPUFlagsConstant // TODO: determine automatically for each ResourceBinding at compile time
+    dataType: string
 
-    byteLength: number
+    byteLength?: number
     generateData?: () => ArrayBuffer
+
+    // texture specific fields
+    color_format?: GPUTextureFormat
 }
 
 export interface ShaderModule {
     name: string
-    resources?: ResourceDefinition[]
+    resources?: ShaderResource[]
     imports?: ShaderModule[]
 
     emitShaderCode(): string
 }
 
 export interface ResourceBinding {
-    resource: ResourceDefinition
-    bindingType: GPUBufferBindingType
+    name: string
+    resource: ShaderResource
+    readOnlyStorage?: boolean
 }
 
-export interface BindGroupDefinition {
+export interface BindGroup {
+    kind: 'BindGroup'
     name: string
     bindings: ResourceBinding[]
+    reCreateEveryFrame?: boolean
 }
 
-export interface ShaderDefinition {
+export interface SharedLayoutBindGroups {
+    kind: 'SharedLayoutBindGroups'
     name: string
-    bindGroups: BindGroupDefinition[]
+    bindGroups: BindGroup[]
+}
+
+export interface ShaderStage {
+    name: string
+    type: GPUFlagsConstant // GPUShaderStage.COMPUTE/VERTEX/FRAGMENT
+    resources?: (BindGroup | SharedLayoutBindGroups)[]
     imports?: ShaderModule[]
     emitShaderCode(): string
 }
 
 export interface ModuleResolution {
-    resources: ResourceDefinition[]
+    resources: ShaderResource[]
     modules: ShaderModule[]
 }
-
-// TODO: take GPUDevice, ShaderDefinition[]
-// - Determine shader stage visibility for all ResourceBinding objects.
-// - Create all the layout, bind group and pipeline objects.
-// - Return a class that can retrieve any buffer, bind group and pipeline by name.
 
 export function resolve(modules: ShaderModule[]): ModuleResolution {
     const resolved_resource_names = new Set<string>()
     const resolved_module_names = new Set<string>()
     const stack = modules.slice()
 
-    const resolved_resources: ResourceDefinition[] = []
+    const resolved_resources: ShaderResource[] = []
     const resolved_modules: ShaderModule[] = []
 
     while (stack.length > 0) {
@@ -82,30 +87,23 @@ export function resolve(modules: ShaderModule[]): ModuleResolution {
     }
 }
 
+// TODO: take GPUDevice, ShaderStage[]
+// - Determine shader stage visibility for all ResourceBinding objects.
+// - Create all the layout, bind group and pipeline objects.
+// - Return a class that can retrieve any buffer, bind group and pipeline by name.
 export class ShaderResources {
+    shaders: ShaderStage[] = []
+
     buffers = new Map<string, GPUBuffer>()
-    bind_entries: GPUBindGroupEntry[] = []
-    layout_entries: GPUBindGroupLayoutEntry[] = []
+    bind_group_layouts = new Map<string, GPUBindGroupLayout>()
+    bind_groups = new Map<string, GPUBindGroup>()
+    pipeline_layouts = new Map<string, GPUPipelineLayout>()
+    compute_pipelines = new Map<string, GPUComputePipeline>()
+    render_pipelines = new Map<string, GPURenderPipeline>()
 
-    constructor(
-        resources: ResourceDefinition[],
-        binding_start: number,
-        device: GPUDevice
-    ) {
-        let binding = binding_start
-
-        for (const resource of resources) {
-            const buffer = createBuffer(resource, device)
-            this.buffers.set(resource.name, buffer)
-            this.bind_entries.push({
-                binding: binding,
-                resource: {
-                    buffer: buffer
-                }
-            })
-            this.layout_entries.push(createLayoutEntry(resource, binding))
-            binding += 1
-        }
+    constructor(device: GPUDevice, shaders: ShaderStage[]) {
+        this.shaders = shaders
+        const visibility = determineBindingVisibility(shaders)
     }
 
     writeInt(device: GPUDevice, name: string, data: number, offset = 0) {
@@ -132,65 +130,117 @@ export class ShaderResources {
     }
 }
 
-export function emitShaderCode(
-    resolution: ModuleResolution,
-    bind_group: number,
-    binding_start: number
-): string {
-    let code = ''
-    let binding = binding_start
-
-    for (const resource of resolution.resources) {
-        code += `${declareResource(resource, bind_group, binding)}\n`
-        binding += 1
-    }
-
-    code += '\n'
-
-    for (const module of resolution.modules) {
-        code += module.emitShaderCode()
-    }
-
-    return code
+interface BindingVisibility {
+    compute: Set<string>
+    vertex: Set<string>
+    fragment: Set<string>
 }
 
-function declareResource(
-    resource: ResourceDefinition,
-    group: number,
-    binding: number
+function determineBindingVisibility(shaders: ShaderStage[]): BindingVisibility {
+    const compute = new Set<string>()
+    const vertex = new Set<string>()
+    const fragment = new Set<string>()
+
+    for (const shader of shaders) {
+        let bindingSet: Set<string>
+
+        if ((shader.type & GPUShaderStage.COMPUTE) !== 0) {
+            bindingSet = compute
+        } else if ((shader.type & GPUShaderStage.VERTEX) !== 0) {
+            bindingSet = vertex
+        } else {
+            bindingSet = fragment
+        }
+
+        if (shader.resources) {
+            for (const resource of shader.resources) {
+                let bindings: ResourceBinding[]
+
+                if (resource.kind === 'BindGroup') {
+                    bindings = resource.bindings
+                } else {
+                    bindings = resource.bindGroups[0].bindings
+                }
+
+                for (const binding of bindings) {
+                    bindingSet.add(binding.name)
+                }
+            }
+        }
+    }
+
+    return {
+        compute,
+        vertex,
+        fragment
+    }
+}
+
+function declareBinding(
+    binding: ResourceBinding,
+    group_index: number,
+    binding_index: number
 ) {
-    const binding_type = bindingTypeDeclaration(resource.bindingType)
-    return `@group(${group}) @binding(${binding}) var<${binding_type}> ${resource.name}: ${resource.dataType};`
+    const { dataType } = binding.resource
+    const declaration = bindingTypeDeclaration(binding)
+    return `@group(${group_index}) @binding(${binding_index}) ${declaration} ${binding.name}: ${dataType};`
 }
 
-function bindingTypeDeclaration(type: GPUBufferBindingType): string {
-    switch (type) {
-        case 'read-only-storage':
-            return 'storage, read'
-        default:
-            return type
+function bindingTypeDeclaration(binding: ResourceBinding): string {
+    const { usage } = binding.resource
+
+    if ((usage & GPUBufferUsage.UNIFORM) !== 0) {
+        return 'var<uniform>'
+    } else if ((usage & GPUBufferUsage.STORAGE) !== 0) {
+        if (binding.readOnlyStorage) {
+            return 'var<storage, read>'
+        } else {
+            return 'var<storage, read_write>'
+        }
     }
+    return 'var'
 }
 
 function createLayoutEntry(
-    resource: ResourceDefinition,
-    binding: number
+    binding: ResourceBinding,
+    bind_index: number,
+    visibility: GPUFlagsConstant // GPUShaderStage.COMPUTE/VERTEX/FRAGMENT
 ): GPUBindGroupLayoutEntry {
+    const { usage, color_format } = binding.resource
+    const common = {
+        binding: bind_index,
+        visibility: visibility
+    }
+
+    if ((usage & GPUBufferUsage.UNIFORM) !== 0) {
+        return {
+            ...common,
+            buffer: {
+                type: 'uniform'
+            }
+        }
+    }
+    if ((usage & GPUBufferUsage.STORAGE) !== 0) {
+        return {
+            ...common,
+            buffer: {
+                type: binding.readOnlyStorage ? 'read-only-storage' : 'storage'
+            }
+        }
+    }
     return {
-        binding: binding,
-        visibility: resource.visibility!,
-        buffer: {
-            type: resource.bindingType
+        ...common,
+        storageTexture: {
+            format: color_format!
         }
     }
 }
 
-function createBuffer(
-    resource: ResourceDefinition,
-    device: GPUDevice
-): GPUBuffer {
+function createBuffer(resource: ShaderResource, device: GPUDevice): GPUBuffer {
+    device.createSampler({})
     const buffer = device.createBuffer({
-        size: resource.byteLength,
+        label: resource.name,
+        size: resource.byteLength!,
         usage: resource.usage
     })
 

@@ -1,8 +1,7 @@
-import { ResourceDefinition } from '@/WebGPU/ShaderModuleSystem'
+import { ShaderResource } from '@/WebGPU/ShaderModuleSystem'
 
-export const Gradients2D: ResourceDefinition = {
+export const Gradients2D: ShaderResource = {
     name: 'gradients_2D',
-    bindingType: 'read-only-storage',
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     dataType: 'array<vec2f>',
     byteLength: 16 * 2 * 4,
@@ -12,9 +11,8 @@ export const Gradients2D: ResourceDefinition = {
     }
 }
 
-export const Gradients3D: ResourceDefinition = {
+export const Gradients3D: ShaderResource = {
     name: 'gradients_3D',
-    bindingType: 'read-only-storage',
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     dataType: 'array<vec3f>',
     byteLength: 64 * 3 * 4,
@@ -24,9 +22,8 @@ export const Gradients3D: ResourceDefinition = {
     }
 }
 
-export const Gradients4D: ResourceDefinition = {
+export const Gradients4D: ShaderResource = {
     name: 'gradients_4D',
-    bindingType: 'read-only-storage',
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     dataType: 'array<vec4f>',
     byteLength: 64 * 4 * 4,
