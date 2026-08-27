@@ -1,9 +1,10 @@
 export interface ResourceDefinition {
     name: string
     dataType: string
-    bindingType: GPUBufferBindingType
     usage: GPUFlagsConstant
-    visibility?: GPUFlagsConstant
+    
+    bindingType: GPUBufferBindingType // TODO: use bindingType of ResourceBinding
+    visibility?: GPUFlagsConstant // TODO: determine automatically for each ResourceBinding at compile time
 
     byteLength: number
     generateData?: () => ArrayBuffer
@@ -17,10 +18,32 @@ export interface ShaderModule {
     emitShaderCode(): string
 }
 
+export interface ResourceBinding {
+    resource: ResourceDefinition
+    bindingType: GPUBufferBindingType
+}
+
+export interface BindGroupDefinition {
+    name: string
+    bindings: ResourceBinding[]
+}
+
+export interface ShaderDefinition {
+    name: string
+    bindGroups: BindGroupDefinition[]
+    imports?: ShaderModule[]
+    emitShaderCode(): string
+}
+
 export interface ModuleResolution {
     resources: ResourceDefinition[]
     modules: ShaderModule[]
 }
+
+// TODO: take GPUDevice, ShaderDefinition[]
+// - Determine shader stage visibility for all ResourceBinding objects.
+// - Create all the layout, bind group and pipeline objects.
+// - Return a class that can retrieve any buffer, bind group and pipeline by name.
 
 export function resolve(modules: ShaderModule[]): ModuleResolution {
     const resolved_resource_names = new Set<string>()
