@@ -1,8 +1,10 @@
 import { ShaderModule } from '@/WebGPU/ShaderModuleSystem'
 import type { FloatArray } from '@/WebGPU/Engine'
 
+export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
+
 export interface NoiseModule extends ShaderModule {
-    posType: 'vec2f' | 'vec3f' | 'vec4f'
+    posType: VecType
     secondParamType: string
 }
 
@@ -15,7 +17,7 @@ export const FBMParams: ShaderModule = {
             persistence: f32
         };
 
-        const DEFAULT_FBM_PARAMS = FBMParams(3, 0.5, 0.5);
+        const DEFAULT_FBM_PARAMS = FBMParams(3, 2, 0.5);
     `
 }
 
@@ -25,10 +27,12 @@ export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
         imports: [noise, FBMParams],
 
         emitShaderCode: () => {
-            let seed_increment = 'noise_params_copy += 1;'
+            let seed_increment = ''
 
             if (noise.secondParamType !== 'u32') {
                 seed_increment = 'noise_params_copy.seed += 1;'
+            } else {
+                seed_increment = 'noise_params_copy += 1;'
             }
 
             return /* wgsl */ `
@@ -42,15 +46,15 @@ export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
                     var frequency: f32 = 2;
                     var amplitude: f32 = persistence;
 
-                    for (var i = 1u; i < n_octaves; i++) {
+                    for (var i = 1u; i < fbm_params.n_octaves; i++) {
                         ${seed_increment}
                         noise_value += amplitude * ${noise.name}(noise_pos * frequency, noise_params_copy);
 
                         min_noise_value += amplitude * 0.4;
                         max_noise_value += amplitude * 0.6;
 
-                        frequency *= 2;
-                        amplitude *= persistence;
+                        frequency *= fbm_params.lacunarity;
+                        amplitude *= fbm_params.persistence;
                     }
                     return (noise_value - min_noise_value) / (max_noise_value - min_noise_value);
                 }
@@ -58,8 +62,6 @@ export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
         }
     }
 }
-
-export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
 export interface Config {
     functionName: string

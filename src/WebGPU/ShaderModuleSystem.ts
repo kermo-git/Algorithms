@@ -1,8 +1,9 @@
 export interface ResourceDefinition {
     name: string
+    dataType: string
     bindingType: GPUBufferBindingType
     usage: GPUFlagsConstant
-    dataType: string
+    visibility?: GPUFlagsConstant
 
     byteLength: number
     generateData?: () => ArrayBuffer
@@ -24,7 +25,7 @@ export interface ModuleResolution {
 export function resolve(modules: ShaderModule[]): ModuleResolution {
     const resolved_resource_names = new Set<string>()
     const resolved_module_names = new Set<string>()
-    const stack = [modules[0]]
+    const stack = modules.slice()
 
     const resolved_resources: ResourceDefinition[] = []
     const resolved_modules: ShaderModule[] = []
@@ -54,33 +55,65 @@ export function resolve(modules: ShaderModule[]): ModuleResolution {
 
     return {
         resources: resolved_resources,
-        modules: resolved_modules
+        modules: resolved_modules.reverse()
     }
 }
 
-function bindingTypeDeclaration(type: GPUBufferBindingType): string {
-    switch (type) {
-        case 'read-only-storage':
-            return 'storage, read'
-        default:
-            return type
-    }
-}
+export class ShaderResources {
+    buffers = new Map<string, GPUBuffer>()
+    bind_entries: GPUBindGroupEntry[] = []
+    layout_entries: GPUBindGroupLayoutEntry[] = []
 
-export function declareResource(
-    resource: ResourceDefinition,
-    group: number,
-    binding: number
-) {
-    const binding_type = bindingTypeDeclaration(resource.bindingType)
-    return `@group(${group}) @binding(${binding}) var<${binding_type}> ${resource.name}: ${resource.dataType};`
+    constructor(
+        resources: ResourceDefinition[],
+        binding_start: number,
+        device: GPUDevice
+    ) {
+        let binding = binding_start
+
+        for (const resource of resources) {
+            const buffer = createBuffer(resource, device)
+            this.buffers.set(resource.name, buffer)
+            this.bind_entries.push({
+                binding: binding,
+                resource: {
+                    buffer: buffer
+                }
+            })
+            this.layout_entries.push(createLayoutEntry(resource, binding))
+            binding += 1
+        }
+    }
+
+    writeInt(device: GPUDevice, name: string, data: number, offset = 0) {
+        this.write(device, name, new Int32Array([data]).buffer, offset)
+    }
+
+    writeUint(device: GPUDevice, name: string, data: number, offset = 0) {
+        this.write(device, name, new Uint32Array([data]).buffer, offset)
+    }
+
+    writeFloat(device: GPUDevice, name: string, data: number, offset = 0) {
+        this.write(device, name, new Float32Array([data]).buffer, offset)
+    }
+
+    write(device: GPUDevice, name: string, data: ArrayBuffer, offset = 0) {
+        const buffer = this.buffers.get(name)!
+        device.queue.writeBuffer(buffer, offset, data, 0, data.byteLength)
+    }
+
+    destroy() {
+        for (const resource of this.buffers) {
+            resource[1].destroy()
+        }
+    }
 }
 
 export function emitShaderCode(
     resolution: ModuleResolution,
     bind_group: number,
     binding_start: number
-) {
+): string {
     let code = ''
     let binding = binding_start
 
@@ -94,23 +127,45 @@ export function emitShaderCode(
     for (const module of resolution.modules) {
         code += module.emitShaderCode()
     }
+
+    return code
 }
 
-export function createLayoutEntry(
+function declareResource(
     resource: ResourceDefinition,
-    binding: number,
-    visibility: GPUFlagsConstant
+    group: number,
+    binding: number
+) {
+    const binding_type = bindingTypeDeclaration(resource.bindingType)
+    return `@group(${group}) @binding(${binding}) var<${binding_type}> ${resource.name}: ${resource.dataType};`
+}
+
+function bindingTypeDeclaration(type: GPUBufferBindingType): string {
+    switch (type) {
+        case 'read-only-storage':
+            return 'storage, read'
+        default:
+            return type
+    }
+}
+
+function createLayoutEntry(
+    resource: ResourceDefinition,
+    binding: number
 ): GPUBindGroupLayoutEntry {
     return {
         binding: binding,
-        visibility: visibility,
+        visibility: resource.visibility!,
         buffer: {
             type: resource.bindingType
         }
     }
 }
 
-export function createBuffer(resource: ResourceDefinition, device: GPUDevice) {
+function createBuffer(
+    resource: ResourceDefinition,
+    device: GPUDevice
+): GPUBuffer {
     const buffer = device.createBuffer({
         size: resource.byteLength,
         usage: resource.usage
