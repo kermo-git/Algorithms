@@ -1,4 +1,4 @@
-import { ShaderModule } from '@/WebGPU/ShaderModuleSystem'
+import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/DataTypes'
 
 function create_fade_fn(d: 2 | 3 | 4) {
     const name = `fade_${d}d`
@@ -180,11 +180,9 @@ const shader_functions = new Map<string, string>([
 ])
 
 export function createModule(name: string): ShaderModule {
-    const code = shader_functions.get(name) || ''
-
     return {
         name: name,
-        emitShaderCode: () => code
+        code: shader_functions.get(name) || ''
     }
 }
 

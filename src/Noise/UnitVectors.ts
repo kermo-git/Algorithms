@@ -1,36 +1,24 @@
-import { ShaderResource } from '@/WebGPU/ShaderModuleSystem'
+import { StorageBuffer } from '@/WebGPU/ShaderModuleSystem/DataTypes'
 
-export const Gradients2D: ShaderResource = {
+export const Gradients2D: StorageBuffer = {
+    kind: 'StorageBuffer',
     name: 'gradients_2D',
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     dataType: 'array<vec2f>',
-    byteLength: 16 * 2 * 4,
-
-    generateData() {
-        return generateUnitVectors2D(16).buffer
-    }
+    data: generateUnitVectors2D(16).buffer
 }
 
-export const Gradients3D: ShaderResource = {
+export const Gradients3D: StorageBuffer = {
+    kind: 'StorageBuffer',
     name: 'gradients_3D',
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     dataType: 'array<vec3f>',
-    byteLength: 64 * 3 * 4,
-
-    generateData() {
-        return generateUnitVectors3D(64).buffer
-    }
+    data: generateUnitVectors3D(64).buffer
 }
 
-export const Gradients4D: ShaderResource = {
+export const Gradients4D: StorageBuffer = {
+    kind: 'StorageBuffer',
     name: 'gradients_4D',
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    dataType: 'array<vec4f>',
-    byteLength: 64 * 4 * 4,
-
-    generateData() {
-        return generateUnitVectors4D(64).buffer
-    }
+    dataType: 'array<vec3f>',
+    data: generateUnitVectors4D(64).buffer
 }
 
 export function generateUnitVectors2D(n: number) {

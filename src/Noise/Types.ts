@@ -1,5 +1,5 @@
-import { ShaderModule } from '@/WebGPU/ShaderModuleSystem'
 import type { FloatArray } from '@/WebGPU/Engine'
+import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/DataTypes'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
@@ -10,7 +10,7 @@ export interface NoiseModule extends ShaderModule {
 
 export const FBMParams: ShaderModule = {
     name: 'FBMParams',
-    emitShaderCode: () => /* wgsl */ `
+    code: /* wgsl */ `
         struct FBMParams {
             n_octaves: u32,
             lacunarity: f32,
@@ -22,44 +22,42 @@ export const FBMParams: ShaderModule = {
 }
 
 export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
+    let seed_increment = ''
+
+    if (noise.secondParamType !== 'u32') {
+        seed_increment = 'noise_params_copy.seed += 1;'
+    } else {
+        seed_increment = 'noise_params_copy += 1;'
+    }
+
     return {
         name: `${noise.name}_fbm`,
         imports: [noise, FBMParams],
 
-        emitShaderCode: () => {
-            let seed_increment = ''
+        code: /* wgsl */ `
+            fn ${noise.name}_fbm(noise_pos: ${noise.posType}, noise_params: ${noise.secondParamType}, fbm_params: FBMParams) -> f32 {
+                var noise_params_copy = noise_params;
 
-            if (noise.secondParamType !== 'u32') {
-                seed_increment = 'noise_params_copy.seed += 1;'
-            } else {
-                seed_increment = 'noise_params_copy += 1;'
-            }
+                var noise_value: f32 = ${noise.name}(noise_pos, noise_params_copy);
+                var min_noise_value: f32 = 0;
+                var max_noise_value: f32 = 1;
 
-            return /* wgsl */ `
-                fn ${noise.name}_fbm(noise_pos: ${noise.posType}, noise_params: ${noise.secondParamType}, fbm_params: FBMParams) -> f32 {
-                    var noise_params_copy = noise_params;
+                var frequency: f32 = 2;
+                var amplitude: f32 = persistence;
 
-                    var noise_value: f32 = ${noise.name}(noise_pos, noise_params_copy);
-                    var min_noise_value: f32 = 0;
-                    var max_noise_value: f32 = 1;
+                for (var i = 1u; i < fbm_params.n_octaves; i++) {
+                    ${seed_increment}
+                    noise_value += amplitude * ${noise.name}(noise_pos * frequency, noise_params_copy);
 
-                    var frequency: f32 = 2;
-                    var amplitude: f32 = persistence;
+                    min_noise_value += amplitude * 0.4;
+                    max_noise_value += amplitude * 0.6;
 
-                    for (var i = 1u; i < fbm_params.n_octaves; i++) {
-                        ${seed_increment}
-                        noise_value += amplitude * ${noise.name}(noise_pos * frequency, noise_params_copy);
-
-                        min_noise_value += amplitude * 0.4;
-                        max_noise_value += amplitude * 0.6;
-
-                        frequency *= fbm_params.lacunarity;
-                        amplitude *= fbm_params.persistence;
-                    }
-                    return (noise_value - min_noise_value) / (max_noise_value - min_noise_value);
+                    frequency *= fbm_params.lacunarity;
+                    amplitude *= fbm_params.persistence;
                 }
-            `
-        }
+                return (noise_value - min_noise_value) / (max_noise_value - min_noise_value);
+            }
+        `
     }
 }
 

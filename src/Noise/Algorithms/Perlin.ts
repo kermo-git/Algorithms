@@ -1,3 +1,5 @@
+import { readView } from '@/WebGPU/ShaderModuleSystem/HelperFunctions'
+
 import {
     generateUnitVectors2D,
     generateUnitVectors3D,
@@ -25,33 +27,27 @@ import {
     seed_4d
 } from './Common'
 
-export class Perlin2DModule implements NoiseModule {
-    name = 'perlin_2d'
-    secondParamType = 'u32'
-    posType: VecType = 'vec2f'
-    resources = [Gradients2D]
-    imports = [
-        createModule('seed_2d'),
-        createModule('hash_2u_1u'),
-        createModule('fade_2d')
-    ]
-    // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
-    quadratic: boolean
+// https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
+export function Perlin2DModule(quadratic?: boolean): NoiseModule {
+    // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
+    const norm_factor = quadratic ? 1.35 : 1.6
 
-    constructor(quadratic?: boolean) {
-        this.quadratic = quadratic || false
-    }
-
-    emitShaderCode(): string {
-        // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-        const norm_factor = this.quadratic ? 1.35 : 1.6
-
-        return /* wgsl */ `
+    return {
+        name: 'perlin_2d',
+        secondParamType: 'u32',
+        posType: 'vec2f',
+        resources: [readView(Gradients2D)],
+        imports: [
+            createModule('seed_2d'),
+            createModule('hash_2u_1u'),
+            createModule('fade_2d')
+        ],
+        code: /* wgsl */ `
             fn perlin_2d_corner(grid_corner: vec2u, vec_to_sample_pos: vec2f) -> f32 {
                 let hash = hash_2u_1u(grid_corner);
                 let gradient = gradients_2D[hash >> 28];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(this.quadratic)}
+                ${gradientCalculation(!!quadratic)}
             }
 
             fn perlin_2d(pos: vec2f, seed: u32) -> f32 {
@@ -76,31 +72,25 @@ export class Perlin2DModule implements NoiseModule {
     }
 }
 
-export class Perlin3DModule implements NoiseModule {
-    name = 'perlin_3d'
-    secondParamType = 'u32'
-    posType: VecType = 'vec3f'
-    resources = [Gradients3D]
-    imports = [
-        createModule('seed_3d'),
-        createModule('hash_3u_1u'),
-        createModule('fade_3d')
-    ]
-    quadratic: boolean
+export function Perlin3DModule(quadratic?: boolean): NoiseModule {
+    const norm_factor = quadratic ? 1.5 : 1.7
 
-    constructor(quadratic: boolean) {
-        this.quadratic = quadratic
-    }
-
-    emitShaderCode(): string {
-        const norm_factor = this.quadratic ? 1.5 : 1.7
-
-        return /* wgsl */ `
+    return {
+        name: 'perlin_3d',
+        secondParamType: 'u32',
+        posType: 'vec3f',
+        resources: [readView(Gradients3D)],
+        imports: [
+            createModule('seed_3d'),
+            createModule('hash_3u_1u'),
+            createModule('fade_3d')
+        ],
+        code: /* wgsl */ `
             fn perlin_3d_corner(grid_corner: vec3u, vec_to_sample_pos: vec3f) -> f32 {
                 let hash = hash_3u_1u(grid_corner);
                 let gradient = gradients_3D[hash >> 26];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(this.quadratic)}
+                ${gradientCalculation(!!quadratic)}
             }
 
             fn perlin_3d(pos: vec3f, seed: u32) -> f32 {
@@ -133,31 +123,25 @@ export class Perlin3DModule implements NoiseModule {
     }
 }
 
-export class Perlin4DModule implements NoiseModule {
-    name = 'perlin_4d'
-    secondParamType = 'u32'
-    posType: VecType = 'vec4f'
-    resources = [Gradients4D]
-    imports = [
-        createModule('seed_4d'),
-        createModule('hash_4u_1u'),
-        createModule('fade_4d')
-    ]
-    quadratic: boolean
+export function Perlin4DModule(quadratic?: boolean): NoiseModule {
+    const norm_factor = quadratic ? 1.5 : 1.7
 
-    constructor(quadratic: boolean) {
-        this.quadratic = quadratic
-    }
-
-    emitShaderCode(): string {
-        const norm_factor = this.quadratic ? 1.5 : 1.7
-
-        return /* wgsl */ `
+    return {
+        name: 'perlin_4d',
+        secondParamType: 'u32',
+        posType: 'vec4f',
+        resources: [readView(Gradients4D)],
+        imports: [
+            createModule('seed_4d'),
+            createModule('hash_4u_1u'),
+            createModule('fade_4d')
+        ],
+        code: /* wgsl */ `
             fn perlin_4d_corner(grid_corner: vec4u, vec_to_sample_pos: vec4f) -> f32 {
                 let hash = hash_4u_1u(grid_corner);
                 let gradient = gradients_4D[hash >> 26];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(this.quadratic)}
+                ${gradientCalculation(!!quadratic)}
             }
 
             fn perlin_4d(pos: vec4f, seed: u32) -> f32 {
