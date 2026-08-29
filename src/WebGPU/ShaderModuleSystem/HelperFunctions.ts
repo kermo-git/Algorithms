@@ -121,7 +121,7 @@ export function createLayoutEntry(
                     }
                 }
             ]
-        case 'CanvasTexture':
+        case 'StorageTexture':
             return [
                 {
                     ...common,
@@ -133,7 +133,7 @@ export function createLayoutEntry(
     }
 }
 
-function declareWGSLResource(
+export function declareWGSLResource(
     resource: Resource,
     group_index: number,
     binding_index: number
@@ -147,19 +147,12 @@ function declareWGSLResource(
         case 'StorageBufferView':
             const buffer_name = resource.buffer.name
             const buffer_datatype = resource.buffer.dataType
-
-            switch (resource.accessMode) {
-                case 'read':
-                    return `${binding_declaration} var<storage, read> ${buffer_name}: ${buffer_datatype};`
-                default:
-                    return `${binding_declaration} var<storage, read_write> ${buffer_name}: ${buffer_datatype};`
-            }
+            return `${binding_declaration} var<storage, ${resource.accessMode}> ${buffer_name}: ${buffer_datatype};`
         case 'PingPongBuffers':
             const data_type_A = resource.buffer_A.dataType
             return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type_A};
-
 @group(${group_index}) @binding(${binding_index + 1} var<storage, read_write> ${resource.writeName}: ${data_type_A};`
-        case 'CanvasTexture':
-            return ''
+        case 'StorageTexture':
+            return `${binding_declaration} var ${resource.name}: texture_storage_2d<${resource.colorFormat}, write>`
     }
 }

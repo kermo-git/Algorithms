@@ -28,8 +28,8 @@ export interface PingPongBuffers {
     buffer_B: StorageBuffer
 }
 
-export interface CanvasTexture {
-    kind: 'CanvasTexture'
+export interface StorageTexture {
+    kind: 'StorageTexture'
     name: string
     colorFormat: GPUTextureFormat
 }
@@ -38,7 +38,7 @@ export type Resource =
     | Uniform
     | StorageBufferView
     | PingPongBuffers
-    | CanvasTexture
+    | StorageTexture
 
 export interface ShaderModule {
     name: string
@@ -47,10 +47,26 @@ export interface ShaderModule {
     code: string
 }
 
-export interface ShaderStage {
-    name: string
-    type: 'compute' | 'vertex' | 'fragment'
-    resources?: Resource[]
-    imports?: ShaderModule[]
-    code: string
+export interface ComputeShader extends ShaderModule {
+    kind: 'ComputeShader'
+    canvas?: StorageTexture
 }
+
+export interface VertexShader extends ShaderModule {
+    kind: 'VertexShader'
+    indexBuffer: StorageBuffer
+}
+
+export interface FragmentShader extends ShaderModule {
+    kind: 'FragmentShader'
+}
+
+export interface RenderPipeline {
+    kind: 'RenderPipeline'
+    name: string
+    primitiveTopology: GPUPrimitiveTopology
+    vertex: VertexShader
+    fragment: FragmentShader
+}
+
+export type ShaderPass = ComputeShader | RenderPipeline
