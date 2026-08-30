@@ -1,62 +1,8 @@
 import { Resource, ShaderModule, ShaderPass } from './DataTypes'
 
-interface BindingVisibility {
-    compute: Set<string>
-    vertex: Set<string>
-    fragment: Set<string>
-}
-
-export function determineBindingVisibility(
-    shader_passes: ShaderPass[]
-): BindingVisibility {
-    const compute = new Set<string>()
-    const vertex = new Set<string>()
-    const fragment = new Set<string>()
-
-    function countResources(names: Set<string>, resources: Resource[]) {
-        for (const resource of resources) {
-            switch (resource.kind) {
-                case 'StorageTexture':
-                case 'Uniform':
-                    names.add(resource.name)
-                    break
-                case 'StorageBufferView':
-                    names.add(resource.buffer.name)
-                    break
-                case 'PingPongBuffers':
-                    names.add(resource.readName)
-                    names.add(resource.writeName)
-                    break
-            }
-        }
-    }
-
-    for (const pass of shader_passes) {
-        if (pass.kind === 'ComputeShader') {
-            if (pass.resources) {
-                countResources(compute, pass.resources)
-            }
-        } else {
-            if (pass.vertex.resources) {
-                countResources(vertex, pass.vertex.resources)
-            }
-            if (pass.fragment.resources) {
-                countResources(vertex, pass.fragment.resources)
-            }
-        }
-    }
-
-    return {
-        compute,
-        vertex,
-        fragment
-    }
-}
-
 function identifier(resource: Resource): string {
     switch (resource.kind) {
         case 'Uniform':
-        case 'StorageTexture':
             return resource.name
         case 'StorageBufferView':
             return resource.buffer.name
@@ -100,15 +46,61 @@ export function resolveImports(shader: ShaderModule): ShaderModule {
         }
     }
 
-    let code = ''
-    for (const module of resolved_modules) {
-        code += `${module.code}\n\n`
-    }
-
     return {
         ...shader,
         resources: resolved_resources,
-        imports: [],
-        code: code
+        imports: resolved_modules
+    }
+}
+
+interface BindingVisibility {
+    compute: Set<string>
+    vertex: Set<string>
+    fragment: Set<string>
+}
+
+export function determineBindingVisibility(
+    shader_passes: ShaderPass[]
+): BindingVisibility {
+    const compute = new Set<string>()
+    const vertex = new Set<string>()
+    const fragment = new Set<string>()
+
+    function countResources(names: Set<string>, resources: Resource[]) {
+        for (const resource of resources) {
+            switch (resource.kind) {
+                case 'Uniform':
+                    names.add(resource.name)
+                    break
+                case 'StorageBufferView':
+                    names.add(resource.buffer.name)
+                    break
+                case 'PingPongBuffers':
+                    names.add(resource.readName)
+                    names.add(resource.writeName)
+                    break
+            }
+        }
+    }
+
+    for (const pass of shader_passes) {
+        if (pass.kind === 'ComputeShader') {
+            if (pass.resources) {
+                countResources(compute, pass.resources)
+            }
+        } else {
+            if (pass.vertexShader.resources) {
+                countResources(vertex, pass.vertexShader.resources)
+            }
+            if (pass.fragmentShader.resources) {
+                countResources(vertex, pass.fragmentShader.resources)
+            }
+        }
+    }
+
+    return {
+        compute,
+        vertex,
+        fragment
     }
 }

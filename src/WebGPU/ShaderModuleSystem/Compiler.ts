@@ -1,25 +1,4 @@
-import {
-    Resource,
-    StorageBuffer,
-    StorageBufferView,
-    Uniform
-} from './DataTypes'
-
-export function readView(buffer: StorageBuffer): StorageBufferView {
-    return {
-        kind: 'StorageBufferView',
-        accessMode: 'read',
-        buffer: buffer
-    }
-}
-
-export function writeView(buffer: StorageBuffer): StorageBufferView {
-    return {
-        kind: 'StorageBufferView',
-        accessMode: 'read_write',
-        buffer: buffer
-    }
-}
+import { CanvasTexture, Resource, StorageBuffer, Uniform } from './DataTypes'
 
 export function createStorageBuffer(
     descriptor: StorageBuffer,
@@ -41,7 +20,6 @@ export function createStorageBuffer(
     if (descriptor.data) {
         device.queue.writeBuffer(buffer, 0, descriptor.data, 0, size)
     }
-
     return buffer
 }
 
@@ -121,15 +99,6 @@ export function createLayoutEntry(
                     }
                 }
             ]
-        case 'StorageTexture':
-            return [
-                {
-                    ...common,
-                    storageTexture: {
-                        format: resource.colorFormat
-                    }
-                }
-            ]
     }
 }
 
@@ -152,7 +121,26 @@ export function declareWGSLResource(
             const data_type_A = resource.buffer_A.dataType
             return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type_A};
 @group(${group_index}) @binding(${binding_index + 1} var<storage, read_write> ${resource.writeName}: ${data_type_A};`
-        case 'StorageTexture':
-            return `${binding_declaration} var ${resource.name}: texture_storage_2d<${resource.colorFormat}, write>`
     }
+}
+
+export function canvasLayout(
+    canvas: CanvasTexture,
+    device: GPUDevice
+): GPUBindGroupLayout {
+    return device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.COMPUTE,
+                storageTexture: {
+                    format: canvas.colorFormat
+                }
+            }
+        ]
+    })
+}
+
+export function canvasDeclaration(canvas: CanvasTexture, group_index: number) {
+    return `@group(${group_index}) @binding(0) var ${canvas.name}: texture_storage_2d<${canvas.colorFormat}, write>`
 }

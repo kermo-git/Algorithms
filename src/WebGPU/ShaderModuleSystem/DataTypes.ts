@@ -14,9 +14,9 @@ export interface StorageBuffer {
     data?: ArrayBuffer
 }
 
-export interface StorageBufferView {
+export interface StorageBufferView<Access extends 'read' | 'read_write'> {
     kind: 'StorageBufferView'
-    accessMode: 'read' | 'read_write'
+    accessMode: Access
     buffer: StorageBuffer
 }
 
@@ -28,17 +28,18 @@ export interface PingPongBuffers {
     buffer_B: StorageBuffer
 }
 
-export interface StorageTexture {
-    kind: 'StorageTexture'
-    name: string
-    colorFormat: GPUTextureFormat
-}
-
+export type ReadOnlyResource = Uniform | StorageBufferView<'read'>
 export type Resource =
-    | Uniform
-    | StorageBufferView
+    | ReadOnlyResource
+    | StorageBufferView<'read_write'>
     | PingPongBuffers
-    | StorageTexture
+
+export interface ReadOnlyShaderModule {
+    name: string
+    resources?: ReadOnlyResource[]
+    imports?: ReadOnlyShaderModule[]
+    code: string
+}
 
 export interface ShaderModule {
     name: string
@@ -47,26 +48,42 @@ export interface ShaderModule {
     code: string
 }
 
+export interface CanvasTexture {
+    kind: 'CanvasTexture'
+    name: string
+    colorFormat: GPUTextureFormat
+}
+
 export interface ComputeShader extends ShaderModule {
     kind: 'ComputeShader'
-    canvas?: StorageTexture
-}
-
-export interface VertexShader extends ShaderModule {
-    kind: 'VertexShader'
-    indexBuffer: StorageBuffer
-}
-
-export interface FragmentShader extends ShaderModule {
-    kind: 'FragmentShader'
+    canvas?: CanvasTexture
 }
 
 export interface RenderPipeline {
     kind: 'RenderPipeline'
     name: string
     primitiveTopology: GPUPrimitiveTopology
-    vertex: VertexShader
-    fragment: FragmentShader
+    indexBuffer: StorageBuffer
+    vertexShader: ReadOnlyShaderModule
+    fragmentShader: ReadOnlyShaderModule
 }
 
 export type ShaderPass = ComputeShader | RenderPipeline
+
+export function readView(buffer: StorageBuffer): StorageBufferView<'read'> {
+    return {
+        kind: 'StorageBufferView',
+        accessMode: 'read',
+        buffer: buffer
+    }
+}
+
+export function writeView(
+    buffer: StorageBuffer
+): StorageBufferView<'read_write'> {
+    return {
+        kind: 'StorageBufferView',
+        accessMode: 'read_write',
+        buffer: buffer
+    }
+}

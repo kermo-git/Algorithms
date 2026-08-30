@@ -1,20 +1,19 @@
 import { ShaderPass } from './DataTypes'
 
-interface ShaderData {
+interface ComputePassData {
     pipeline_layout: GPUPipelineLayout
+    pipeline: GPUComputePipeline
     static_group?: GPUBindGroup
     ping_pong_group_AB?: GPUBindGroup
     ping_pong_group_BA?: GPUBindGroup
-}
-
-interface ComputePipelineData extends ShaderData {
-    pipeline: GPUComputePipeline
     canvas_pipeline?: GPUBindGroupLayout
 }
 
-interface RenderPipelineData extends ShaderData {
+interface RenderPassData {
+    pipeline_layout: GPUPipelineLayout
     pipeline: GPURenderPipeline
     indexBuffer: GPUBuffer
+    bind_group: GPUBindGroup
 }
 
 export default class WebGPUScene {
@@ -23,8 +22,8 @@ export default class WebGPUScene {
     shader_passes: ShaderPass[] = []
 
     buffers = new Map<string, GPUBuffer>()
-    compute_pipelines = new Map<string, ComputePipelineData>()
-    render_pipelines = new Map<string, RenderPipelineData>()
+    compute_pipelines = new Map<string, ComputePassData>()
+    render_pipelines = new Map<string, RenderPassData>()
 
     constructor(
         device: GPUDevice,
