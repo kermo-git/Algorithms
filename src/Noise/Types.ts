@@ -1,5 +1,5 @@
 import type { FloatArray } from '@/WebGPU/Engine'
-import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/DataTypes'
+import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/UserInput'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 

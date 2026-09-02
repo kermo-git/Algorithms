@@ -8,7 +8,6 @@ export interface Uniform {
 export interface StorageBuffer {
     kind: 'StorageBuffer'
     name: string
-    usage?: GPUFlagsConstant
     dataType: string
     byteLength?: number
     data?: ArrayBuffer
@@ -35,16 +34,10 @@ export type Resource =
     | PingPongBuffers
 
 export interface ReadOnlyShaderModule {
+    kind: 'ReadOnlyShaderModule'
     name: string
     resources?: ReadOnlyResource[]
     imports?: ReadOnlyShaderModule[]
-    code: string
-}
-
-export interface ShaderModule {
-    name: string
-    resources?: Resource[]
-    imports?: ShaderModule[]
     code: string
 }
 
@@ -54,10 +47,16 @@ export interface CanvasTexture {
     colorFormat: GPUTextureFormat
 }
 
-export interface ComputeShader extends ShaderModule {
-    kind: 'ComputeShader'
+export interface ComputeShaderModule {
+    kind: 'ComputeShaderModule'
+    name: string
+    resources?: Resource[]
+    imports?: ShaderModule[]
     canvas?: CanvasTexture
+    code: string
 }
+
+export type ShaderModule = ReadOnlyShaderModule | ComputeShaderModule
 
 export interface RenderPipeline {
     kind: 'RenderPipeline'
@@ -68,7 +67,7 @@ export interface RenderPipeline {
     fragmentShader: ReadOnlyShaderModule
 }
 
-export type ShaderPass = ComputeShader | RenderPipeline
+export type Shader = ComputeShaderModule | RenderPipeline
 
 export function readView(buffer: StorageBuffer): StorageBufferView<'read'> {
     return {

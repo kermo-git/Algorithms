@@ -1,4 +1,4 @@
-import { ShaderPass } from './DataTypes'
+import { Shader } from './UserInput'
 
 interface ComputePassData {
     pipeline_layout: GPUPipelineLayout
@@ -19,7 +19,7 @@ interface RenderPassData {
 export default class WebGPUScene {
     device: GPUDevice
     canvas: HTMLCanvasElement
-    shader_passes: ShaderPass[] = []
+    shader_passes: Shader[] = []
 
     buffers = new Map<string, GPUBuffer>()
     compute_pipelines = new Map<string, ComputePassData>()
@@ -28,7 +28,7 @@ export default class WebGPUScene {
     constructor(
         device: GPUDevice,
         canvas: HTMLCanvasElement,
-        shader_passes: ShaderPass[]
+        shader_passes: Shader[]
     ) {
         this.device = device
         this.canvas = canvas

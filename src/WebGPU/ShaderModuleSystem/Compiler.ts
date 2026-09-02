@@ -1,43 +1,66 @@
-import { CanvasTexture, Resource, StorageBuffer, Uniform } from './DataTypes'
+import {
+    Buffer,
+    ResolvedComputePipeline,
+    ResolvedRenderPipeline
+} from './Resolved'
+import { CanvasTexture, Resource, StorageBuffer, Uniform } from './UserInput'
 
-export function createStorageBuffer(
-    descriptor: StorageBuffer,
-    device: GPUDevice
-): GPUBuffer {
-    let usage = (descriptor.usage || 0) | GPUBufferUsage.STORAGE
+export function computeCode(pipeline: ResolvedComputePipeline) {
+    let bind_declarations = ''
+    let group_index = 0
+    let bind_index = 0
 
-    if (descriptor.data) {
-        usage |= GPUBufferUsage.COPY_DST
+    for (const resource of pipeline.staticResources) {
+        bind_declarations +=
+            declareWGSLResource(resource, group_index, bind_index) + '\n'
+        bind_index += 1
     }
-    const size = descriptor.byteLength || descriptor.data?.byteLength || 0
 
-    const buffer = device.createBuffer({
-        label: descriptor.name,
-        size: size,
-        usage: usage
-    })
-
-    if (descriptor.data) {
-        device.queue.writeBuffer(buffer, 0, descriptor.data, 0, size)
+    if (bind_index > 0) {
+        group_index += 1
+        bind_index = 0
     }
-    return buffer
+
+    for (const resource of pipeline.pingPongResources) {
+        bind_declarations +=
+            declareWGSLResource(resource, group_index, bind_index) + '\n'
+        bind_index += 2
+    }
+
+    if (bind_index > 0) {
+        group_index += 1
+    }
+
+    if (pipeline.canvas) {
+        bind_declarations +=
+            canvasDeclaration(pipeline.canvas, group_index) + '\n'
+    }
+    return `${bind_declarations}\n${pipeline.code}`
 }
 
-export function createUniform(descriptor: Uniform, device: GPUDevice) {
+export function renderCode(pipeline: ResolvedRenderPipeline) {
+    let bind_declarations = ''
+    let group_index = 0
+    let bind_index = 0
+
+    for (const resource of pipeline.resources) {
+        bind_declarations +=
+            declareWGSLResource(resource, group_index, bind_index) + '\n'
+        bind_index += 2
+    }
+
+    return `${bind_declarations}\n${pipeline.code}`
+}
+
+export function createBuffer(device: GPUDevice, descriptor: Buffer) {
     const buffer = device.createBuffer({
         label: descriptor.name,
-        size: descriptor.data.byteLength!,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        size: descriptor.size,
+        usage: descriptor.usage
     })
-
-    device.queue.writeBuffer(
-        buffer,
-        0,
-        descriptor.data,
-        0,
-        descriptor.data.byteLength
-    )
-
+    if (descriptor.data) {
+        device.queue.writeBuffer(buffer, 0, descriptor.data, 0, descriptor.size)
+    }
     return buffer
 }
 

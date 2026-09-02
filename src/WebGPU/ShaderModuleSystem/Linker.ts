@@ -1,6 +1,98 @@
-import { Resource, ShaderModule, ShaderPass } from './DataTypes'
+import {
+    Buffer,
+    Resolved,
+    ResolvedComputePipeline,
+    ResolvedRenderPipeline,
+    StaticResource
+} from './Resolved'
+import {
+    ComputeShaderModule,
+    PingPongBuffers,
+    ReadOnlyResource,
+    RenderPipeline,
+    Resource,
+    Shader,
+    ShaderModule,
+    StorageBuffer
+} from './UserInput'
 
-function identifier(resource: Resource): string {
+export function link(shaders: Shader[]): Resolved {
+    const buffers = new Map<string, Buffer>()
+
+    function addStorageBuffer(buffer: StorageBuffer) {
+        if (!buffers.get(buffer.name)) {
+            let usage = GPUBufferUsage.STORAGE
+
+            if (buffer.data) {
+                usage |= GPUBufferUsage.COPY_DST
+            }
+            buffers.set(buffer.name, {
+                name: buffer.name,
+                usage: usage,
+                size: buffer.byteLength || buffer.data?.byteLength || 0,
+                data: buffer.data
+            })
+        }
+    }
+
+    function findBuffers(resources: Resource[]) {
+        for (const resource of resources) {
+            switch (resource.kind) {
+                case 'Uniform':
+                    if (!buffers.get(resource.name)) {
+                        buffers.set(resource.name, {
+                            name: resource.name,
+                            usage:
+                                GPUBufferUsage.UNIFORM |
+                                GPUBufferUsage.COPY_DST,
+                            size: resource.data.byteLength,
+                            data: resource.data
+                        })
+                    }
+                    break
+                case 'StorageBufferView':
+                    addStorageBuffer(resource.buffer)
+                    break
+                case 'PingPongBuffers':
+                    addStorageBuffer(resource.buffer_A)
+                    addStorageBuffer(resource.buffer_B)
+                    break
+            }
+        }
+    }
+
+    let compute_pipelines: ResolvedComputePipeline[] = []
+    let render_pipelines: ResolvedRenderPipeline[] = []
+
+    for (const shader of shaders) {
+        switch (shader.kind) {
+            case 'ComputeShaderModule': {
+                const resolved = resolveComputePipeline(shader)
+                findBuffers(resolved.staticResources)
+                findBuffers(resolved.pingPongResources)
+                compute_pipelines.push(resolved)
+                break
+            }
+            case 'RenderPipeline': {
+                const resolved = resolveRenderPipeline(shader)
+                findBuffers(resolved.resources)
+                addStorageBuffer(resolved.indexBuffer)
+                buffers.get(resolved.indexBuffer.name)!.usage |=
+                    GPUBufferUsage.INDEX
+                render_pipelines.push(resolved)
+                break
+            }
+        }
+    }
+
+    return {
+        buffers: buffers,
+        computePipelines: compute_pipelines,
+        renderPipelines: render_pipelines
+    }
+}
+
+function getName(resource: Resource): string {
     switch (resource.kind) {
         case 'Uniform':
             return resource.name
@@ -11,16 +103,16 @@ function identifier(resource: Resource): string {
     }
 }
 
-export function resolveImports(shader: ShaderModule): ShaderModule {
+function resolveModule<T extends ShaderModule>(shader: T): T {
     const resolved_resource_names = new Set<string>(
-        (shader.resources || []).map(identifier)
+        (shader.resources || []).map(getName)
     )
     const resolved_resources: Resource[] = shader.resources || []
 
     const resolved_module_names = new Set<string>()
     const resolved_modules: ShaderModule[] = []
 
-    const stack = shader.imports!.slice()
+    const stack = (shader.imports || []).slice()
 
     while (stack.length > 0) {
         const current = stack.pop()!
@@ -31,9 +123,9 @@ export function resolveImports(shader: ShaderModule): ShaderModule {
 
             if (current.resources) {
                 for (const resource of current.resources) {
-                    const resource_id = identifier(resource)
-                    if (!resolved_resource_names.has(resource_id)) {
-                        resolved_resource_names.add(resource_id)
+                    const name = getName(resource)
+                    if (!resolved_resource_names.has(name)) {
+                        resolved_resource_names.add(name)
                         resolved_resources.push(resource)
                     }
                 }
@@ -53,54 +145,85 @@ export function resolveImports(shader: ShaderModule): ShaderModule {
     }
 }
 
-interface BindingVisibility {
-    compute: Set<string>
-    vertex: Set<string>
-    fragment: Set<string>
+function resolveComputePipeline(
+    pipeline: ComputeShaderModule
+): ResolvedComputePipeline {
+    const resolved = resolveModule(pipeline)
+    let code = ''
+
+    for (const module of resolved.imports || []) {
+        code += module.code
+    }
+
+    const static_resources: StaticResource[] = []
+    const ping_pong_groups: PingPongBuffers[] = []
+
+    for (const resource of resolved.resources || []) {
+        switch (resource.kind) {
+            case 'Uniform':
+            case 'StorageBufferView':
+                static_resources.push(resource)
+                break
+            case 'PingPongBuffers':
+                ping_pong_groups.push(resource)
+                break
+        }
+    }
+    return {
+        kind: 'ResolvedComputePipeline',
+        name: resolved.name,
+        staticResources: static_resources,
+        pingPongResources: ping_pong_groups,
+        code: code
+    }
 }
 
-export function determineBindingVisibility(
-    shader_passes: ShaderPass[]
-): BindingVisibility {
-    const compute = new Set<string>()
-    const vertex = new Set<string>()
-    const fragment = new Set<string>()
+function resolveRenderPipeline(
+    pipeline: RenderPipeline
+): ResolvedRenderPipeline {
+    const visibility = new Map<string, GPUFlagsConstant>()
+    let resolved_resources: ReadOnlyResource[] = []
 
-    function countResources(names: Set<string>, resources: Resource[]) {
-        for (const resource of resources) {
-            switch (resource.kind) {
-                case 'Uniform':
-                    names.add(resource.name)
-                    break
-                case 'StorageBufferView':
-                    names.add(resource.buffer.name)
-                    break
-                case 'PingPongBuffers':
-                    names.add(resource.readName)
-                    names.add(resource.writeName)
-                    break
-            }
+    const resolved_vertex = resolveModule(pipeline.vertexShader)
+    const resolved_fragment = resolveModule(pipeline.fragmentShader)
+
+    for (const r of resolved_vertex.resources || []) {
+        resolved_resources.push(r)
+        visibility.set(getName(r), GPUShaderStage.VERTEX)
+    }
+
+    for (const r of resolved_fragment.resources || []) {
+        const name = getName(r)
+        const flags = visibility.get(name)
+
+        if (flags) {
+            visibility.set(name, flags | GPUShaderStage.FRAGMENT)
+        } else {
+            visibility.set(name, GPUShaderStage.FRAGMENT)
+            resolved_resources.push(r)
         }
     }
 
-    for (const pass of shader_passes) {
-        if (pass.kind === 'ComputeShader') {
-            if (pass.resources) {
-                countResources(compute, pass.resources)
-            }
-        } else {
-            if (pass.vertexShader.resources) {
-                countResources(vertex, pass.vertexShader.resources)
-            }
-            if (pass.fragmentShader.resources) {
-                countResources(vertex, pass.fragmentShader.resources)
-            }
+    let resolved_module_names = new Set<string>()
+    let resolved_code = ''
+
+    for (const i of resolved_vertex.imports || []) {
+        resolved_module_names.add(i.name)
+        resolved_code += i.code + '\n'
+    }
+
+    for (const i of resolved_fragment.imports || []) {
+        if (!resolved_module_names.has(i.name)) {
+            resolved_code += i.code + '\n'
         }
     }
 
     return {
-        compute,
-        vertex,
-        fragment
+        kind: 'ResolvedRenderPipeline',
+        name: pipeline.name,
+        visibility: visibility,
+        resources: resolved_resources,
+        indexBuffer: pipeline.indexBuffer,
+        code: `${resolved_code}${resolved_vertex.code}\n${resolved_fragment.code}`
     }
 }
