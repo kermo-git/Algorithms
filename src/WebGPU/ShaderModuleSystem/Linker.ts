@@ -67,14 +67,14 @@ export function link(shaders: Shader[]): LinkedScene {
     for (const shader of shaders) {
         switch (shader.kind) {
             case 'ComputeShader': {
-                const resolved = resolveComputeShader(shader)
+                const resolved = linkComputeShader(shader)
                 findBuffers(resolved.staticResources)
                 findBuffers(resolved.pingPongResources)
                 compute_shaders.push(resolved)
                 break
             }
             case 'RenderShader': {
-                const resolved = resolveRenderShader(shader)
+                const resolved = linkRenderShader(shader)
                 findBuffers(resolved.resources)
                 addStorageBuffer(resolved.indexBuffer)
                 buffers.get(resolved.indexBuffer.name)!.usage |=
@@ -145,7 +145,7 @@ function resolveImports<T extends ShaderModule>(shader: T): T {
     }
 }
 
-function resolveComputeShader(shader: ComputeShader): LinkedComputeShader {
+function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     const resolved = resolveImports(shader)
     let code = ''
 
@@ -177,7 +177,7 @@ function resolveComputeShader(shader: ComputeShader): LinkedComputeShader {
     }
 }
 
-function resolveRenderShader(shader: RenderShader): LinkedRenderShader {
+function linkRenderShader(shader: RenderShader): LinkedRenderShader {
     const visibility = new Map<string, GPUFlagsConstant>()
     let resolved_resources: ReadOnlyResource[] = []
 
