@@ -1,5 +1,4 @@
 import {
-    CanvasTexture,
     PingPongBuffers,
     ReadOnlyResource,
     StorageBuffer,
@@ -17,13 +16,14 @@ export interface ResolvedComputePipeline {
     name: string
     staticResources: StaticResource[]
     pingPongResources: PingPongBuffers[]
-    canvas?: CanvasTexture
+    canvas?: string
     code: string
 }
 
 export interface ResolvedRenderPipeline {
     kind: 'ResolvedRenderPipeline'
     name: string
+    primitiveTopology: GPUPrimitiveTopology
     visibility: Map<string, GPUFlagsConstant>
     resources: ReadOnlyResource[]
     indexBuffer: StorageBuffer

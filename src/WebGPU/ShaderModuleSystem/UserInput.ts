@@ -41,18 +41,12 @@ export interface ReadOnlyShaderModule {
     code: string
 }
 
-export interface CanvasTexture {
-    kind: 'CanvasTexture'
-    name: string
-    colorFormat: GPUTextureFormat
-}
-
 export interface ComputeShaderModule {
     kind: 'ComputeShaderModule'
     name: string
     resources?: Resource[]
     imports?: ShaderModule[]
-    canvas?: CanvasTexture
+    canvas?: string
     code: string
 }
 

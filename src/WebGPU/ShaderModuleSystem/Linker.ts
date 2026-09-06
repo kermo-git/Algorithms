@@ -92,7 +92,7 @@ export function link(shaders: Shader[]): Resolved {
     }
 }
 
-function getName(resource: Resource): string {
+export function getName(resource: Resource): string {
     switch (resource.kind) {
         case 'Uniform':
             return resource.name
@@ -171,9 +171,10 @@ function resolveComputePipeline(
     }
     return {
         kind: 'ResolvedComputePipeline',
-        name: resolved.name,
+        name: pipeline.name,
         staticResources: static_resources,
         pingPongResources: ping_pong_groups,
+        canvas: pipeline.canvas,
         code: code
     }
 }
@@ -221,6 +222,7 @@ function resolveRenderPipeline(
     return {
         kind: 'ResolvedRenderPipeline',
         name: pipeline.name,
+        primitiveTopology: pipeline.primitiveTopology,
         visibility: visibility,
         resources: resolved_resources,
         indexBuffer: pipeline.indexBuffer,

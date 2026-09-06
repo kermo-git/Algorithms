@@ -1,11 +1,15 @@
 import {
     Buffer,
     ResolvedComputePipeline,
-    ResolvedRenderPipeline
+    ResolvedRenderPipeline,
+    StaticResource
 } from './Resolved'
-import { CanvasTexture, Resource, StorageBuffer, Uniform } from './UserInput'
+import { Resource } from './UserInput'
 
-export function computeCode(pipeline: ResolvedComputePipeline) {
+export function computeCode(
+    pipeline: ResolvedComputePipeline,
+    canvas_color_format: GPUTextureFormat
+) {
     let bind_declarations = ''
     let group_index = 0
     let bind_index = 0
@@ -33,7 +37,11 @@ export function computeCode(pipeline: ResolvedComputePipeline) {
 
     if (pipeline.canvas) {
         bind_declarations +=
-            canvasDeclaration(pipeline.canvas, group_index) + '\n'
+            canvasDeclaration(
+                group_index,
+                pipeline.canvas,
+                canvas_color_format
+            ) + '\n'
     }
     return `${bind_declarations}\n${pipeline.code}`
 }
@@ -50,79 +58,6 @@ export function renderCode(pipeline: ResolvedRenderPipeline) {
     }
 
     return `${bind_declarations}\n${pipeline.code}`
-}
-
-export function createBuffer(device: GPUDevice, descriptor: Buffer) {
-    const buffer = device.createBuffer({
-        label: descriptor.name,
-        size: descriptor.size,
-        usage: descriptor.usage
-    })
-    if (descriptor.data) {
-        device.queue.writeBuffer(buffer, 0, descriptor.data, 0, descriptor.size)
-    }
-    return buffer
-}
-
-export function createLayoutEntry(
-    resource: Resource,
-    bind_index: number,
-    visibility: GPUFlagsConstant
-): GPUBindGroupLayoutEntry[] {
-    const common = {
-        binding: bind_index,
-        visibility: visibility
-    }
-
-    switch (resource.kind) {
-        case 'Uniform':
-            return [
-                {
-                    ...common,
-                    buffer: {
-                        type: 'uniform'
-                    }
-                }
-            ]
-        case 'StorageBufferView':
-            switch (resource.accessMode) {
-                case 'read':
-                    return [
-                        {
-                            ...common,
-                            buffer: {
-                                type: 'read-only-storage'
-                            }
-                        }
-                    ]
-                case 'read_write':
-                    return [
-                        {
-                            ...common,
-                            buffer: {
-                                type: 'storage'
-                            }
-                        }
-                    ]
-            }
-        case 'PingPongBuffers':
-            return [
-                {
-                    binding: bind_index,
-                    visibility: visibility,
-                    buffer: {
-                        type: 'read-only-storage'
-                    }
-                },
-                {
-                    binding: bind_index + 1,
-                    visibility: visibility,
-                    buffer: {
-                        type: 'storage'
-                    }
-                }
-            ]
-    }
 }
 
 export function declareWGSLResource(
@@ -147,9 +82,142 @@ export function declareWGSLResource(
     }
 }
 
+export function canvasDeclaration(
+    group_index: number,
+    name: string,
+    color_format: GPUTextureFormat
+) {
+    return `@group(${group_index}) @binding(0) var ${name}: texture_storage_2d<${color_format}, write>`
+}
+
+export async function requestDevice(features: GPUFeatureName[] = []) {
+    const adapter = await navigator.gpu.requestAdapter()
+    if (!adapter) {
+        throw Error('WebGPU adapter not found!')
+    }
+    const supportedFeatures = features.filter(adapter.features.has)
+    const device = await adapter.requestDevice({
+        requiredFeatures: supportedFeatures
+    })
+    return { device, supportedFeatures }
+}
+
+export interface ShaderIssue {
+    message: string
+    codeLine: string
+}
+
+export interface ShaderCompilationResult {
+    module: GPUShaderModule
+    issues: ShaderIssue[]
+}
+
+export async function compileShader(
+    device: GPUDevice,
+    shader_code: string
+): Promise<ShaderCompilationResult> {
+    const trimmed_code = shader_code.trim()
+
+    const module = device.createShaderModule({
+        code: trimmed_code
+    })
+    const info = await module.getCompilationInfo()
+    const issues: ShaderIssue[] = []
+
+    if (info.messages.length > 0) {
+        const lines = trimmed_code.split('\n')
+
+        for (const message of info.messages) {
+            const issue_line = lines[message.lineNum - 1].trim()
+            const issue_text = `${message.type}: ${message.message}`
+
+            console.error(issue_text)
+            console.error(issue_line)
+
+            issues.push({
+                message: issue_text,
+                codeLine: issue_line
+            })
+        }
+    }
+
+    return { module, issues }
+}
+
+export function createBuffer(device: GPUDevice, descriptor: Buffer) {
+    const buffer = device.createBuffer({
+        label: descriptor.name,
+        size: descriptor.size,
+        usage: descriptor.usage
+    })
+    if (descriptor.data) {
+        device.queue.writeBuffer(buffer, 0, descriptor.data, 0, descriptor.size)
+    }
+    return buffer
+}
+
+export function createLayoutEntry(
+    resource: StaticResource,
+    bind_index: number,
+    visibility: GPUFlagsConstant
+): GPUBindGroupLayoutEntry {
+    const common = {
+        binding: bind_index,
+        visibility: visibility
+    }
+
+    switch (resource.kind) {
+        case 'Uniform':
+            return {
+                ...common,
+                buffer: {
+                    type: 'uniform'
+                }
+            }
+        case 'StorageBufferView':
+            switch (resource.accessMode) {
+                case 'read':
+                    return {
+                        ...common,
+                        buffer: {
+                            type: 'read-only-storage'
+                        }
+                    }
+                case 'read_write':
+                    return {
+                        ...common,
+                        buffer: {
+                            type: 'storage'
+                        }
+                    }
+            }
+    }
+}
+
+export function createPingPongLayoutEntries(
+    bind_index: number,
+    visibility: GPUFlagsConstant
+) {
+    const entry1: GPUBindGroupLayoutEntry = {
+        binding: bind_index,
+        visibility: visibility,
+        buffer: {
+            type: 'read-only-storage'
+        }
+    }
+    const entry2: GPUBindGroupLayoutEntry = {
+        binding: bind_index + 1,
+        visibility: visibility,
+        buffer: {
+            type: 'storage'
+        }
+    }
+    return { entry1, entry2 }
+}
+
 export function canvasLayout(
-    canvas: CanvasTexture,
-    device: GPUDevice
+    device: GPUDevice,
+    color_format: GPUTextureFormat
 ): GPUBindGroupLayout {
     return device.createBindGroupLayout({
         entries: [
@@ -157,13 +225,9 @@ export function canvasLayout(
                 binding: 0,
                 visibility: GPUShaderStage.COMPUTE,
                 storageTexture: {
-                    format: canvas.colorFormat
+                    format: color_format
                 }
             }
         ]
     })
-}
-
-export function canvasDeclaration(canvas: CanvasTexture, group_index: number) {
-    return `@group(${group_index}) @binding(0) var ${canvas.name}: texture_storage_2d<${canvas.colorFormat}, write>`
 }
