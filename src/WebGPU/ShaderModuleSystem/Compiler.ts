@@ -37,8 +37,11 @@ export function createComputeShaderCode(
 
     if (shader.canvas) {
         bind_declarations +=
-            canvasDeclaration(group_index, shader.canvas, canvas_color_format) +
-            '\n'
+            createCanvasDeclaration(
+                group_index,
+                shader.canvas,
+                canvas_color_format
+            ) + '\n'
     }
     return `${bind_declarations}\n${shader.code}`
 }
@@ -79,7 +82,7 @@ function createResourceDeclaration(
     }
 }
 
-export function canvasDeclaration(
+export function createCanvasDeclaration(
     group_index: number,
     name: string,
     color_format: GPUTextureFormat
