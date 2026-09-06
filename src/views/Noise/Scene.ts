@@ -1,6 +1,6 @@
 import Engine from '@/WebGPU/Engine'
 
-import createNoiseShader, { type Setup } from './Shader'
+import createNoiseShader, { createColorData, type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
 
 export default class WebGPUScene {
@@ -19,7 +19,6 @@ export default class WebGPUScene {
     warp_strength!: GPUBuffer
     static_bind_group!: GPUBindGroup
 
-    n_colors!: GPUBuffer
     color_points!: GPUBuffer
     color_bind_group!: GPUBindGroup
 
@@ -117,10 +116,12 @@ export default class WebGPUScene {
 
         const colors = setup.colors || ['#000000', '#FFFFFF']
         const color_points = setup.color_points || [0, 1]
-        const color_data = this.createColorData(colors, color_points)
+        const color_data = createColorData(colors, color_points)
 
-        this.n_colors = this.engine.createIntUniform(colors.length)
-        this.color_points = this.engine.createStorageBuffer(color_data, 256)
+        this.color_points = this.engine.createStorageBuffer(
+            new Float32Array(color_data),
+            256
+        )
 
         this.color_bind_group = device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(2),
@@ -129,12 +130,6 @@ export default class WebGPUScene {
                     binding: 0,
                     resource: {
                         buffer: this.color_points
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this.n_colors
                     }
                 }
             ]
@@ -200,32 +195,17 @@ export default class WebGPUScene {
         this.render()
     }
 
-    createColorData(colors: string[], points: number[]) {
-        const result = new Float32Array(colors.length * 4)
-
-        for (let i = 0; i < colors.length; i++) {
-            const { red, green, blue } = parseHexColor(colors[i])
-            const offset = 4 * i
-
-            result[offset + 0] = red / 255
-            result[offset + 1] = green / 255
-            result[offset + 2] = blue / 255
-            result[offset + 3] = points[i]
-        }
-        return result
-    }
-
     updateColor(index: number, hex_color: string) {
         const { red, green, blue } = parseHexColor(hex_color)
         const bytes = new Float32Array([red / 255, green / 255, blue / 255])
 
-        const offset = 16 * index
+        const offset = 16 * index + 16
         this.engine.updateBuffer(this.color_points, bytes, offset)
         this.render()
     }
 
     updateColorPoint(index: number, value: number) {
-        const offset = 16 * index + 12
+        const offset = 16 * index + 12 + 16
         this.engine.updateBuffer(
             this.color_points,
             new Float32Array([value]),
@@ -235,9 +215,8 @@ export default class WebGPUScene {
     }
 
     updateColorData(colors: string[], points: number[]) {
-        const new_data = this.createColorData(colors, points)
-        this.engine.updateBuffer(this.color_points, new_data)
-        this.engine.updateIntUniform(this.n_colors, colors.length)
+        const new_data = createColorData(colors, points)
+        this.engine.updateBuffer(this.color_points, new Float32Array(new_data))
         this.render()
     }
 
@@ -251,6 +230,5 @@ export default class WebGPUScene {
         this.w_coord?.destroy()
         this.warp_strength?.destroy()
         this.color_points?.destroy()
-        this.n_colors?.destroy()
     }
 }

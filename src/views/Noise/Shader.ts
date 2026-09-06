@@ -7,6 +7,7 @@ import {
     unitVector3DShader
 } from '@/Noise/ShaderUtils'
 import type { NoiseShaderFactory } from '@/Noise/Types'
+import { parseHexColor } from '@/utils/Colors'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
 
@@ -165,37 +166,43 @@ export default function createNoiseShader(
         
         struct ColorPoint {
             color: vec3f,
-            point: f32,
+            value: f32,
+        };
+
+        struct ColorArray {
+            n_colors: u32,
+            points: array<ColorPoint>
         };
         
-        @group(2) @binding(0) var<storage> color_points: array<ColorPoint>;
-        @group(2) @binding(1) var<uniform> n_colors: u32;
+        @group(2) @binding(0) var<storage> color_data: ColorArray;
 
         ${noise_functions}
 
-        fn interpolate_color(noise_value: f32) -> vec4f {
-            if noise_value <= color_points[0].point {
-                return vec4f(color_points[0].color, 1);
-            } else if noise_value > color_points[n_colors - 1].point {
-                return vec4f(color_points[n_colors - 1].color, 1);
+        fn interpolate_color(value: f32) -> vec4f {
+            let n_colors = color_data.n_colors;
+            
+            if value <= color_data.points[0].value {
+                return vec4f(color_data.points[0].color, 1);
+            } else if value > color_data.points[n_colors - 1].value {
+                return vec4f(color_data.points[n_colors - 1].color, 1);
             } else {
-                var prev_color = color_points[0].color;
-                var prev_point = color_points[0].point;
+                var prev_color = color_data.points[0].color;
+                var prev_value = color_data.points[0].value;
 
                 for (var i = 1u; i < n_colors; i++) {
-                    var current_color = color_points[i].color;
-                    var current_point = color_points[i].point;
+                    var current_color = color_data.points[i].color;
+                    var current_point = color_data.points[i].value;
 
-                    if noise_value <= current_point {
-                        let blend_factor = (noise_value - prev_point) / (current_point - prev_point);
+                    if value <= current_point {
+                        let blend_factor = (value - prev_value) / (current_point - prev_value);
                         let color = mix(prev_color, current_color, blend_factor);
                         return vec4f(color, 1);
                     }
                     prev_color = current_color;
-                    prev_point = current_point;
+                    prev_value = current_point;
                 }
             }
-            return vec4f(vec3f(noise_value), 1);
+            return vec4f(vec3f(value), 1);
         }
         
         @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
