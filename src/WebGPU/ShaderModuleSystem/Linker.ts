@@ -1,23 +1,23 @@
 import {
-    Buffer,
-    Resolved,
-    ResolvedComputePipeline,
-    ResolvedRenderPipeline,
+    LinkedBuffer,
+    LinkedScene,
+    LinkedComputeShader,
+    LinkedRenderShader,
     StaticResource
-} from './Resolved'
+} from './LinkedModules'
 import {
-    ComputeShaderModule,
+    ComputeShader,
     PingPongBuffers,
     ReadOnlyResource,
-    RenderPipeline,
+    RenderShader,
     Resource,
     Shader,
     ShaderModule,
     StorageBuffer
-} from './UserInput'
+} from './Modules'
 
-export function link(shaders: Shader[]): Resolved {
-    const buffers = new Map<string, Buffer>()
+export function link(shaders: Shader[]): LinkedScene {
+    const buffers = new Map<string, LinkedBuffer>()
 
     function addStorageBuffer(buffer: StorageBuffer) {
         if (!buffers.get(buffer.name)) {
@@ -61,25 +61,25 @@ export function link(shaders: Shader[]): Resolved {
         }
     }
 
-    let compute_pipelines: ResolvedComputePipeline[] = []
-    let render_pipelines: ResolvedRenderPipeline[] = []
+    let compute_shaders: LinkedComputeShader[] = []
+    let render_shaders: LinkedRenderShader[] = []
 
     for (const shader of shaders) {
         switch (shader.kind) {
-            case 'ComputeShaderModule': {
-                const resolved = resolveComputePipeline(shader)
+            case 'ComputeShader': {
+                const resolved = resolveComputeShader(shader)
                 findBuffers(resolved.staticResources)
                 findBuffers(resolved.pingPongResources)
-                compute_pipelines.push(resolved)
+                compute_shaders.push(resolved)
                 break
             }
-            case 'RenderPipeline': {
-                const resolved = resolveRenderPipeline(shader)
+            case 'RenderShader': {
+                const resolved = resolveRenderShader(shader)
                 findBuffers(resolved.resources)
                 addStorageBuffer(resolved.indexBuffer)
                 buffers.get(resolved.indexBuffer.name)!.usage |=
                     GPUBufferUsage.INDEX
-                render_pipelines.push(resolved)
+                render_shaders.push(resolved)
                 break
             }
         }
@@ -87,8 +87,8 @@ export function link(shaders: Shader[]): Resolved {
 
     return {
         buffers: buffers,
-        computePipelines: compute_pipelines,
-        renderPipelines: render_pipelines
+        computeShaders: compute_shaders,
+        renderShaders: render_shaders
     }
 }
 
@@ -103,7 +103,7 @@ export function getName(resource: Resource): string {
     }
 }
 
-function resolveModule<T extends ShaderModule>(shader: T): T {
+function resolveImports<T extends ShaderModule>(shader: T): T {
     const resolved_resource_names = new Set<string>(
         (shader.resources || []).map(getName)
     )
@@ -145,10 +145,8 @@ function resolveModule<T extends ShaderModule>(shader: T): T {
     }
 }
 
-function resolveComputePipeline(
-    pipeline: ComputeShaderModule
-): ResolvedComputePipeline {
-    const resolved = resolveModule(pipeline)
+function resolveComputeShader(shader: ComputeShader): LinkedComputeShader {
+    const resolved = resolveImports(shader)
     let code = ''
 
     for (const module of resolved.imports || []) {
@@ -170,23 +168,21 @@ function resolveComputePipeline(
         }
     }
     return {
-        kind: 'ResolvedComputePipeline',
-        name: pipeline.name,
+        kind: 'LinkedComputeShader',
+        name: shader.name,
         staticResources: static_resources,
         pingPongResources: ping_pong_groups,
-        canvas: pipeline.canvas,
+        canvas: shader.canvas,
         code: code
     }
 }
 
-function resolveRenderPipeline(
-    pipeline: RenderPipeline
-): ResolvedRenderPipeline {
+function resolveRenderShader(shader: RenderShader): LinkedRenderShader {
     const visibility = new Map<string, GPUFlagsConstant>()
     let resolved_resources: ReadOnlyResource[] = []
 
-    const resolved_vertex = resolveModule(pipeline.vertexShader)
-    const resolved_fragment = resolveModule(pipeline.fragmentShader)
+    const resolved_vertex = resolveImports(shader.vertexShader)
+    const resolved_fragment = resolveImports(shader.fragmentShader)
 
     for (const r of resolved_vertex.resources || []) {
         resolved_resources.push(r)
@@ -220,12 +216,12 @@ function resolveRenderPipeline(
     }
 
     return {
-        kind: 'ResolvedRenderPipeline',
-        name: pipeline.name,
-        primitiveTopology: pipeline.primitiveTopology,
+        kind: 'LinkedRenderShader',
+        name: shader.name,
+        primitiveTopology: shader.primitiveTopology,
         visibility: visibility,
         resources: resolved_resources,
-        indexBuffer: pipeline.indexBuffer,
+        indexBuffer: shader.indexBuffer,
         code: `${resolved_code}${resolved_vertex.code}\n${resolved_fragment.code}`
     }
 }

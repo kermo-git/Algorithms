@@ -1,4 +1,4 @@
-import { readView } from '@/WebGPU/ShaderModuleSystem/UserInput'
+import { readView } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 import {
     generateUnitVectors2D,

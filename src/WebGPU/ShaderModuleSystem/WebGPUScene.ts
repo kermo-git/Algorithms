@@ -1,12 +1,12 @@
 import { createBuffer, requestDevice } from './Compiler'
 import {
-    ComputePassData,
-    RenderPassData,
-    buildComputeShader,
-    buildRenderPipeline
+    CompiledComputeShader,
+    CompiledRenderShader,
+    compileComputeShader,
+    compileRenderShader
 } from './ShaderCompiler'
 import { link } from './Linker'
-import { Shader } from './UserInput'
+import { Shader } from './Modules'
 
 export interface ComputeExecution {
     kind: 'Compute'
@@ -36,8 +36,8 @@ export default class WebGPUScene {
     canvas_color_format!: GPUTextureFormat
 
     buffers = new Map<string, GPUBuffer>()
-    compute_pipelines = new Map<string, ComputePassData>()
-    render_pipelines = new Map<string, RenderPassData>()
+    compute_shaders = new Map<string, CompiledComputeShader>()
+    render_shaders = new Map<string, CompiledRenderShader>()
 
     /* Initialization */
 
@@ -45,10 +45,10 @@ export default class WebGPUScene {
         const resolved = link(shader_passes)
         let canvas_usage = 0
 
-        if (resolved.computePipelines.length > 0) {
+        if (resolved.computeShaders.length > 0) {
             canvas_usage |= GPUTextureUsage.STORAGE_BINDING
         }
-        if (resolved.renderPipelines.length > 0) {
+        if (resolved.renderShaders.length > 0) {
             canvas_usage |= GPUTextureUsage.RENDER_ATTACHMENT
         }
 
@@ -58,25 +58,25 @@ export default class WebGPUScene {
             this.buffers.set(name, createBuffer(this.device, buffer))
         }
 
-        resolved.computePipelines.forEach(async (shader_info) => {
-            this.compute_pipelines.set(
-                shader_info.name,
-                await buildComputeShader(
+        resolved.computeShaders.forEach(async (shader) => {
+            this.compute_shaders.set(
+                shader.name,
+                await compileComputeShader(
                     this.device,
                     this.buffers,
                     this.canvas_color_format,
-                    shader_info
+                    shader
                 )
             )
         })
-        resolved.renderPipelines.forEach(async (shader_info) => {
-            this.render_pipelines.set(
-                shader_info.name,
-                await buildRenderPipeline(
+        resolved.renderShaders.forEach(async (shader) => {
+            this.render_shaders.set(
+                shader.name,
+                await compileRenderShader(
                     this.device,
                     this.buffers,
                     this.canvas_color_format,
-                    shader_info
+                    shader
                 )
             )
         })
@@ -118,105 +118,101 @@ export default class WebGPUScene {
         for (const command of commands) {
             switch (command.kind) {
                 case 'Compute': {
-                    const shader_data = this.compute_pipelines.get(
-                        command.name
-                    )!
-                    const { x, y, z } = command.n_workgroups
-
-                    const pass_encoder = cmd_encoder.beginComputePass()
-                    pass_encoder.setPipeline(shader_data.pipeline)
-
-                    let ping_pong_index = 0
-                    let canvas_index = 0
-
-                    if (shader_data.static_group) {
-                        pass_encoder.setBindGroup(0, shader_data.static_group)
-                        ping_pong_index++
-                        canvas_index++
-                    }
-                    if (shader_data.ping_pong_group_BA) {
-                        canvas_index++
-                    }
-                    if (shader_data.canvas_layout) {
-                        const texture = this.context.getCurrentTexture()
-                        const canvas_bind_group = this.device.createBindGroup({
-                            layout: shader_data.canvas_layout,
-                            entries: [
-                                {
-                                    binding: 0,
-                                    resource: texture.createView()
-                                }
-                            ]
-                        })
-                        pass_encoder.setBindGroup(
-                            canvas_index,
-                            canvas_bind_group
-                        )
-                    }
-                    if (shader_data.ping_pong_group_BA) {
-                        let current_flag = command.ping_pong_flag || false
-                        for (let i = 0; i < (command.n_ping_pongs || 1); i++) {
-                            current_flag = !current_flag
-                            if (current_flag) {
-                                pass_encoder.setBindGroup(
-                                    ping_pong_index,
-                                    shader_data.ping_pong_group_AB
-                                )
-                            } else {
-                                pass_encoder.setBindGroup(
-                                    ping_pong_index,
-                                    shader_data.ping_pong_group_BA
-                                )
-                            }
-                            pass_encoder.dispatchWorkgroups(x, y, z)
-                        }
-                    } else {
-                        pass_encoder.dispatchWorkgroups(x, y, z)
-                    }
+                    this.encodeCompute(cmd_encoder, command)
                     break
                 }
                 case 'Render':
-                    const shader_data = this.render_pipelines.get(command.name)!
-
-                    const main_texture = this.context.getCurrentTexture()
-                    const depth_texture = this.createDepthTexture(
-                        main_texture.width,
-                        main_texture.height
-                    )
-                    const depth_attachment =
-                        this.createDepthStencilAttachment(depth_texture)
-
-                    const pass_encoder = cmd_encoder.beginRenderPass({
-                        colorAttachments: [
-                            {
-                                view: main_texture.createView(),
-                                clearValue: [0, 0, 0, 1],
-                                loadOp: 'clear',
-                                storeOp: 'store'
-                            }
-                        ],
-                        depthStencilAttachment: depth_attachment
-                    })
-                    pass_encoder.setPipeline(shader_data.pipeline)
-
-                    if (shader_data.bind_group) {
-                        pass_encoder.setBindGroup(0, shader_data.bind_group)
-                    }
-                    pass_encoder.setIndexBuffer(
-                        shader_data.indexBuffer,
-                        'uint32'
-                    )
-                    pass_encoder.drawIndexed(
-                        command.n_indexes,
-                        command.n_instances
-                    )
-                    pass_encoder.end()
-
+                    this.encodeRender(cmd_encoder, command)
                     break
             }
         }
 
         this.device.queue.submit([cmd_encoder.finish()])
+    }
+
+    encodeCompute(cmd_encoder: GPUCommandEncoder, command: ComputeExecution) {
+        const shader = this.compute_shaders.get(command.name)!
+        const { x, y, z } = command.n_workgroups
+
+        const pass_encoder = cmd_encoder.beginComputePass()
+        pass_encoder.setPipeline(shader.pipeline)
+
+        let ping_pong_index = 0
+        let canvas_index = 0
+
+        if (shader.staticGroup) {
+            pass_encoder.setBindGroup(0, shader.staticGroup)
+            ping_pong_index++
+            canvas_index++
+        }
+        if (shader.pingPongGroupBA) {
+            canvas_index++
+        }
+        if (shader.canvasLayout) {
+            const texture = this.context.getCurrentTexture()
+            const canvas_bind_group = this.device.createBindGroup({
+                layout: shader.canvasLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: texture.createView()
+                    }
+                ]
+            })
+            pass_encoder.setBindGroup(canvas_index, canvas_bind_group)
+        }
+        if (shader.pingPongGroupBA) {
+            let current_flag = command.ping_pong_flag || false
+            for (let i = 0; i < (command.n_ping_pongs || 1); i++) {
+                current_flag = !current_flag
+                if (current_flag) {
+                    pass_encoder.setBindGroup(
+                        ping_pong_index,
+                        shader.pingPongGroupAB
+                    )
+                } else {
+                    pass_encoder.setBindGroup(
+                        ping_pong_index,
+                        shader.pingPongGroupBA
+                    )
+                }
+                pass_encoder.dispatchWorkgroups(x, y, z)
+            }
+        } else {
+            pass_encoder.dispatchWorkgroups(x, y, z)
+        }
+    }
+
+    encodeRender(cmd_encoder: GPUCommandEncoder, command: RenderExecution) {
+        const shader = this.render_shaders.get(command.name)!
+
+        const main_texture = this.context.getCurrentTexture()
+        const depth_texture = this.createDepthTexture(
+            main_texture.width,
+            main_texture.height
+        )
+        const depth_attachment =
+            this.createDepthStencilAttachment(depth_texture)
+
+        const pass_encoder = cmd_encoder.beginRenderPass({
+            colorAttachments: [
+                {
+                    view: main_texture.createView(),
+                    clearValue: [0, 0, 0, 1],
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }
+            ],
+            depthStencilAttachment: depth_attachment
+        })
+        pass_encoder.setPipeline(shader.pipeline)
+
+        if (shader.bindGroup) {
+            pass_encoder.setBindGroup(0, shader.bindGroup)
+        }
+        pass_encoder.setIndexBuffer(shader.indexBuffer, 'uint32')
+        pass_encoder.drawIndexed(command.n_indexes, command.n_instances)
+        pass_encoder.end()
     }
 
     /* Basic actions with device */

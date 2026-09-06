@@ -4,15 +4,15 @@ import {
     StorageBuffer,
     StorageBufferView,
     Uniform
-} from './UserInput'
+} from './Modules'
 
 export type StaticResource =
     | Uniform
     | StorageBufferView<'read'>
     | StorageBufferView<'read_write'>
 
-export interface ResolvedComputePipeline {
-    kind: 'ResolvedComputePipeline'
+export interface LinkedComputeShader {
+    kind: 'LinkedComputeShader'
     name: string
     staticResources: StaticResource[]
     pingPongResources: PingPongBuffers[]
@@ -20,8 +20,8 @@ export interface ResolvedComputePipeline {
     code: string
 }
 
-export interface ResolvedRenderPipeline {
-    kind: 'ResolvedRenderPipeline'
+export interface LinkedRenderShader {
+    kind: 'LinkedRenderShader'
     name: string
     primitiveTopology: GPUPrimitiveTopology
     visibility: Map<string, GPUFlagsConstant>
@@ -30,15 +30,15 @@ export interface ResolvedRenderPipeline {
     code: string
 }
 
-export interface Buffer {
+export interface LinkedBuffer {
     name: string
     usage: GPUFlagsConstant
     size: number
     data?: ArrayBuffer
 }
 
-export interface Resolved {
-    buffers: Map<string, Buffer>
-    computePipelines: ResolvedComputePipeline[]
-    renderPipelines: ResolvedRenderPipeline[]
+export interface LinkedScene {
+    buffers: Map<string, LinkedBuffer>
+    computeShaders: LinkedComputeShader[]
+    renderShaders: LinkedRenderShader[]
 }

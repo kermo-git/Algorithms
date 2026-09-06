@@ -34,26 +34,26 @@ export type Resource =
     | PingPongBuffers
 
 export interface ReadOnlyShaderModule {
-    kind: 'ReadOnlyShaderModule'
     name: string
     resources?: ReadOnlyResource[]
     imports?: ReadOnlyShaderModule[]
     code: string
 }
 
-export interface ComputeShaderModule {
-    kind: 'ComputeShaderModule'
+export interface ShaderModule {
     name: string
     resources?: Resource[]
     imports?: ShaderModule[]
-    canvas?: string
     code: string
 }
 
-export type ShaderModule = ReadOnlyShaderModule | ComputeShaderModule
+export interface ComputeShader extends ShaderModule {
+    kind: 'ComputeShader'
+    canvas?: string
+}
 
-export interface RenderPipeline {
-    kind: 'RenderPipeline'
+export interface RenderShader {
+    kind: 'RenderShader'
     name: string
     primitiveTopology: GPUPrimitiveTopology
     indexBuffer: StorageBuffer
@@ -61,7 +61,7 @@ export interface RenderPipeline {
     fragmentShader: ReadOnlyShaderModule
 }
 
-export type Shader = ComputeShaderModule | RenderPipeline
+export type Shader = ComputeShader | RenderShader
 
 export function readView(buffer: StorageBuffer): StorageBufferView<'read'> {
     return {

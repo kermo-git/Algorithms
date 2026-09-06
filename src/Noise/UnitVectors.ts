@@ -1,4 +1,4 @@
-import { StorageBuffer } from '@/WebGPU/ShaderModuleSystem/UserInput'
+import { StorageBuffer } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 export const Gradients2D: StorageBuffer = {
     kind: 'StorageBuffer',

@@ -1,22 +1,22 @@
 import {
-    Buffer,
-    ResolvedComputePipeline,
-    ResolvedRenderPipeline,
+    LinkedBuffer,
+    LinkedComputeShader,
+    LinkedRenderShader,
     StaticResource
-} from './Resolved'
-import { Resource } from './UserInput'
+} from './LinkedModules'
+import { Resource } from './Modules'
 
-export function computeCode(
-    pipeline: ResolvedComputePipeline,
+export function createComputeShaderCode(
+    shader: LinkedComputeShader,
     canvas_color_format: GPUTextureFormat
 ) {
     let bind_declarations = ''
     let group_index = 0
     let bind_index = 0
 
-    for (const resource of pipeline.staticResources) {
+    for (const resource of shader.staticResources) {
         bind_declarations +=
-            declareWGSLResource(resource, group_index, bind_index) + '\n'
+            createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 1
     }
 
@@ -25,9 +25,9 @@ export function computeCode(
         bind_index = 0
     }
 
-    for (const resource of pipeline.pingPongResources) {
+    for (const resource of shader.pingPongResources) {
         bind_declarations +=
-            declareWGSLResource(resource, group_index, bind_index) + '\n'
+            createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 2
     }
 
@@ -35,32 +35,29 @@ export function computeCode(
         group_index += 1
     }
 
-    if (pipeline.canvas) {
+    if (shader.canvas) {
         bind_declarations +=
-            canvasDeclaration(
-                group_index,
-                pipeline.canvas,
-                canvas_color_format
-            ) + '\n'
+            canvasDeclaration(group_index, shader.canvas, canvas_color_format) +
+            '\n'
     }
-    return `${bind_declarations}\n${pipeline.code}`
+    return `${bind_declarations}\n${shader.code}`
 }
 
-export function renderCode(pipeline: ResolvedRenderPipeline) {
+export function createRenderShaderCode(shader: LinkedRenderShader) {
     let bind_declarations = ''
     let group_index = 0
     let bind_index = 0
 
-    for (const resource of pipeline.resources) {
+    for (const resource of shader.resources) {
         bind_declarations +=
-            declareWGSLResource(resource, group_index, bind_index) + '\n'
+            createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 2
     }
 
-    return `${bind_declarations}\n${pipeline.code}`
+    return `${bind_declarations}\n${shader.code}`
 }
 
-export function declareWGSLResource(
+function createResourceDeclaration(
     resource: Resource,
     group_index: number,
     binding_index: number
@@ -112,7 +109,7 @@ export interface ShaderCompilationResult {
     issues: ShaderIssue[]
 }
 
-export async function compileShader(
+export async function compileShaderCode(
     device: GPUDevice,
     shader_code: string
 ): Promise<ShaderCompilationResult> {
@@ -144,7 +141,7 @@ export async function compileShader(
     return { module, issues }
 }
 
-export function createBuffer(device: GPUDevice, descriptor: Buffer) {
+export function createBuffer(device: GPUDevice, descriptor: LinkedBuffer) {
     const buffer = device.createBuffer({
         label: descriptor.name,
         size: descriptor.size,
@@ -194,20 +191,17 @@ export function createLayoutEntry(
     }
 }
 
-export function createPingPongLayoutEntries(
-    bind_index: number,
-    visibility: GPUFlagsConstant
-) {
+export function createPingPongLayoutEntries(bind_index: number) {
     const entry1: GPUBindGroupLayoutEntry = {
         binding: bind_index,
-        visibility: visibility,
+        visibility: GPUShaderStage.COMPUTE,
         buffer: {
             type: 'read-only-storage'
         }
     }
     const entry2: GPUBindGroupLayoutEntry = {
         binding: bind_index + 1,
-        visibility: visibility,
+        visibility: GPUShaderStage.COMPUTE,
         buffer: {
             type: 'storage'
         }
@@ -215,7 +209,7 @@ export function createPingPongLayoutEntries(
     return { entry1, entry2 }
 }
 
-export function canvasLayout(
+export function createCanvasLayout(
     device: GPUDevice,
     color_format: GPUTextureFormat
 ): GPUBindGroupLayout {
