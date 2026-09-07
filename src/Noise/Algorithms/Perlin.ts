@@ -35,7 +35,6 @@ export function Perlin2DModule(quadratic?: boolean): NoiseModule {
     return {
         name: 'perlin_2d',
         posType: 'vec2f',
-        secondParamType: 'u32',
         resources: [readView(Gradients2D)],
         imports: [
             createModule('seed_2d'),
@@ -78,7 +77,6 @@ export function Perlin3DModule(quadratic?: boolean): NoiseModule {
     return {
         name: 'perlin_3d',
         posType: 'vec3f',
-        secondParamType: 'u32',
         resources: [readView(Gradients3D)],
         imports: [
             createModule('seed_3d'),
@@ -129,7 +127,6 @@ export function Perlin4DModule(quadratic?: boolean): NoiseModule {
     return {
         name: 'perlin_4d',
         posType: 'vec4f',
-        secondParamType: 'u32',
         resources: [readView(Gradients4D)],
         imports: [
             createModule('seed_4d'),

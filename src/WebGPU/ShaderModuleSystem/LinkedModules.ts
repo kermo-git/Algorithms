@@ -33,7 +33,7 @@ export interface LinkedRenderShader {
 export interface LinkedBuffer {
     name: string
     usage: GPUFlagsConstant
-    size: number
+    byteLength: number
     data?: ArrayBuffer
 }
 

@@ -12,7 +12,7 @@ function create_fade_fn(d: 2 | 3 | 4) {
 }
 
 function create_seed_fn(d: 2 | 3 | 4) {
-    const name = `fade_${d}d`
+    const name = `seed_${d}d`
     const vec_i = `vec${d}i`
     const vec_u = `vec${d}u`
 
@@ -91,6 +91,62 @@ const pcg4d_xyzw = /* wgsl */ `
 `
 
 const shader_functions = new Map<string, string>([
+    [
+        'rotate_3d',
+        /* wgsl */ `
+        fn rotate(pos: vec3f) -> vec3f {
+            let xz = pos.x + pos.z;
+            let s2 = xz * -0.211324865405187;
+            let yy = pos.y * 0.577350269189626;
+            let xr = pos.x + (s2 + yy);
+            let zr = pos.z + (s2 + yy);
+            let yr = xz * -0.577350269189626 + yy;
+            return vec3f(xr, yr, zr);
+        }`
+    ],
+    [
+        'rotate_4d',
+        /* wgsl */ `
+        fn rotate_4d(pos: vec4f) -> vec4f {
+            let xyz = pos.x + pos.y + pos.z;
+            let s3 = xyz * (-1.0 / 6.0);
+            let ww = pos.w * 0.5;
+
+            let xr = pos.x + s3 + ww;
+            let yr = pos.y + s3 + ww;
+            let zr = pos.z + s3 + ww;
+            let wr = xyz * -0.5 + ww;
+
+            return vec4f(xr, yr, zr, wr);
+        }`
+    ],
+    [
+        'unit_vector_2d',
+        /* wgsl */ `
+        fn unit_vector_2d(noise_value: f32) -> vec2f {
+            const full_circle = 2 * radians(180.0);
+            let phi = full_circle * noise_value;
+            return vec2f(cos(phi), sin(phi));
+        }`
+    ],
+    [
+        'unit_vector_3d',
+        /* wgsl */ `
+        fn unit_vector_3d(phi_noise: f32, theta_noise: f32) -> vec3f {
+            const PI = radians(180.0);
+            const full_circle = 2 * PI;
+
+            let phi = full_circle * phi_noise;
+            let theta = PI * theta_noise;
+            let sin_theta = sin(theta);
+
+            return vec3f(
+                sin_theta * cos(phi),
+                sin_theta * sin(phi),
+                cos(theta)
+            );
+        }`
+    ],
     ['fade_2d', create_fade_fn(2)],
     ['fade_3d', create_fade_fn(3)],
     ['fade_4d', create_fade_fn(4)],

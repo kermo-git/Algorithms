@@ -1,16 +1,5 @@
 import { type NoiseTransformNames, type VecType } from './Types'
 
-function randStrFloat(min: number, max: number) {
-    return (min + (max - min) * Math.random()).toFixed(2)
-}
-
-export function randVec(vec_type: VecType, min = 10, max = 30) {
-    if (vec_type === 'vec2f') {
-        return `vec2f(${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
-    }
-    return `vec3f(${randStrFloat(min, max)}, ${randStrFloat(min, max)}, ${randStrFloat(min, max)})`
-}
-
 // https://iquilezles.org/articles/fbm/
 
 export function octaveNoiseShader({

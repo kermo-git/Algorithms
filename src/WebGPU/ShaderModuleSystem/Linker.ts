@@ -29,7 +29,7 @@ export function link(shaders: Shader[]): LinkedScene {
             buffers.set(buffer.name, {
                 name: buffer.name,
                 usage: usage,
-                size: buffer.byteLength || buffer.data?.byteLength || 0,
+                byteLength: buffer.byteLength || buffer.data?.byteLength || 0,
                 data: buffer.data
             })
         }
@@ -45,7 +45,7 @@ export function link(shaders: Shader[]): LinkedScene {
                             usage:
                                 GPUBufferUsage.UNIFORM |
                                 GPUBufferUsage.COPY_DST,
-                            size: resource.data.byteLength,
+                            byteLength: resource.data.byteLength,
                             data: resource.data
                         })
                     }

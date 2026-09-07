@@ -2,7 +2,9 @@ import {
     createCanvasLayout,
     compileShaderCode,
     createLayoutEntry,
-    createPingPongLayoutEntries
+    createPingPongLayoutEntries,
+    createComputeShaderCode,
+    createRenderShaderCode
 } from './Compiler'
 import { getName } from './Linker'
 import { LinkedComputeShader, LinkedRenderShader } from './LinkedModules'
@@ -103,7 +105,8 @@ export async function compileComputeShader(
     const pipelineLayout = device.createPipelineLayout({
         bindGroupLayouts
     })
-    const { module } = await compileShaderCode(device, shader.code)
+    const code = createComputeShaderCode(shader, canvas_color_format)
+    const { module } = await compileShaderCode(device, code)
 
     return {
         pipelineLayout,
@@ -154,7 +157,8 @@ export async function compileRenderShader(
     const pipelineLayout = device.createPipelineLayout({
         bindGroupLayouts
     })
-    const { module } = await compileShaderCode(device, shader.code)
+    const code = createRenderShaderCode(shader)
+    const { module } = await compileShaderCode(device, code)
 
     return {
         pipelineLayout,

@@ -69,7 +69,7 @@ function createResourceDeclaration(
 
     switch (resource.kind) {
         case 'Uniform':
-            return `${binding_declaration} var<uniform> ${resource.name}: ${resource.dataType}`
+            return `${binding_declaration} var<uniform> ${resource.name}: ${resource.dataType};`
 
         case 'StorageBufferView':
             const buffer_name = resource.buffer.name
@@ -87,7 +87,7 @@ export function createCanvasDeclaration(
     name: string,
     color_format: GPUTextureFormat
 ) {
-    return `@group(${group_index}) @binding(0) var ${name}: texture_storage_2d<${color_format}, write>`
+    return `@group(${group_index}) @binding(0) var ${name}: texture_storage_2d<${color_format}, write>;`
 }
 
 export async function requestDevice(features: GPUFeatureName[] = []) {
@@ -95,7 +95,7 @@ export async function requestDevice(features: GPUFeatureName[] = []) {
     if (!adapter) {
         throw Error('WebGPU adapter not found!')
     }
-    const supportedFeatures = features.filter(adapter.features.has)
+    const supportedFeatures = features.filter((f) => adapter.features.has(f))
     const device = await adapter.requestDevice({
         requiredFeatures: supportedFeatures
     })
@@ -147,11 +147,17 @@ export async function compileShaderCode(
 export function createBuffer(device: GPUDevice, descriptor: LinkedBuffer) {
     const buffer = device.createBuffer({
         label: descriptor.name,
-        size: descriptor.size,
+        size: descriptor.byteLength,
         usage: descriptor.usage
     })
     if (descriptor.data) {
-        device.queue.writeBuffer(buffer, 0, descriptor.data, 0, descriptor.size)
+        device.queue.writeBuffer(
+            buffer,
+            0,
+            descriptor.data,
+            0,
+            descriptor.data.byteLength
+        )
     }
     return buffer
 }

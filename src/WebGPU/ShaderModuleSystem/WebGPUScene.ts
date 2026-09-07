@@ -41,7 +41,7 @@ export default class WebGPUScene {
 
     /* Initialization */
 
-    async initScene(canvas: HTMLCanvasElement, shader_passes: Shader[]) {
+    async compileScene(canvas: HTMLCanvasElement, shader_passes: Shader[]) {
         const resolved = link(shader_passes)
         let canvas_usage = 0
 
@@ -52,7 +52,7 @@ export default class WebGPUScene {
             canvas_usage |= GPUTextureUsage.RENDER_ATTACHMENT
         }
 
-        await this.initDevice(canvas, canvas_usage)
+        await this.createDevice(canvas, canvas_usage)
 
         for (const [name, buffer] of resolved.buffers) {
             this.buffers.set(name, createBuffer(this.device, buffer))
@@ -69,6 +69,7 @@ export default class WebGPUScene {
                 )
             )
         })
+
         resolved.renderShaders.forEach(async (shader) => {
             this.render_shaders.set(
                 shader.name,
@@ -82,7 +83,7 @@ export default class WebGPUScene {
         })
     }
 
-    async initDevice(
+    async createDevice(
         canvas: HTMLCanvasElement,
         canvas_usage: GPUFlagsConstant
     ) {
@@ -118,11 +119,11 @@ export default class WebGPUScene {
         for (const command of commands) {
             switch (command.kind) {
                 case 'Compute': {
-                    this.encodeCompute(cmd_encoder, command)
+                    this.executeCompute(cmd_encoder, command)
                     break
                 }
                 case 'Render':
-                    this.encodeRender(cmd_encoder, command)
+                    this.executeRender(cmd_encoder, command)
                     break
             }
         }
@@ -130,7 +131,7 @@ export default class WebGPUScene {
         this.device.queue.submit([cmd_encoder.finish()])
     }
 
-    encodeCompute(cmd_encoder: GPUCommandEncoder, command: ComputeExecution) {
+    executeCompute(cmd_encoder: GPUCommandEncoder, command: ComputeExecution) {
         const shader = this.compute_shaders.get(command.name)!
         const { x, y, z } = command.n_workgroups
 
@@ -183,7 +184,7 @@ export default class WebGPUScene {
         }
     }
 
-    encodeRender(cmd_encoder: GPUCommandEncoder, command: RenderExecution) {
+    executeRender(cmd_encoder: GPUCommandEncoder, command: RenderExecution) {
         const shader = this.render_shaders.get(command.name)!
 
         const main_texture = this.context.getCurrentTexture()

@@ -5,49 +5,35 @@ export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
 export interface NoiseModule extends ShaderModule {
     posType: VecType
-    secondParamType: string
-}
-
-export const FBMParams: ShaderModule = {
-    name: 'FBMParams',
-    code: /* wgsl */ `
-        struct FBMParams {
-            n_octaves: u32,
-            lacunarity: f32,
-            persistence: f32
-        };
-
-        const DEFAULT_FBM_PARAMS = FBMParams(3, 2, 0.5);
-    `
 }
 
 export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
-    let seed_increment = ''
-
-    if (noise.secondParamType !== 'u32') {
-        seed_increment = 'noise_params_copy.seed += 1;'
-    } else {
-        seed_increment = 'noise_params_copy += 1;'
-    }
-
     return {
         name: `${noise.name}_fbm`,
-        imports: [noise, FBMParams],
+        imports: [noise],
 
         code: /* wgsl */ `
-            fn ${noise.name}_fbm(noise_pos: ${noise.posType}, noise_params: ${noise.secondParamType}, fbm_params: FBMParams) -> f32 {
-                var noise_params_copy = noise_params;
+            struct FBMParams {
+                n_octaves: u32,
+                lacunarity: f32,
+                persistence: f32
+            };
 
-                var noise_value: f32 = ${noise.name}(noise_pos, noise_params_copy);
+            fn ${noise.name}_fbm(noise_pos: ${noise.posType}, 
+                                 seed: u32, 
+                                 fbm_params: FBMParams) -> f32 {
+                var octave_seed = seed;
+
+                var noise_value: f32 = ${noise.name}(noise_pos, octave_seed);
                 var min_noise_value: f32 = 0;
                 var max_noise_value: f32 = 1;
 
                 var frequency: f32 = 2;
-                var amplitude: f32 = persistence;
+                var amplitude: f32 = fbm_params.persistence;
 
                 for (var i = 1u; i < fbm_params.n_octaves; i++) {
-                    ${seed_increment}
-                    noise_value += amplitude * ${noise.name}(noise_pos * frequency, noise_params_copy);
+                    octave_seed += 1;
+                    noise_value += amplitude * ${noise.name}(noise_pos * frequency, octave_seed);
 
                     min_noise_value += amplitude * 0.4;
                     max_noise_value += amplitude * 0.6;
