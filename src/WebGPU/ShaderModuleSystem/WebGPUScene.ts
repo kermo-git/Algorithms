@@ -45,7 +45,9 @@ export default class WebGPUScene {
         const resolved = link(shader_passes)
         let canvas_usage = 0
 
-        if (resolved.computeShaders.length > 0) {
+        if (
+            resolved.computeShaders.filter((shader) => shader.canvas).length > 0
+        ) {
             canvas_usage |= GPUTextureUsage.STORAGE_BINDING
         }
         if (resolved.renderShaders.length > 0) {
@@ -58,28 +60,34 @@ export default class WebGPUScene {
             this.buffers.set(name, createBuffer(this.device, buffer))
         }
 
-        resolved.computeShaders.forEach(async (shader) => {
-            this.compute_shaders.set(
-                shader.name,
-                await compileComputeShader(
+        const compiled_compute_shaders = await Promise.all(
+            resolved.computeShaders.map((shader) =>
+                compileComputeShader(
                     this.device,
                     this.buffers,
                     this.canvas_color_format,
                     shader
                 )
             )
+        )
+
+        compiled_compute_shaders.forEach((shader) => {
+            this.compute_shaders.set(shader.name, shader)
         })
 
-        resolved.renderShaders.forEach(async (shader) => {
-            this.render_shaders.set(
-                shader.name,
-                await compileRenderShader(
+        const compiled_render_shaders = await Promise.all(
+            resolved.renderShaders.map((shader) =>
+                compileRenderShader(
                     this.device,
                     this.buffers,
                     this.canvas_color_format,
                     shader
                 )
             )
+        )
+
+        compiled_render_shaders.forEach((shader) => {
+            this.render_shaders.set(shader.name, shader)
         })
     }
 
@@ -182,6 +190,7 @@ export default class WebGPUScene {
         } else {
             pass_encoder.dispatchWorkgroups(x, y, z)
         }
+        pass_encoder.end()
     }
 
     executeRender(cmd_encoder: GPUCommandEncoder, command: RenderExecution) {

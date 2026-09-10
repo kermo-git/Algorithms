@@ -9,14 +9,21 @@ import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
-import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
+import {
+    Perlin2D,
+    Perlin2DModule,
+    Perlin3D,
+    Perlin3DModule,
+    Perlin4D,
+    Perlin4DModule
+} from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
 
 import type { DomainTransform } from './Shader'
-import WebGPUScene from './Scene'
+import WebGPUScene from './Contoller'
 
 const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])
@@ -35,79 +42,13 @@ const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
-    switch (algorithm_name) {
-        case 'Simplex':
-            switch (noise_dimension) {
-                case '2D':
-                    return new Simplex2D()
-                case '3D':
-                    return new Simplex3D()
-                default:
-                    return new Simplex4D()
-            }
-        case 'Simplex Value':
-            switch (noise_dimension) {
-                case '2D':
-                    return new Simplex2D(true)
-                case '3D':
-                    return new Simplex3D(true)
-                default:
-                    return new Simplex4D(true)
-            }
-        case 'Perlin':
-            switch (noise_dimension) {
-                case '2D':
-                    return new Perlin2D()
-                case '3D':
-                    return new Perlin3D()
-                default:
-                    return new Perlin4D()
-            }
-        case 'Quadratic':
-            switch (noise_dimension) {
-                case '2D':
-                    return new Perlin2D(true)
-                case '3D':
-                    return new Perlin3D(true)
-                default:
-                    return new Perlin4D(true)
-            }
-        case 'Cubic':
-            switch (noise_dimension) {
-                case '2D':
-                    return Cubic2D
-                case '3D':
-                    return Cubic3D
-                default:
-                    return Cubic4D
-            }
-        case 'Value':
-            switch (noise_dimension) {
-                case '2D':
-                    return Value2D
-                case '3D':
-                    return Value3D
-                default:
-                    return Value4D
-            }
-        case 'Worley F1':
-            switch (noise_dimension) {
-                case '2D':
-                    return Worley2D
-                case '3D':
-                    return Worley3D
-                default:
-                    return Worley4D
-            }
-        default: // 'Worley F2 - F1'
-            switch (noise_dimension) {
-                case '2D':
-                    return WorleyF22D
-                case '3D':
-                    return WorleyF23D
-                default:
-                    return WorleyF24D
-            }
+    switch (noise_dimension) {
+        case '2D':
+            return Perlin2DModule()
+        case '3D':
+            return Perlin3DModule()
+        default:
+            return Perlin4DModule()
     }
 }
 
@@ -115,10 +56,7 @@ async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     await scene.value.init(
         {
-            shader_factory: createNoiseAlgorithm(
-                algorithm.value,
-                dimension.value
-            ),
+            noise: createNoiseAlgorithm(algorithm.value, dimension.value),
             transform: domain_transform.value,
             n_grid_columns: n_grid_columns.value,
             n_main_octaves: n_main_octaves.value,
@@ -150,10 +88,7 @@ watch(
             scene.value.cleanup()
             scene.value.init(
                 {
-                    shader_factory: createNoiseAlgorithm(
-                        new_algorithm,
-                        new_dimension
-                    ),
+                    noise: createNoiseAlgorithm(new_algorithm, new_dimension),
                     transform: new_domain_transform,
                     n_grid_columns: n_grid_columns.value,
                     n_main_octaves: n_main_octaves.value,

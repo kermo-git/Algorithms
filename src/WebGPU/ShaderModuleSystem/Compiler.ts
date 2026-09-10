@@ -223,6 +223,7 @@ export function createCanvasLayout(
     color_format: GPUTextureFormat
 ): GPUBindGroupLayout {
     return device.createBindGroupLayout({
+        label: 'canvas',
         entries: [
             {
                 binding: 0,

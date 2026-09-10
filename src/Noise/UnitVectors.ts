@@ -17,7 +17,7 @@ export const Gradients3D: StorageBuffer = {
 export const Gradients4D: StorageBuffer = {
     kind: 'StorageBuffer',
     name: 'gradients_4D',
-    dataType: 'array<vec3f>',
+    dataType: 'array<vec4f>',
     data: generateUnitVectors4D(64).buffer
 }
 

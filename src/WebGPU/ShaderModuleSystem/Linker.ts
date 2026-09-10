@@ -150,8 +150,9 @@ function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     let code = ''
 
     for (const module of resolved.imports || []) {
-        code += module.code
+        code += module.code + '\n'
     }
+    code += shader.code
 
     const static_resources: StaticResource[] = []
     const ping_pong_groups: PingPongBuffers[] = []
@@ -208,12 +209,14 @@ function linkRenderShader(shader: RenderShader): LinkedRenderShader {
         resolved_module_names.add(i.name)
         resolved_code += i.code + '\n'
     }
+    resolved_code += shader.vertexShader.code + '\n'
 
     for (const i of resolved_fragment.imports || []) {
         if (!resolved_module_names.has(i.name)) {
             resolved_code += i.code + '\n'
         }
     }
+    resolved_code += shader.fragmentShader.code
 
     return {
         kind: 'LinkedRenderShader',

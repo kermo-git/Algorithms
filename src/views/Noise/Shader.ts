@@ -1,22 +1,21 @@
-import { WG_DIM } from '@/WebGPU/Engine'
+import { FBMNoiseModule, type NoiseModule } from '@/Noise/Types'
 import {
-    rotate3DShader,
-    rotate4DShader,
-    octaveNoiseShader,
-    unitVector2DShader,
-    unitVector3DShader
-} from '@/Noise/ShaderUtils'
-import type { NoiseShaderFactory } from '@/Noise/Types'
+    ComputeShader,
+    readView,
+    ShaderModule
+} from '@/WebGPU/ShaderModuleSystem/Modules'
 import { parseHexColor } from '@/utils/Colors'
+import { createModule } from '@/Noise/Algorithms/Common'
 
-export type DomainTransform = 'None' | 'Rotate' | 'Warp' | 'Warp 2X'
+export type DomainTransform = 'None' | 'Rotate' | 'Warp'
 
 export interface Setup {
-    shader_factory: NoiseShaderFactory
+    noise: NoiseModule
     transform: DomainTransform
     n_grid_columns?: number
     n_main_octaves?: number
     persistence?: number
+    lacunarity?: number
     z_coord?: number
     w_coord?: number
     n_warp_octaves?: number
@@ -25,187 +24,62 @@ export interface Setup {
     color_points?: number[]
 }
 
-function warp2DShader() {
-    return /* wgsl */ `
-        ${unitVector2DShader}
-
-        fn warp_noise(noise_pos: vec2f, warp_strength: f32, 
-                      n_warp_octaves: u32, n_main_octaves: u32, 
-                      persistence: f32) -> f32 {
-
-            const warp_channel = main_channel + 1u;
-
-            let warp_noise_value = octave_noise(noise_pos, warp_channel, n_warp_octaves, persistence);
-            let final_pos = noise_pos + warp_strength * unit_vector_2d(warp_noise_value);
-            return octave_noise(final_pos, main_channel, n_main_octaves, persistence);
-        }
-    `
-}
-
-function warp3DShader() {
-    return /* wgsl */ `
-        ${unitVector3DShader}
-
-        fn warp_noise(noise_pos: vec3f, warp_strength: f32, 
-                      n_warp_octaves: u32, n_main_octaves: u32, 
-                      persistence: f32) -> f32 {
-
-            const phi_channel = main_channel + 1u;
-            const theta_channel = main_channel + 2u;
-
-            let phi_noise = octave_noise(noise_pos, phi_channel, n_warp_octaves, persistence);
-            let theta_noise = octave_noise(noise_pos, theta_channel, n_warp_octaves, persistence);
-            
-            let final_pos = noise_pos + warp_strength * unit_vector_3d(phi_noise, theta_noise);
-            return octave_noise(final_pos, main_channel, n_main_octaves, persistence);
-        }
-    `
-}
-
-function createNoiseFunctions({ shader_factory: algorithm, transform }: Setup) {
-    let noise_functions = `
-        const main_channel = bitcast<u32>(i32(${Date.now() >> 0}));
-
-        ${algorithm.createShaderDependencies()}
-        
-        ${algorithm.createShader({
-            functionName: 'noise',
-            extraBufferName: 'noise_data'
-        })}
-        ${octaveNoiseShader({
-            func_name: 'octave_noise',
-            noise_name: 'noise',
-            pos_type: algorithm.pos_type
-        })}
-    `
-    let noise_expr = ''
-
-    if (transform === 'Rotate') {
-        noise_expr =
-            'octave_noise(rotate(noise_pos), main_channel, n_main_octaves, persistence)'
-
-        if (algorithm.pos_type === 'vec3f') {
-            noise_functions = `
-                ${noise_functions}
-                ${rotate3DShader}
-            `
-        } else if (algorithm.pos_type === 'vec4f') {
-            noise_functions = `
-                ${noise_functions}
-                ${rotate4DShader}
-            `
-        }
-    } else if (transform === 'Warp') {
-        if (algorithm.pos_type === 'vec2f') {
-            noise_functions = `
-                ${noise_functions}
-                ${warp2DShader()}
-            `
-        } else if (algorithm.pos_type === 'vec3f') {
-            noise_functions = `
-                ${noise_functions}
-                ${warp3DShader()}
-            `
-        }
-        noise_expr = `warp_noise(
-            noise_pos, warp_strength, n_warp_octaves, 
-            n_main_octaves, persistence
-        )`
-    } else {
-        noise_expr = `octave_noise(noise_pos, main_channel, n_main_octaves, persistence)`
-    }
-    return {
-        noise_functions,
-        noise_expr
-    }
-}
-
-function noisePosCode(algorithm: NoiseShaderFactory) {
-    switch (algorithm.pos_type) {
-        case 'vec2f':
-            return /* wgsl */ `
-                let noise_pos = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
-            `
-        case 'vec3f':
-            return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
-                let noise_pos = vec3f(noise_pos_2D, z_coordinate);
-            `
-        case 'vec4f':
-            return /* wgsl */ `
-                let noise_pos_2D = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
-                let noise_pos = vec4f(noise_pos_2D, z_coordinate, w_coordinate);
-            `
-    }
-}
-
-export default function createNoiseShader(
+export function MainModule(
     setup: Setup,
-    canvas_color_format: GPUTextureFormat
-): string {
-    const { shader_factory: algorithm, transform } = setup
-    const noise_data = algorithm.extra_data_type ? '' : '//'
-    const not_2D = algorithm.pos_type !== 'vec2f' ? '' : '//'
-    const only_4D = algorithm.pos_type === 'vec4f' ? '' : '//'
-    const only_warp = transform.startsWith('Warp') ? '' : '//'
+    wg_dim_x: number,
+    wg_dim_y: number
+): ComputeShader {
+    const fbm_module = FBMNoiseModule(setup.noise)
+    const imports = [
+        RandomSeed(),
+        ParametersUniform(setup),
+        InterPolateColor(
+            setup.colors || ['#000000', '#FFFFFF'],
+            setup.color_points || [0, 1],
+            16
+        ),
+        fbm_module
+    ]
+    let noise_pos_expr
 
-    const { noise_functions, noise_expr } = createNoiseFunctions(setup)
-
-    return /* wgsl */ `
-        @group(0) @binding(0) var canvas: texture_storage_2d<${canvas_color_format}, write>;
-        
-        @group(1) @binding(0) var<uniform> n_grid_columns: f32;
-        @group(1) @binding(1) var<uniform> n_main_octaves: u32;
-        @group(1) @binding(2) var<uniform> persistence: f32;
-        
-        ${noise_data} @group(1) @binding(3) var<storage> noise_data: ${algorithm.extra_data_type};
-        ${not_2D} @group(1) @binding(4) var<uniform> z_coordinate: f32;
-        ${only_4D} @group(1) @binding(5) var<uniform> w_coordinate: f32;
-        ${only_warp} @group(1) @binding(6) var<uniform> n_warp_octaves: u32;
-        ${only_warp} @group(1) @binding(7) var<uniform> warp_strength: f32;
-        
-        struct ColorPoint {
-            color: vec3f,
-            value: f32,
-        };
-
-        struct ColorArray {
-            n_colors: u32,
-            points: array<ColorPoint>
-        };
-        
-        @group(2) @binding(0) var<storage> color_data: ColorArray;
-
-        ${noise_functions}
-
-        fn interpolate_color(value: f32) -> vec4f {
-            let n_colors = color_data.n_colors;
-            
-            if value <= color_data.points[0].value {
-                return vec4f(color_data.points[0].color, 1);
-            } else if value > color_data.points[n_colors - 1].value {
-                return vec4f(color_data.points[n_colors - 1].color, 1);
-            } else {
-                var prev_color = color_data.points[0].color;
-                var prev_value = color_data.points[0].value;
-
-                for (var i = 1u; i < n_colors; i++) {
-                    var current_color = color_data.points[i].color;
-                    var current_point = color_data.points[i].value;
-
-                    if value <= current_point {
-                        let blend_factor = (value - prev_value) / (current_point - prev_value);
-                        let color = mix(prev_color, current_color, blend_factor);
-                        return vec4f(color, 1);
-                    }
-                    prev_color = current_color;
-                    prev_value = current_point;
-                }
+    switch (setup.noise.posType) {
+        case 'vec2f':
+            noise_pos_expr = 'noise_pos_2D'
+            if (setup.transform === 'Warp') {
+                imports.push(Warp2D(setup))
+                noise_pos_expr = `warp_2d(${noise_pos_expr})`
             }
-            return vec4f(vec3f(value), 1);
-        }
-        
-        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
+            break
+        case 'vec3f':
+            noise_pos_expr = 'vec3f(noise_pos_2D, parameters.z_coordinate)'
+            switch (setup.transform) {
+                case 'Rotate':
+                    imports.push(createModule('rotate_3d'))
+                    noise_pos_expr = `rotate_3d(${noise_pos_expr})`
+                    break
+                case 'Warp':
+                    imports.push(Warp3D(setup))
+                    noise_pos_expr = `warp_3d(${noise_pos_expr})`
+                    break
+            }
+            break
+        case 'vec4f':
+            noise_pos_expr =
+                'vec4f(noise_pos_2D, parameters.z_coordinate, parameters.w_coordinate)'
+            if (setup.transform === 'Rotate') {
+                imports.push(createModule('rotate_4d'))
+                noise_pos_expr = `rotate_4d(${noise_pos_expr})`
+            }
+            break
+    }
+
+    return {
+        kind: 'ComputeShader',
+        name: 'main',
+        imports,
+        canvas: 'canvas',
+        code: /* wgsl */ `
+        @compute @workgroup_size(${wg_dim_x}, ${wg_dim_y})
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {
@@ -216,14 +90,203 @@ export default function createNoiseShader(
                 return;
             }
             let canvas_dims_f = vec2f(canvas_dims);
-            let n_grid_rows = n_grid_columns * canvas_dims_f.y / canvas_dims_f.x;
-            let grid_dims = vec2f(n_grid_columns, n_grid_rows);
+            let n_grid_rows = parameters.n_grid_columns * canvas_dims_f.y / canvas_dims_f.x;
+            let grid_dims = vec2f(parameters.n_grid_columns, n_grid_rows);
             
-            ${noisePosCode(algorithm)}
-            let noise_value = ${noise_expr};
+            let noise_pos_2D = grid_dims * vec2f(canvas_pos) / canvas_dims_f;
+            let noise_pos = ${noise_pos_expr};
+
+            var fbm: FBMParams;
+            fbm.n_octaves = parameters.n_main_octaves;
+            fbm.persistence = parameters.persistence;
+            fbm.lacunarity = parameters.lacunarity;
+
+            let noise_value = ${fbm_module.name}(noise_pos, random_seed, fbm);
             let color = interpolate_color(noise_value);
 
             textureStore(canvas, canvas_pos, color);
         }
     `
+    }
+}
+
+function RandomSeed(): ShaderModule {
+    return {
+        name: 'random_seed',
+        code: `const random_seed = bitcast<u32>(i32(${Date.now() >> 0}));`
+    }
+}
+
+function ParametersUniform(setup: Setup): ShaderModule {
+    const data = new ArrayBuffer(32)
+    const int_view = new Uint32Array(data, 0, 2)
+    const float_view = new Float32Array(data, 8)
+
+    int_view[0] = setup.n_main_octaves || 1
+    int_view[1] = setup.n_warp_octaves || 1
+
+    float_view[0] = setup.warp_strength || 0.1
+    float_view[1] = setup.persistence || 0.5
+    float_view[2] = setup.lacunarity || 2
+    float_view[3] = setup.n_grid_columns || 16
+    float_view[4] = setup.z_coord || 0
+    float_view[5] = setup.w_coord || 0
+
+    return {
+        name: 'parameters',
+        resources: [
+            {
+                kind: 'Uniform',
+                name: 'parameters',
+                dataType: 'Parameters',
+                data: data
+            }
+        ],
+        code: /* wgsl */ `
+            struct Parameters {
+                n_main_octaves: u32,
+                n_warp_octaves: u32,
+                warp_strength: f32,
+                persistence: f32,
+                lacunarity: f32,
+                n_grid_columns: f32,
+                z_coordinate: f32,
+                w_coordinate: f32
+            };
+        `
+    }
+}
+
+function Warp2D(setup: Setup): ShaderModule {
+    const fbm_module = FBMNoiseModule(setup.noise)
+
+    return {
+        name: `warp_2d`,
+        imports: [
+            fbm_module,
+            ParametersUniform(setup),
+            RandomSeed(),
+            createModule('unit_vector_2d')
+        ],
+
+        code: /* wgsl */ `
+            fn warp_2d(noise_pos: vec2f) -> vec2f {
+                var fbm: FBMParams;
+                fbm.n_octaves = parameters.n_warp_octaves;
+                fbm.persistence = parameters.persistence;
+                fbm.lacunarity = parameters.lacunarity;
+                
+                const warp_seed = random_seed + 1u;
+                let warp_noise_value = ${fbm_module.name}(noise_pos, warp_seed, fbm);
+                return noise_pos + parameters.warp_strength * unit_vector_2d(warp_noise_value);
+            }
+        `
+    }
+}
+
+function Warp3D(setup: Setup): ShaderModule {
+    const fbm_module = FBMNoiseModule(setup.noise)
+
+    return {
+        name: `warp_3d`,
+        imports: [
+            fbm_module,
+            ParametersUniform(setup),
+            RandomSeed(),
+            createModule('unit_vector_3d')
+        ],
+
+        code: /* wgsl */ `
+            fn warp_3d(noise_pos: vec3f) -> vec3f {
+                const phi_seed = random_seed + 1u;
+                const theta_seed = random_seed + 2u;
+
+                var fbm: FBMParams;
+                fbm.n_octaves = parameters.n_warp_octaves;
+                fbm.persistence = parameters.persistence;
+                fbm.lacunarity = parameters.lacunarity;
+
+                let phi_noise = ${fbm_module.name}(noise_pos, phi_seed, fbm);
+                let theta_noise = ${fbm_module.name}(noise_pos, theta_seed, fbm);
+                
+                return noise_pos + parameters.warp_strength * unit_vector_3d(phi_noise, theta_noise);
+            }
+        `
+    }
+}
+
+export function createColorData(colors: string[], points: number[]) {
+    const result = new ArrayBuffer(16 * colors.length + 16)
+
+    const int_view = new Uint32Array(result, 0, 1)
+    int_view[0] = colors.length
+
+    const float_view = new Float32Array(result, 16)
+
+    for (let i = 0; i < colors.length; i++) {
+        const { red, green, blue } = parseHexColor(colors[i])
+        const offset = 4 * i
+
+        float_view[offset + 0] = red / 255
+        float_view[offset + 1] = green / 255
+        float_view[offset + 2] = blue / 255
+        float_view[offset + 3] = points[i]
+    }
+    return result
+}
+
+function InterPolateColor(
+    initial_colors: string[],
+    initial_points: number[],
+    max_n_colors: number
+): ShaderModule {
+    return {
+        name: 'interpolate_color',
+        resources: [
+            readView({
+                kind: 'StorageBuffer',
+                name: 'color_data',
+                dataType: 'ColorArray',
+                byteLength: 16 * max_n_colors + 16,
+                data: createColorData(initial_colors, initial_points)
+            })
+        ],
+        code: /* wgsl */ `
+            struct ColorPoint {
+                color: vec3f,
+                value: f32,
+            };
+
+            struct ColorArray {
+                n_colors: u32,
+                points: array<ColorPoint>
+            };
+
+            fn interpolate_color(value: f32) -> vec4f {
+                let n_colors = color_data.n_colors;
+                
+                if value <= color_data.points[0].value {
+                    return vec4f(color_data.points[0].color, 1);
+                } else if value > color_data.points[n_colors - 1].value {
+                    return vec4f(color_data.points[n_colors - 1].color, 1);
+                } else {
+                    var prev_color = color_data.points[0].color;
+                    var prev_value = color_data.points[0].value;
+
+                    for (var i = 1u; i < n_colors; i++) {
+                        var current_color = color_data.points[i].color;
+                        var current_point = color_data.points[i].value;
+
+                        if value <= current_point {
+                            let blend_factor = (value - prev_value) / (current_point - prev_value);
+                            let color = mix(prev_color, current_color, blend_factor);
+                            return vec4f(color, 1);
+                        }
+                        prev_color = current_color;
+                        prev_value = current_point;
+                    }
+                }
+                return vec4f(vec3f(value), 1);
+            }`
+    }
 }
