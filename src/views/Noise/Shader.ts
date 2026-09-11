@@ -245,8 +245,8 @@ function InterPolateColor(
         resources: [
             readView({
                 kind: 'StorageBuffer',
-                name: 'color_data',
-                dataType: 'ColorArray',
+                name: 'color_points',
+                dataType: 'ColorPointArray',
                 byteLength: 16 * max_n_colors + 16,
                 data: createColorData(initial_colors, initial_points)
             })
@@ -257,25 +257,25 @@ function InterPolateColor(
                 value: f32,
             };
 
-            struct ColorArray {
+            struct ColorPointArray {
                 n_colors: u32,
-                points: array<ColorPoint>
+                arr: array<ColorPoint>
             };
 
             fn interpolate_color(value: f32) -> vec4f {
-                let n_colors = color_data.n_colors;
+                let n_colors = color_points.n_colors;
                 
-                if value <= color_data.points[0].value {
-                    return vec4f(color_data.points[0].color, 1);
-                } else if value > color_data.points[n_colors - 1].value {
-                    return vec4f(color_data.points[n_colors - 1].color, 1);
+                if value <= color_points.arr[0].value {
+                    return vec4f(color_points.arr[0].color, 1);
+                } else if value > color_points.arr[n_colors - 1].value {
+                    return vec4f(color_points.arr[n_colors - 1].color, 1);
                 } else {
-                    var prev_color = color_data.points[0].color;
-                    var prev_value = color_data.points[0].value;
+                    var prev_color = color_points.arr[0].color;
+                    var prev_value = color_points.arr[0].value;
 
                     for (var i = 1u; i < n_colors; i++) {
-                        var current_color = color_data.points[i].color;
-                        var current_point = color_data.points[i].value;
+                        var current_color = color_points.arr[i].color;
+                        var current_point = color_points.arr[i].value;
 
                         if value <= current_point {
                             let blend_factor = (value - prev_value) / (current_point - prev_value);

@@ -33,6 +33,7 @@ const domain_transform = ref<DomainTransform>('None')
 const n_grid_columns = ref(16)
 const n_main_octaves = ref(1)
 const persistence = ref(0.5)
+const lacunarity = ref(2)
 const z_coord = ref(0)
 const w_coord = ref(0)
 const warp_strength = ref(0.1)
@@ -61,6 +62,7 @@ async function initScene(canvas: HTMLCanvasElement) {
             n_grid_columns: n_grid_columns.value,
             n_main_octaves: n_main_octaves.value,
             persistence: persistence.value,
+            lacunarity: lacunarity.value,
             z_coord: z_coord.value,
             w_coord: w_coord.value,
             n_warp_octaves: n_warp_octaves.value,
@@ -156,7 +158,7 @@ const available_transforms = computed(() =>
                             :max="1"
                             :step="0.01"
                             v-model="z_coord"
-                            @animation="(value) => scene.updateZCoord(value)"
+                            @animation="(value) => scene.setZCoord(value)"
                         />
 
                         <template v-if="dimension === '4D'">
@@ -166,9 +168,7 @@ const available_transforms = computed(() =>
                                 :max="1"
                                 :step="0.01"
                                 v-model="w_coord"
-                                @animation="
-                                    (value) => scene.updateWCoord(value)
-                                "
+                                @animation="(value) => scene.setWCoord(value)"
                             />
                         </template>
                     </template>
@@ -186,9 +186,7 @@ const available_transforms = computed(() =>
                             :max="1"
                             :step="0.01"
                             v-model="warp_strength"
-                            @animation="
-                                (value) => scene.updateWarpStrength(value)
-                            "
+                            @animation="(value) => scene.setWarpStrength(value)"
                         />
                     </template>
                     <NumberSingleSelect
@@ -197,7 +195,7 @@ const available_transforms = computed(() =>
                         :options="[1, 2, 3, 4, 5]"
                         v-model="n_warp_octaves"
                         @update:model-value="
-                            (value) => scene.updateNWarpOctaves(value)
+                            (value) => scene.setNWarpOctaves(value)
                         "
                     />
 
@@ -210,7 +208,7 @@ const available_transforms = computed(() =>
                         :options="[1, 2, 3, 4, 5]"
                         v-model="n_main_octaves"
                         @update:model-value="
-                            (value) => scene.updateNMainOctaves(value)
+                            (value) => scene.setNMainOctaves(value)
                         "
                     />
 
@@ -227,9 +225,15 @@ const available_transforms = computed(() =>
                             :max="1"
                             :step="0.01"
                             v-model="persistence"
-                            @animation="
-                                (value) => scene.updatePersistence(value)
-                            "
+                            @animation="(value) => scene.setPersistence(value)"
+                        />
+                        <p>Lacunarity: {{ lacunarity }}</p>
+                        <RangeInput
+                            :min="1"
+                            :max="5"
+                            :step="0.01"
+                            v-model="lacunarity"
+                            @animation="(value) => scene.setLacunarity(value)"
                         />
                     </template>
                 </template>
@@ -238,15 +242,14 @@ const available_transforms = computed(() =>
                         v-model:colors="colors"
                         v-model:points="color_points"
                         @change-single-color="
-                            (index, color) => scene.updateColor(index, color)
+                            (index, color) => scene.setColor(index, color)
                         "
                         @change-single-point="
-                            (index, value) =>
-                                scene.updateColorPoint(index, value)
+                            (index, value) => scene.setColorPoint(index, value)
                         "
                         @change-all-color-points="
                             (colors, points) =>
-                                scene.updateColorData(colors, points)
+                                scene.setAllColors(colors, points)
                         "
                     />
                 </template>
@@ -259,7 +262,7 @@ const available_transforms = computed(() =>
                     :options="[4, 8, 16, 32, 64]"
                     v-model="n_grid_columns"
                     @update:model-value="
-                        (value) => scene.updateGridDimensions(value)
+                        (value) => scene.setNGridColumns(value)
                     "
                 />
             </VBox>

@@ -31,25 +31,64 @@ export default class Controller {
         ])
     }
 
-    updateGridDimensions(n_columns: number) {}
+    setNMainOctaves(value: number) {
+        this.scene.writeInt('parameters', value, 0)
+        this.render()
+    }
 
-    updateNMainOctaves(value: number) {}
+    setNWarpOctaves(value: number) {
+        this.scene.writeInt('parameters', value, 4)
+        this.render()
+    }
 
-    updatePersistence(value: number) {}
+    setWarpStrength(value: number) {
+        this.scene.writeFloat('parameters', value, 8)
+        this.render()
+    }
 
-    updateZCoord(value: number) {}
+    setPersistence(value: number) {
+        this.scene.writeFloat('parameters', value, 12)
+        this.render()
+    }
 
-    updateWCoord(value: number) {}
+    setLacunarity(value: number) {
+        this.scene.writeFloat('parameters', value, 16)
+        this.render()
+    }
 
-    updateNWarpOctaves(value: number) {}
+    setNGridColumns(value: number) {
+        this.scene.writeFloat('parameters', value, 20)
+        this.render()
+    }
 
-    updateWarpStrength(value: number) {}
+    setZCoord(value: number) {
+        this.scene.writeFloat('parameters', value, 24)
+        this.render()
+    }
 
-    updateColor(index: number, hex_color: string) {}
+    setWCoord(value: number) {
+        this.scene.writeFloat('parameters', value, 28)
+        this.render()
+    }
 
-    updateColorPoint(index: number, value: number) {}
+    setColor(index: number, hex_color: string) {
+        const { red, green, blue } = parseHexColor(hex_color)
+        const data = new Float32Array([red / 255, green / 255, blue / 255])
+        this.scene.write('color_points', data.buffer, 16 + index * 16)
+        this.render()
+    }
 
-    updateColorData(colors: string[], points: number[]) {}
+    setColorPoint(index: number, value: number) {
+        this.scene.writeFloat('color_points', value, 28 + index * 16)
+        this.render()
+    }
 
-    cleanup() {}
+    setAllColors(colors: string[], points: number[]) {
+        this.scene.write('color_points', createColorData(colors, points))
+        this.render()
+    }
+
+    cleanup() {
+        this.scene.destroy()
+    }
 }
