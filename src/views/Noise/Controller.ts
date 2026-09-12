@@ -7,7 +7,6 @@ const wg_dim = 8
 export default class Controller {
     setup!: Setup
     scene = new WebGPUScene()
-    n_workgroups!: number
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         await this.scene.compileScene(canvas, [
@@ -32,12 +31,12 @@ export default class Controller {
     }
 
     setNMainOctaves(value: number) {
-        this.scene.writeInt('parameters', value, 0)
+        this.scene.writeUint('parameters', value, 0)
         this.render()
     }
 
     setNWarpOctaves(value: number) {
-        this.scene.writeInt('parameters', value, 4)
+        this.scene.writeUint('parameters', value, 4)
         this.render()
     }
 

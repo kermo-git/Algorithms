@@ -1,11 +1,20 @@
-import { createBuffer, requestDevice } from './Compiler'
+import {
+    compileShaderCode,
+    createBuffer,
+    createComputeShaderCode,
+    createRenderShaderCode,
+    requestDevice,
+    ShaderIssue
+} from './Compiler'
 import {
     CompiledComputeShader,
     CompiledRenderShader,
+    bindComputeShader,
+    bindRenderShader,
     compileComputeShader,
     compileRenderShader
 } from './ShaderCompiler'
-import { link } from './Linker'
+import { link, linkComputeShader, linkRenderShader } from './Linker'
 import { Shader } from './Modules'
 
 export interface ComputeExecution {
@@ -41,53 +50,73 @@ export default class WebGPUScene {
 
     /* Initialization */
 
-    async compileScene(canvas: HTMLCanvasElement, shader_passes: Shader[]) {
-        const resolved = link(shader_passes)
+    async compileScene(canvas: HTMLCanvasElement, shaders: Shader[]) {
+        const linked = link(shaders)
         let canvas_usage = 0
 
         if (
-            resolved.computeShaders.filter((shader) => shader.canvas).length > 0
+            linked.computeShaders.filter((shader) => shader.canvas).length > 0
         ) {
             canvas_usage |= GPUTextureUsage.STORAGE_BINDING
         }
-        if (resolved.renderShaders.length > 0) {
+        if (linked.renderShaders.length > 0) {
             canvas_usage |= GPUTextureUsage.RENDER_ATTACHMENT
         }
 
         await this.createDevice(canvas, canvas_usage)
 
-        for (const [name, buffer] of resolved.buffers) {
+        for (const [name, buffer] of linked.buffers) {
             this.buffers.set(name, createBuffer(this.device, buffer))
         }
 
-        const compiled_compute_shaders = await Promise.all(
-            resolved.computeShaders.map((shader) =>
+        await Promise.all(
+            linked.computeShaders.map((shader) =>
                 compileComputeShader(
                     this.device,
-                    this.buffers,
                     this.canvas_color_format,
                     shader
                 )
             )
+        ).then((compiled) =>
+            compiled.forEach((shader) => {
+                this.compute_shaders.set(shader.name, shader)
+            })
         )
 
-        compiled_compute_shaders.forEach((shader) => {
-            this.compute_shaders.set(shader.name, shader)
+        linked.computeShaders.forEach((linked_shader) => {
+            const compiled_shader = this.compute_shaders.get(
+                linked_shader.name
+            )!
+            bindComputeShader(
+                this.device,
+                this.buffers,
+                linked_shader,
+                compiled_shader
+            )
         })
 
-        const compiled_render_shaders = await Promise.all(
-            resolved.renderShaders.map((shader) =>
+        await Promise.all(
+            linked.renderShaders.map((shader) =>
                 compileRenderShader(
                     this.device,
-                    this.buffers,
                     this.canvas_color_format,
                     shader
                 )
             )
+        ).then((compiled) =>
+            compiled.forEach((shader) => {
+                this.render_shaders.set(shader.name, shader)
+            })
         )
 
-        compiled_render_shaders.forEach((shader) => {
-            this.render_shaders.set(shader.name, shader)
+        linked.renderShaders.forEach((linked_shader) => {
+            const compiled_shader = this.render_shaders.get(linked_shader.name)!
+            bindRenderShader(
+                this.device,
+                this.buffers,
+                linked_shader,
+                compiled_shader
+            )
         })
     }
 
@@ -220,7 +249,7 @@ export default class WebGPUScene {
         if (shader.bindGroup) {
             pass_encoder.setBindGroup(0, shader.bindGroup)
         }
-        pass_encoder.setIndexBuffer(shader.indexBuffer, 'uint32')
+        pass_encoder.setIndexBuffer(shader.indexBuffer!, 'uint32')
         pass_encoder.drawIndexed(command.n_indexes, command.n_instances)
         pass_encoder.end()
     }
@@ -242,6 +271,65 @@ export default class WebGPUScene {
     write(name: string, data: ArrayBuffer, offset = 0) {
         const buffer = this.buffers.get(name)!
         this.device.queue.writeBuffer(buffer, offset, data, 0, data.byteLength)
+    }
+
+    async updateShaderCode(shader: Shader): Promise<ShaderIssue[]> {
+        switch (shader.kind) {
+            case 'ComputeShader': {
+                const linked = linkComputeShader(shader)
+                const code = createComputeShaderCode(
+                    linked,
+                    this.canvas_color_format
+                )
+                const { module, issues } = await compileShaderCode(
+                    this.device,
+                    code
+                )
+                if (issues.length > 0) {
+                    return issues
+                }
+                const compiled = this.compute_shaders.get(shader.name)!
+
+                this.compute_shaders.set(shader.name, {
+                    ...compiled,
+                    pipeline: this.device.createComputePipeline({
+                        label: shader.name,
+                        layout: compiled.pipelineLayout,
+                        compute: { module }
+                    })
+                })
+                break
+            }
+            case 'RenderShader':
+                const linked = linkRenderShader(shader)
+                const code = createRenderShaderCode(linked)
+                const { module, issues } = await compileShaderCode(
+                    this.device,
+                    code
+                )
+                if (issues.length > 0) {
+                    return issues
+                }
+                const compiled = this.render_shaders.get(shader.name)!
+
+                this.render_shaders.set(shader.name, {
+                    ...compiled,
+                    pipeline: this.device.createRenderPipeline({
+                        label: shader.name,
+                        layout: compiled.pipelineLayout,
+                        vertex: { module },
+                        fragment: {
+                            module,
+                            targets: [{ format: this.canvas_color_format }]
+                        },
+                        primitive: {
+                            topology: shader.primitiveTopology
+                        }
+                    })
+                })
+                break
+        }
+        return []
     }
 
     createDepthStencilState(): GPUDepthStencilState {

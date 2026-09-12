@@ -145,7 +145,7 @@ function resolveImports<T extends ShaderModule>(shader: T): T {
     }
 }
 
-function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
+export function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     const resolved = resolveImports(shader)
     let code = ''
 
@@ -178,7 +178,7 @@ function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     }
 }
 
-function linkRenderShader(shader: RenderShader): LinkedRenderShader {
+export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
     const visibility = new Map<string, GPUFlagsConstant>()
     let resolved_resources: ReadOnlyResource[] = []
 

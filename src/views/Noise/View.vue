@@ -23,7 +23,7 @@ import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
 
 import type { DomainTransform } from './Shader'
-import WebGPUScene from './Contoller'
+import WebGPUScene from './Controller.js'
 
 const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])

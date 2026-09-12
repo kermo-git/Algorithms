@@ -94,7 +94,7 @@ const shader_functions = new Map<string, string>([
     [
         'rotate_3d',
         /* wgsl */ `
-        fn rotate(pos: vec3f) -> vec3f {
+        fn rotate_3d(pos: vec3f) -> vec3f {
             let xz = pos.x + pos.z;
             let s2 = xz * -0.211324865405187;
             let yy = pos.y * 0.577350269189626;
