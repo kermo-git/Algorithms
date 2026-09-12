@@ -1,5 +1,15 @@
-import { invertedGaussian, sigmoid } from './Shader'
 import { KernelSymmetry } from './Types'
+
+const invertedGaussian = /* wgsl */ `// Inverted Gaussian function
+fn activate(x: f32) -> f32 {
+    return -1/(0.89 * pow(x, 2) + 1) + 1;
+}`
+
+const sigmoid = /* wgsl */ `// Sigmoid function
+fn activate(x: f32) -> f32 {
+    let exp_x = exp(x);
+    return exp_x / (exp_x + 1);
+}`
 
 export interface Example {
     name: string

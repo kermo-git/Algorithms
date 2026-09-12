@@ -17,6 +17,8 @@ import {
 import { link, linkComputeShader, linkRenderShader } from './Linker'
 import { Shader } from './Modules'
 
+export const WG_DIM = 8
+
 export interface ComputeExecution {
     kind: 'Compute'
     name: string
@@ -190,9 +192,8 @@ export default class WebGPUScene {
             pass_encoder.setBindGroup(canvas_index, canvas_bind_group)
         }
         if (shader.pingPongGroupBA) {
-            let current_flag = command.ping_pong_flag || false
+            let current_flag: boolean = command.ping_pong_flag || false
             for (let i = 0; i < (command.n_ping_pongs || 1); i++) {
-                current_flag = !current_flag
                 if (current_flag) {
                     pass_encoder.setBindGroup(
                         ping_pong_index,
@@ -204,6 +205,7 @@ export default class WebGPUScene {
                         shader.pingPongGroupBA
                     )
                 }
+                current_flag = !current_flag
                 pass_encoder.dispatchWorkgroups(x, y, z)
             }
         } else {

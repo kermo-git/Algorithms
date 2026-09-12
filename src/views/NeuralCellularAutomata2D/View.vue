@@ -17,7 +17,7 @@ import VBox from '@/components/VBox.vue'
 import { KernelSymmetry } from './Types'
 import MatrixEditor from './MatrixEditor.vue'
 import { examples, type Example } from './Examples'
-import { WebGPUScene } from './Scene'
+import { Controller } from './Controller'
 
 const default_example = examples[0]
 
@@ -37,7 +37,7 @@ const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const scene = shallowRef(new WebGPUScene())
+const scene = shallowRef(new Controller())
 
 let activation_shader = default_example.activation
 let kernel_changed = false
@@ -74,11 +74,12 @@ async function initScene() {
         kernel_changed = false
 
         scene.value.cleanup()
-        shader_issues.value = await scene.value.init(
+        await scene.value.init(
             {
                 activation_shader: activation_shader,
                 canvas_width: grid_size.value,
                 kernel_radius: kernel_radius.value,
+                max_kernel_radius: 5,
                 kernel: kernel.value,
                 color_1: color_0.value,
                 color_2: color_1.value

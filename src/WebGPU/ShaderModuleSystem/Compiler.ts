@@ -78,7 +78,7 @@ function createResourceDeclaration(
         case 'PingPongBuffers':
             const data_type_A = resource.buffer_A.dataType
             return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type_A};
-@group(${group_index}) @binding(${binding_index + 1} var<storage, read_write> ${resource.writeName}: ${data_type_A};`
+@group(${group_index}) @binding(${binding_index + 1}) var<storage, read_write> ${resource.writeName}: ${data_type_A};`
     }
 }
 
