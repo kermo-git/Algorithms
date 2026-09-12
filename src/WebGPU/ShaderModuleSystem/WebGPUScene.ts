@@ -87,12 +87,7 @@ export default class WebGPUScene {
             const compiled_shader = this.compute_shaders.get(
                 linked_shader.name
             )!
-            bindComputeShader(
-                this.device,
-                this.buffers,
-                linked_shader,
-                compiled_shader
-            )
+            bindComputeShader(this.device, this.buffers, compiled_shader)
         })
 
         await Promise.all(
@@ -111,12 +106,7 @@ export default class WebGPUScene {
 
         linked.renderShaders.forEach((linked_shader) => {
             const compiled_shader = this.render_shaders.get(linked_shader.name)!
-            bindRenderShader(
-                this.device,
-                this.buffers,
-                linked_shader,
-                compiled_shader
-            )
+            bindRenderShader(this.device, this.buffers, compiled_shader)
         })
     }
 
@@ -254,7 +244,7 @@ export default class WebGPUScene {
         pass_encoder.end()
     }
 
-    /* Basic actions with device */
+    /* Data updates */
 
     writeInt(name: string, data: number, offset = 0) {
         this.write(name, new Int32Array([data]).buffer, offset)
@@ -271,6 +261,29 @@ export default class WebGPUScene {
     write(name: string, data: ArrayBuffer, offset = 0) {
         const buffer = this.buffers.get(name)!
         this.device.queue.writeBuffer(buffer, offset, data, 0, data.byteLength)
+    }
+
+    resizeBuffer(name: string, byteLength: number, data?: ArrayBuffer) {
+        const buffer = this.buffers.get(name)!
+        this.buffers.set(
+            name,
+            createBuffer(this.device, {
+                name,
+                usage: buffer.usage,
+                byteLength: byteLength,
+                data
+            })
+        )
+    }
+
+    rebindComputeShader(name: string) {
+        const shader = this.compute_shaders.get(name)!
+        bindComputeShader(this.device, this.buffers, shader)
+    }
+
+    rebindRenderShader(name: string) {
+        const shader = this.render_shaders.get(name)!
+        bindRenderShader(this.device, this.buffers, shader)
     }
 
     async updateShaderCode(shader: Shader): Promise<ShaderIssue[]> {

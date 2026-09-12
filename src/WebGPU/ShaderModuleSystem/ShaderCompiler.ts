@@ -7,16 +7,23 @@ import {
     createRenderShaderCode
 } from './Compiler'
 import { getName } from './Linker'
-import { LinkedComputeShader, LinkedRenderShader } from './LinkedModules'
+import {
+    LinkedComputeShader,
+    LinkedRenderShader,
+    StaticResource
+} from './LinkedModules'
+import { PingPongBuffers } from './Modules'
 
 export interface CompiledComputeShader {
     name: string
     pipelineLayout: GPUPipelineLayout
     pipeline: GPUComputePipeline
 
+    staticResources?: StaticResource[]
     staticLayout?: GPUBindGroupLayout
     staticGroup?: GPUBindGroup
 
+    pingPongResources?: PingPongBuffers[]
     pingPongLayout?: GPUBindGroupLayout
     pingPongGroupAB?: GPUBindGroup
     pingPongGroupBA?: GPUBindGroup
@@ -28,8 +35,11 @@ export interface CompiledRenderShader {
     name: string
     pipelineLayout: GPUPipelineLayout
     pipeline: GPURenderPipeline
+
+    indexBufferName: string
     indexBuffer?: GPUBuffer
 
+    resources?: StaticResource[]
     bindLayout?: GPUBindGroupLayout
     bindGroup?: GPUBindGroup
 }
@@ -89,7 +99,9 @@ export async function compileComputeShader(
                 module
             }
         }),
+        staticResources: shader.staticResources,
         staticLayout,
+        pingPongResources: shader.pingPongResources,
         pingPongLayout,
         canvasLayout
     }
@@ -98,13 +110,17 @@ export async function compileComputeShader(
 export function bindComputeShader(
     device: GPUDevice,
     buffers: Map<string, GPUBuffer>,
-    linked_shader: LinkedComputeShader,
     compiled_shader: CompiledComputeShader
 ) {
-    const { staticLayout, pingPongLayout } = compiled_shader
-    const { name, staticResources, pingPongResources } = linked_shader
+    const {
+        name,
+        staticResources,
+        staticLayout,
+        pingPongResources,
+        pingPongLayout
+    } = compiled_shader
 
-    if (staticLayout) {
+    if (staticResources && staticLayout) {
         const bind_group_entries = staticResources.map((r, i) => ({
             binding: i,
             resource: {
@@ -119,7 +135,7 @@ export function bindComputeShader(
         })
     }
 
-    if (pingPongLayout) {
+    if (pingPongResources && pingPongLayout) {
         compiled_shader.pingPongGroupAB = device.createBindGroup({
             label: `${name}_ping_pong_AB`,
             layout: pingPongLayout,
@@ -203,6 +219,8 @@ export async function compileRenderShader(
                 topology: shader.primitiveTopology
             }
         }),
+        indexBufferName: shader.indexBuffer.name,
+        resources: shader.resources,
         bindLayout
     }
 }
@@ -210,13 +228,14 @@ export async function compileRenderShader(
 export function bindRenderShader(
     device: GPUDevice,
     buffers: Map<string, GPUBuffer>,
-    linked_shader: LinkedRenderShader,
     compiled_shader: CompiledRenderShader
 ) {
-    if (compiled_shader.bindLayout) {
+    const { indexBufferName, resources, bindLayout } = compiled_shader
+
+    if (resources && bindLayout) {
         compiled_shader.bindGroup = device.createBindGroup({
-            layout: compiled_shader.bindLayout,
-            entries: linked_shader.resources.map((r, i) => ({
+            layout: bindLayout,
+            entries: resources.map((r, i) => ({
                 binding: i,
                 resource: {
                     buffer: buffers.get(getName(r))!
@@ -224,5 +243,5 @@ export function bindRenderShader(
             }))
         })
     }
-    compiled_shader.indexBuffer = buffers.get(linked_shader.indexBuffer?.name)
+    compiled_shader.indexBuffer = buffers.get(indexBufferName)!
 }
