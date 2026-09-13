@@ -1,4 +1,4 @@
-import type { NoiseShaderFactory, Config } from '../Types'
+import type { NoiseShaderFactory, Config } from '../Deprecated'
 import {
     fade_2d,
     fade_3d,
@@ -9,7 +9,7 @@ import {
     seed_2d,
     seed_3d,
     seed_4d
-} from './Common'
+} from '../Utils'
 
 export const Value2D: NoiseShaderFactory = {
     pos_type: 'vec2f',

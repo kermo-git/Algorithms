@@ -1,11 +1,11 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import type { NoiseShaderFactory, Config, VecType } from '../Types'
+import type { NoiseShaderFactory, Config, VecType } from '../Deprecated'
 import {
     generateUnitVectors2D,
     generateUnitVectors3D,
     generateUnitVectors4D
-} from '../UnitVectors'
+} from './Common'
 import {
     hash_2u_1u,
     hash_2u_1f,
@@ -16,7 +16,7 @@ import {
     seed_2d,
     seed_3d,
     seed_4d
-} from './Common'
+} from '../Utils'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions

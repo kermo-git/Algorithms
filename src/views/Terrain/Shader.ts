@@ -4,16 +4,16 @@ import {
     rotate3DShader,
     octaveNoiseShader,
     unitVector2DShader,
-    unitVector3DShader
-} from '@/Noise/ShaderUtils'
-import type { NoiseShaderFactory } from '@/Noise/Types'
+    unitVector3DShader,
+    NoiseShaderFactory
+} from '@/Noise/Deprecated'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D } from '@/Noise/Algorithms/WorleyF2'
-import { allFunctions } from '@/Noise/Algorithms/Common'
+import { allFunctions } from '@/Noise/Utils'
 
 export function vertexIndexShader(setup: Setup): string {
     return /* wgsl */ `

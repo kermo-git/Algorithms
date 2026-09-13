@@ -1,7 +1,7 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-import type { Config, NoiseShaderFactory } from '../Types'
+import type { Config, NoiseShaderFactory } from '../Deprecated'
 import {
     cubic_interpolation,
     seed_2d,
@@ -10,7 +10,7 @@ import {
     hash_3u_1f,
     seed_4d,
     hash_4u_1f
-} from './Common'
+} from '../Utils'
 
 export const Cubic2D: NoiseShaderFactory = {
     pos_type: 'vec2f',

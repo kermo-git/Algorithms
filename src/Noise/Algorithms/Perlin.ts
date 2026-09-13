@@ -6,16 +6,13 @@ import {
     generateUnitVectors4D,
     Gradients2D,
     Gradients3D,
-    Gradients4D
-} from '../UnitVectors'
+    Gradients4D,
+    NoiseModule,
+    type VecType
+} from './Common'
+import { type NoiseShaderFactory, type Config } from '../Deprecated'
 import {
-    type NoiseShaderFactory,
-    type Config,
-    type VecType,
-    NoiseModule
-} from '../Types'
-import {
-    createModule,
+    importFn,
     fade_2d,
     fade_3d,
     fade_4d,
@@ -25,7 +22,7 @@ import {
     seed_2d,
     seed_3d,
     seed_4d
-} from './Common'
+} from '../Utils'
 
 // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
 export function Perlin2DModule(quadratic?: boolean): NoiseModule {
@@ -37,9 +34,9 @@ export function Perlin2DModule(quadratic?: boolean): NoiseModule {
         posType: 'vec2f',
         resources: [readView(Gradients2D)],
         imports: [
-            createModule('seed_2d'),
-            createModule('hash_2u_1u'),
-            createModule('fade_2d')
+            importFn('seed_2d'),
+            importFn('hash_2u_1u'),
+            importFn('fade_2d')
         ],
         code: /* wgsl */ `
             fn perlin_2d_corner(grid_corner: vec2u, vec_to_sample_pos: vec2f) -> f32 {
@@ -79,9 +76,9 @@ export function Perlin3DModule(quadratic?: boolean): NoiseModule {
         posType: 'vec3f',
         resources: [readView(Gradients3D)],
         imports: [
-            createModule('seed_3d'),
-            createModule('hash_3u_1u'),
-            createModule('fade_3d')
+            importFn('seed_3d'),
+            importFn('hash_3u_1u'),
+            importFn('fade_3d')
         ],
         code: /* wgsl */ `
             fn perlin_3d_corner(grid_corner: vec3u, vec_to_sample_pos: vec3f) -> f32 {
@@ -129,9 +126,9 @@ export function Perlin4DModule(quadratic?: boolean): NoiseModule {
         posType: 'vec4f',
         resources: [readView(Gradients4D)],
         imports: [
-            createModule('seed_4d'),
-            createModule('hash_4u_1u'),
-            createModule('fade_4d')
+            importFn('seed_4d'),
+            importFn('hash_4u_1u'),
+            importFn('fade_4d')
         ],
         code: /* wgsl */ `
             fn perlin_4d_corner(grid_corner: vec4u, vec_to_sample_pos: vec4f) -> f32 {

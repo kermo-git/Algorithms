@@ -17,20 +17,18 @@ import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { type DistanceMeasure } from './Shader'
 import WebGPUScene from './Scene'
 
-const active_tab = ref('Configuration')
-
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
-const voronoi_colors = ref(colorPalette('Biomes'))
-const voronoi_n_columns = ref(16)
-
 const noise_algorithm = ref<string>('Simplex')
 const noise_dimension = ref<'2D' | '3D'>('2D')
+const voronoi_n_columns = ref(16)
+const voronoi_colors = ref(colorPalette('Biomes'))
 const noise_scale = ref(1)
+const noise_warp_strength = ref(0)
 const noise_n_octaves = ref(1)
 const noise_persistence = ref(0.5)
-const noise_warp_strength = ref(0)
 const noise_z = ref(0)
 
+const active_tab = ref('Configuration')
 const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -39,17 +37,17 @@ async function initScene(canvas: HTMLCanvasElement) {
     await scene.value.init(
         {
             distance_measure: voronoi_distance.value,
-            voronoi_n_columns: voronoi_n_columns.value,
-            voronoi_colors: voronoi_colors.value,
             warp: createNoiseAlgorithm(
                 noise_algorithm.value,
                 noise_dimension.value
             ),
+            voronoi_n_columns: voronoi_n_columns.value,
+            voronoi_colors: voronoi_colors.value,
             noise_scale: noise_scale.value,
             noise_warp_strength: noise_warp_strength.value,
-            noise_z: noise_z.value,
             noise_n_octaves: noise_n_octaves.value,
-            noise_persistence: noise_persistence.value
+            noise_persistence: noise_persistence.value,
+            noise_z: noise_z.value
         },
         canvas
     )
@@ -78,14 +76,14 @@ watch(
             scene.value.init(
                 {
                     distance_measure: new_measure,
+                    warp: createNoiseAlgorithm(new_algorithm, new_dimension),
                     voronoi_n_columns: voronoi_n_columns.value,
                     voronoi_colors: voronoi_colors.value,
-                    warp: createNoiseAlgorithm(new_algorithm, new_dimension),
                     noise_scale: noise_scale.value,
                     noise_warp_strength: noise_warp_strength.value,
-                    noise_z: noise_z.value,
                     noise_n_octaves: noise_n_octaves.value,
-                    noise_persistence: noise_persistence.value
+                    noise_persistence: noise_persistence.value,
+                    noise_z: noise_z.value
                 },
                 canvasRef.value
             )

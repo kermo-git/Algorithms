@@ -1,11 +1,11 @@
-import { FBMNoiseModule, type NoiseModule } from '@/Noise/Types'
 import {
     ComputeShader,
     readView,
     ShaderModule
 } from '@/WebGPU/ShaderModuleSystem/Modules'
 import { parseHexColor } from '@/utils/Colors'
-import { createModule } from '@/Noise/Algorithms/Common'
+import { importFn, constSeed } from '@/Noise/Utils'
+import { FBMNoiseModule, NoiseModule } from '@/Noise/Algorithms/Common'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp'
 
@@ -31,7 +31,7 @@ export function MainModule(
 ): ComputeShader {
     const fbm_module = FBMNoiseModule(setup.noise)
     const imports = [
-        RandomSeed(),
+        constSeed('random_seed'),
         ParametersUniform(setup),
         InterPolateColor(
             setup.colors || ['#000000', '#FFFFFF'],
@@ -54,7 +54,7 @@ export function MainModule(
             noise_pos_expr = 'vec3f(noise_pos_2D, parameters.z_coordinate)'
             switch (setup.transform) {
                 case 'Rotate':
-                    imports.push(createModule('rotate_3d'))
+                    imports.push(importFn('rotate_3d'))
                     noise_pos_expr = `rotate_3d(${noise_pos_expr})`
                     break
                 case 'Warp':
@@ -67,7 +67,7 @@ export function MainModule(
             noise_pos_expr =
                 'vec4f(noise_pos_2D, parameters.z_coordinate, parameters.w_coordinate)'
             if (setup.transform === 'Rotate') {
-                imports.push(createModule('rotate_4d'))
+                imports.push(importFn('rotate_4d'))
                 noise_pos_expr = `rotate_4d(${noise_pos_expr})`
             }
             break
@@ -107,13 +107,6 @@ export function MainModule(
             textureStore(canvas, canvas_pos, color);
         }
     `
-    }
-}
-
-function RandomSeed(): ShaderModule {
-    return {
-        name: 'random_seed',
-        code: `const random_seed = bitcast<u32>(i32(${Date.now() >> 0}));`
     }
 }
 
@@ -165,8 +158,8 @@ function Warp2D(setup: Setup): ShaderModule {
         imports: [
             fbm_module,
             ParametersUniform(setup),
-            RandomSeed(),
-            createModule('unit_vector_2d')
+            constSeed('random_seed'),
+            importFn('unit_vector_2d')
         ],
 
         code: /* wgsl */ `
@@ -192,8 +185,8 @@ function Warp3D(setup: Setup): ShaderModule {
         imports: [
             fbm_module,
             ParametersUniform(setup),
-            RandomSeed(),
-            createModule('unit_vector_3d')
+            constSeed('random_seed'),
+            importFn('unit_vector_3d')
         ],
 
         code: /* wgsl */ `

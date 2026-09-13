@@ -1,4 +1,4 @@
-import type { NoiseShaderFactory, Config } from '../Types'
+import type { NoiseShaderFactory, Config } from '../Deprecated'
 import {
     seed_2d,
     hash_2u_2f,
@@ -6,7 +6,7 @@ import {
     hash_3u_3f,
     seed_4d,
     hash_4u_4f
-} from './Common'
+} from '../Utils'
 
 export const Worley2D: NoiseShaderFactory = {
     pos_type: 'vec2f',

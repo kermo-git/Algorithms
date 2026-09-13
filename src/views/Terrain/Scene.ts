@@ -19,7 +19,7 @@ import {
 import {
     generateUnitVectors2D,
     generateUnitVectors3D
-} from '@/Noise/UnitVectors'
+} from '@/Noise/Algorithms/Common'
 
 export default class WebGPUScene {
     setup!: Setup

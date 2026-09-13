@@ -1,6 +1,7 @@
-import { octaveNoiseShader } from '@/Noise/ShaderUtils'
-import type { NoiseShaderFactory } from '@/Noise/Types'
+import { NoiseShaderFactory, octaveNoiseShader } from '@/Noise/Deprecated'
+import { importFn } from '@/Noise/Utils'
 import { WG_DIM } from '@/WebGPU/Engine'
+import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 // https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
 export type DistanceMeasure = 'Euclidean' | 'Manhattan'
@@ -153,4 +154,13 @@ export function createShader(
             textureStore(canvas, canvas_pos, color);
         }
     `
+}
+
+function VoronoiInteger(distance_measure: DistanceMeasure): ShaderModule {
+    return {
+        name: 'voronoi_u32',
+        imports: [importFn('hash_2u_1u')],
+        code: /* wgsl */ `
+        `
+    }
 }
