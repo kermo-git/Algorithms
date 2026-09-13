@@ -265,6 +265,8 @@ export default class WebGPUScene {
         this.device.queue.writeBuffer(buffer, offset, data, 0, data.byteLength)
     }
 
+    /* Structural updates */
+
     resizeBuffer(name: string, byteLength: number, data?: ArrayBuffer) {
         const buffer = this.buffers.get(name)!
         this.buffers.set(
@@ -346,6 +348,8 @@ export default class WebGPUScene {
         }
         return []
     }
+
+    /* Render pipeline depth buffer */
 
     createDepthStencilState(): GPUDepthStencilState {
         return {

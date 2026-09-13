@@ -4,12 +4,12 @@ import { WG_DIM } from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
 
 export interface Setup {
     activation_shader: string
-    canvas_width: number
     kernel_radius: number
     max_kernel_radius: number
     kernel: number[]
     color_1: string
     color_2: string
+    canvas_width: number
 }
 
 export function createColorKernelData(setup: Setup) {

@@ -34,11 +34,6 @@ export class Controller {
         this.step(1)
     }
 
-    async setActivation(activation_shader: string): Promise<ShaderIssue[]> {
-        const shader = createShader(activation_shader)
-        return this.scene.updateShaderCode(shader)
-    }
-
     private redraw() {
         this.scene.execute([
             {
@@ -54,19 +49,7 @@ export class Controller {
         ])
     }
 
-    setKernel(radius: number, data: number[]) {
-        const buffer_data = new ArrayBuffer(kernelBufferSize(radius))
-
-        const radius_view = new Uint32Array(buffer_data, 0, 1)
-        radius_view[0] = radius
-
-        const float_view = new Float32Array(buffer_data)
-        float_view.set(data, 1)
-
-        this.scene.write('ck', buffer_data, 32)
-    }
-
-    resetCanvas(canvas_width: number, redraw: boolean) {
+    resizeCanvas(canvas_width: number, redraw: boolean) {
         const canvas_height = this.scene.setCanvasWidth(canvas_width)
 
         this.n_pixels = canvas_width * canvas_height
@@ -110,6 +93,23 @@ export class Controller {
         }
     }
 
+    async setActivation(activation_shader: string): Promise<ShaderIssue[]> {
+        const shader = createShader(activation_shader)
+        return this.scene.updateShaderCode(shader)
+    }
+
+    setKernel(radius: number, data: number[]) {
+        const buffer_data = new ArrayBuffer(kernelBufferSize(radius))
+
+        const radius_view = new Uint32Array(buffer_data, 0, 1)
+        radius_view[0] = radius
+
+        const float_view = new Float32Array(buffer_data)
+        float_view.set(data, 1)
+
+        this.scene.write('ck', buffer_data, 32)
+    }
+
     setColor1(hex_color: string, redraw: boolean) {
         const { red, green, blue } = parseHexColor(hex_color)
         const shader_data = new Float32Array([
@@ -138,7 +138,7 @@ export class Controller {
         }
     }
 
-    cleanup(): void {
+    destroy(): void {
         this.scene.destroy()
     }
 }

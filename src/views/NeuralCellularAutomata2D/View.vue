@@ -20,24 +20,21 @@ import { examples, type Example } from './Examples'
 import { Controller } from './Controller'
 
 const default_example = examples[0]
-
-const active_tab = ref('Activation')
-const grid_size = ref(256)
-const color_0 = ref(default_example.color_0)
-const color_1 = ref(default_example.color_1)
+const editor_code = ref(default_example.activation)
 const kernel_radius = ref(default_example.kernel_radius)
 const kernel_symmetry = ref<KernelSymmetry>(default_example.kernel_symmetry)
 const kernel = ref<number[]>(default_example.get_kernel())
+const color_1 = ref(default_example.color_1)
+const color_2 = ref(default_example.color_2)
+const skip_frames = ref(default_example.skipFrames)
+const grid_size = ref(256)
 
-const editor_code = ref(default_example.activation)
+const active_tab = ref('Activation')
 const is_running = ref(false)
-const skip_frames = ref(false)
 const interval_ref = ref<number | null>(null)
-
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-const scene = shallowRef(new Controller())
+const controller = shallowRef(new Controller())
 
 let activation_shader = default_example.activation
 let kernel_changed = false
@@ -45,11 +42,13 @@ let kernel_changed = false
 async function applyChanges() {
     if (kernel_changed) {
         kernel_changed = false
-        scene.value.setKernel(kernel_radius.value, kernel.value)
+        controller.value.setKernel(kernel_radius.value, kernel.value)
     }
     if (editor_code.value != activation_shader) {
         activation_shader = editor_code.value
-        shader_issues.value = await scene.value.setActivation(editor_code.value)
+        shader_issues.value = await controller.value.setActivation(
+            editor_code.value
+        )
     }
     const no_issues = shader_issues.value.length === 0
     if (!no_issues) {
@@ -73,16 +72,16 @@ async function initScene() {
         activation_shader = editor_code.value
         kernel_changed = false
 
-        scene.value.cleanup()
-        await scene.value.init(
+        controller.value.destroy()
+        await controller.value.init(
             {
                 activation_shader: activation_shader,
-                canvas_width: grid_size.value,
                 kernel_radius: kernel_radius.value,
                 max_kernel_radius: 5,
                 kernel: kernel.value,
-                color_1: color_0.value,
-                color_2: color_1.value
+                color_1: color_1.value,
+                color_2: color_2.value,
+                canvas_width: grid_size.value
             },
             canvasRef.value
         )
@@ -95,30 +94,30 @@ async function onCanvasReady(canvas: HTMLCanvasElement) {
 }
 
 async function setExample(example: Example) {
-    color_0.value = example.color_0
-    color_1.value = example.color_1
+    editor_code.value = example.activation
     kernel_radius.value = example.kernel_radius
     kernel_symmetry.value = example.kernel_symmetry
     kernel.value = example.get_kernel()
-    editor_code.value = example.activation
+    color_1.value = example.color_1
+    color_2.value = example.color_2
     skip_frames.value = example.skipFrames
     await initScene()
 }
 
-async function resetCanvas(new_grid_size: number) {
+async function resizeCanvas(new_grid_size: number) {
     const no_issues = await applyChanges()
-    scene.value.resetCanvas(new_grid_size, no_issues && !is_running.value)
+    controller.value.resizeCanvas(new_grid_size, no_issues && !is_running.value)
 }
 
 async function reset() {
     if (await applyChanges()) {
-        scene.value.reset(!is_running.value)
+        controller.value.reset(!is_running.value)
     }
 }
 
 async function step() {
     if (await applyChanges()) {
-        scene.value.step(skip_frames.value ? 2 : 1)
+        controller.value.step(skip_frames.value ? 2 : 1)
     }
 }
 
@@ -126,7 +125,7 @@ async function run() {
     if (await applyChanges()) {
         const fps = 60
         interval_ref.value = setInterval(
-            () => scene.value.step(skip_frames.value ? 2 : 1),
+            () => controller.value.step(skip_frames.value ? 2 : 1),
             1000 / fps
         )
     }
@@ -142,7 +141,7 @@ function pause() {
 
 onBeforeUnmount(() => {
     pause()
-    scene.value.cleanup()
+    controller.value.destroy()
 })
 </script>
 
@@ -163,17 +162,17 @@ onBeforeUnmount(() => {
                     <HBox>
                         <span :style="{ flexGrow: 1 }">Colors</span>
                         <ColorInput
-                            v-model="color_0"
-                            @animation="
-                                (hex_color) =>
-                                    scene.setColor1(hex_color, !is_running)
-                            "
-                        />
-                        <ColorInput
                             v-model="color_1"
                             @animation="
                                 (hex_color) =>
-                                    scene.setColor2(hex_color, !is_running)
+                                    controller.setColor1(hex_color, !is_running)
+                            "
+                        />
+                        <ColorInput
+                            v-model="color_2"
+                            @animation="
+                                (hex_color) =>
+                                    controller.setColor2(hex_color, !is_running)
                             "
                         />
                     </HBox>
@@ -232,7 +231,7 @@ onBeforeUnmount(() => {
                     text="Grid size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
-                    @update:model-value="resetCanvas"
+                    @update:model-value="resizeCanvas"
                 />
             </VBox>
         </template>
