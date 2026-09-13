@@ -14,37 +14,51 @@ import VBox from '@/components/VBox.vue'
 import HBox from '@/components/HBox.vue'
 import IntegerField from '@/components/IntegerField.vue'
 
-import { WebGPUScene } from './Scene'
+import { Controller } from './Controller'
 import { examples, type Example } from './Examples'
 
 const default_example = examples[0]
-
-const activeTab = ref('Configuration')
-const grid_size = ref(256)
-const colors = ref(default_example.colors())
-const n_states = ref(default_example.nStates)
-
-const update_shader = ref(default_example.updateShader)
-const editor_code = ref(default_example.updateShader)
-const is_running = ref(false)
+const editor_code = ref(default_example.update_shader)
+const n_states = ref(default_example.n_states)
+const max_n_states = 32
+const hex_colors = ref(default_example.hex_colors())
 const skip_frames = ref(false)
-const interval_ref = ref<number | null>(null)
+const grid_size = ref(256)
 
+const active_tab = ref('Configuration')
+const is_running = ref(false)
+const interval_ref = ref<number | null>(null)
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const controller = shallowRef(new Controller())
 
-const scene = shallowRef(new WebGPUScene())
-const max_n_states = 32
+let update_shader = default_example.update_shader
+
+async function applyChanges() {
+    if (editor_code.value != update_shader) {
+        update_shader = editor_code.value
+        shader_issues.value = await controller.value.setUpdateRule(
+            editor_code.value
+        )
+    }
+    const no_issues = shader_issues.value.length === 0
+    if (!no_issues) {
+        pause()
+    }
+    return no_issues
+}
 
 async function initScene() {
     if (canvasRef.value) {
-        scene.value.cleanup()
-        shader_issues.value = await scene.value.init(
+        update_shader = editor_code.value
+
+        controller.value.destroy()
+        await controller.value.init(
             {
+                update_shader: update_shader,
                 n_states: n_states.value,
-                max_n_states: max_n_states,
-                hex_colors: colors.value,
-                update_shader: update_shader.value,
+                max_n_states: 32,
+                hex_colors: hex_colors.value,
                 canvas_width: grid_size.value
             },
             canvasRef.value
@@ -57,43 +71,39 @@ async function onCanvasReady(canvas: HTMLCanvasElement) {
     initScene()
 }
 
-function setExample(example: Example) {
-    colors.value = example.colors()
-    n_states.value = example.nStates
-    update_shader.value = example.updateShader
-    editor_code.value = example.updateShader
-    skip_frames.value = example.skipFrames
-    initScene()
+async function setExample(example: Example) {
+    editor_code.value = example.update_shader
+    n_states.value = example.n_states
+    hex_colors.value = example.hex_colors()
+    skip_frames.value = example.skip_frames
+    await initScene()
 }
 
-function reset() {
-    if (editor_code.value != update_shader.value) {
-        update_shader.value = editor_code.value
-        initScene()
-    } else {
-        scene.value.reset()
+async function resizeCanvas(new_grid_size: number) {
+    const no_issues = await applyChanges()
+    controller.value.resizeCanvas(new_grid_size, no_issues && !is_running.value)
+}
+
+async function reset() {
+    if (await applyChanges()) {
+        controller.value.reset(!is_running.value)
     }
 }
 
-function step() {
-    if (editor_code.value != update_shader.value) {
-        update_shader.value = editor_code.value
-        initScene()
-    } else {
-        scene.value.step(skip_frames.value ? 2 : 1)
+async function step() {
+    if (await applyChanges()) {
+        controller.value.step(skip_frames.value ? 2 : 1)
     }
 }
 
-function run() {
-    if (editor_code.value != update_shader.value) {
-        update_shader.value = editor_code.value
-        initScene()
+async function run() {
+    if (await applyChanges()) {
+        const fps = 60
+        interval_ref.value = setInterval(
+            () => controller.value.step(skip_frames.value ? 2 : 1),
+            1000 / fps
+        )
     }
-    const fps = 60
-    interval_ref.value = setInterval(
-        () => scene.value.step(skip_frames.value ? 2 : 1),
-        1000 / fps
-    )
 }
 
 function pause() {
@@ -101,11 +111,12 @@ function pause() {
         clearInterval(interval_ref.value)
     }
     interval_ref.value = null
+    is_running.value = false
 }
 
 onBeforeUnmount(() => {
     pause()
-    scene.value.cleanup()
+    controller.value.destroy()
 })
 </script>
 
@@ -113,11 +124,11 @@ onBeforeUnmount(() => {
     <SidePanelCanvas
         :tab-captions="['Configuration', 'Colors', 'Examples']"
         :issues="shader_issues"
-        v-model="activeTab"
+        v-model="active_tab"
         @canvas-ready="onCanvasReady"
     >
         <template v-slot:tabs>
-            <template v-if="activeTab === 'Configuration'">
+            <template v-if="active_tab === 'Configuration'">
                 <CodeEditor class="code-editor" v-model="editor_code" />
                 <VBox>
                     <Checkbox name="skip_frames" v-model="skip_frames">
@@ -134,8 +145,10 @@ onBeforeUnmount(() => {
                             v-model="n_states"
                             @update:model-value="
                                 (new_n_states: number) => {
-                                    scene.setNStates(new_n_states)
-                                    scene.reset()
+                                    controller.setNStates(
+                                        new_n_states,
+                                        !is_running
+                                    )
                                 }
                             "
                         />
@@ -144,17 +157,22 @@ onBeforeUnmount(() => {
             </template>
             <VBox>
                 <ColorPalette
-                    v-if="activeTab === 'Colors'"
-                    v-model="colors"
+                    v-if="active_tab === 'Colors'"
+                    v-model="hex_colors"
                     @change-all-colors="
-                        (new_colors) => scene.updateAllColors(new_colors)
+                        (new_colors) =>
+                            controller.updateAllColors(new_colors, !is_running)
                     "
                     @change-single-color="
                         (index, value: string) =>
-                            scene.updateSingleColor(index, value)
+                            controller.updateSingleColor(
+                                index,
+                                value,
+                                !is_running
+                            )
                     "
                 />
-                <Menu v-if="activeTab === 'Examples'">
+                <Menu v-if="active_tab === 'Examples'">
                     <MenuItem
                         v-for="example in examples"
                         :key="example.name"
@@ -185,12 +203,7 @@ onBeforeUnmount(() => {
                     text="Grid size"
                     :options="[256, 512, 1024]"
                     v-model="grid_size"
-                    @update:model-value="
-                        (new_grid_size) => {
-                            scene.resizeCanvas(new_grid_size)
-                            scene.reset()
-                        }
-                    "
+                    @update:model-value="resizeCanvas"
                 />
             </VBox>
         </template>

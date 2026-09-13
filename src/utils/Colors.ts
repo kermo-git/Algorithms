@@ -79,18 +79,28 @@ export function lerpColors(t: number, a: Color, b: Color): Color {
     }
 }
 
-export function lerpColorArray(
-    color_points: string[],
-    n_colors: number
-): string[] {
-    const max_color = n_colors - 1
-    const max_color_point = color_points.length - 1
+export function lerpColorArray(hex_colors: string[], n_colors: number) {
+    const max_lerp_color = n_colors - 1
+    const max_reference_color = hex_colors.length - 1
 
-    if (max_color === max_color_point) {
-        return color_points
+    if (max_lerp_color === max_reference_color) {
+        return shaderColorArray(hex_colors)
     }
-    const result = [color_points[0]]
-    const index_factor = max_color_point / max_color
+
+    const result = new Float32Array(4 * n_colors)
+
+    function setColor(i: number, color: Color) {
+        const offset = 4 * i
+        result[offset] = color.red / 255
+        result[offset + 1] = color.green / 255
+        result[offset + 2] = color.blue / 255
+        result[offset + 3] = 1
+    }
+
+    const parsed_colors = hex_colors.map(parseHexColor)
+    setColor(0, parsed_colors[0])
+
+    const index_factor = max_reference_color / max_lerp_color
 
     for (let i = 1; i < n_colors - 1; i++) {
         const float_index = i * index_factor
@@ -99,13 +109,13 @@ export function lerpColorArray(
         const index_2 = Math.ceil(float_index)
         const lerp_point = float_index - index_1
 
-        const color_1 = parseHexColor(color_points[index_1])
-        const color_2 = parseHexColor(color_points[index_2])
-
+        const color_1 = parsed_colors[index_1]
+        const color_2 = parsed_colors[index_2]
         const color = lerpColors(lerp_point, color_1, color_2)
-        result.push(toHexColor(color))
+
+        setColor(i, color)
     }
-    result.push(color_points[max_color_point])
+    setColor(n_colors - 1, parsed_colors[max_reference_color])
 
     return result
 }

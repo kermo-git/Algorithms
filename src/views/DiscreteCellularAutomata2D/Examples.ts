@@ -2,10 +2,10 @@ import { colorPalette } from '@/utils/Colors'
 
 export interface Example {
     name: string
-    colors: () => string[]
-    nStates: number
-    updateShader: string
-    skipFrames: boolean
+    update_shader: string
+    n_states: number
+    hex_colors: () => string[]
+    skip_frames: boolean
 }
 
 function basic_cyclic_CA_shader(
@@ -45,37 +45,37 @@ fn update(pos: vec2u, state: u32) -> u32 {
 export const examples: Example[] = [
     {
         name: 'Rainbow',
-        colors: () => colorPalette('Rainbow'),
-        nStates: 24,
-        updateShader: basic_cyclic_CA_shader(1, 1, 1, 'Moore'),
-        skipFrames: false
+        hex_colors: () => colorPalette('Rainbow'),
+        n_states: 24,
+        update_shader: basic_cyclic_CA_shader(1, 1, 1, 'Moore'),
+        skip_frames: false
     },
     {
         name: 'Boiling',
-        colors: () => colorPalette('Funky'),
-        nStates: 6,
-        updateShader: basic_cyclic_CA_shader(2, 2, 1, 'Neumann'),
-        skipFrames: false
+        hex_colors: () => colorPalette('Funky'),
+        n_states: 6,
+        update_shader: basic_cyclic_CA_shader(2, 2, 1, 'Neumann'),
+        skip_frames: false
     },
     {
         name: 'Roses',
-        colors: () => ['#4b0089', '#b55bff'],
-        nStates: 24,
-        updateShader: basic_cyclic_CA_shader(1, 1, 3, 'Moore'),
-        skipFrames: false
+        hex_colors: () => ['#4b0089', '#b55bff'],
+        n_states: 24,
+        update_shader: basic_cyclic_CA_shader(1, 1, 3, 'Moore'),
+        skip_frames: false
     },
     {
         name: 'Cubism',
-        colors: () => ['#83DE08', '#9a53ff', '#f6fe4b'],
-        nStates: 3,
-        updateShader: basic_cyclic_CA_shader(2, 5, 1, 'Neumann'),
-        skipFrames: false
+        hex_colors: () => ['#83DE08', '#9a53ff', '#f6fe4b'],
+        n_states: 3,
+        update_shader: basic_cyclic_CA_shader(2, 5, 1, 'Neumann'),
+        skip_frames: false
     },
     {
         name: 'Lava meteorites',
-        colors: () => colorPalette('Lava'),
-        nStates: 24,
-        updateShader: /* wgsl */ `fn update(pos: vec2u, state: u32) -> u32 {
+        hex_colors: () => colorPalette('Lava'),
+        n_states: 24,
+        update_shader: /* wgsl */ `fn update(pos: vec2u, state: u32) -> u32 {
     let top_left = neighbor(pos, -2, -2);
     let bottom_right = neighbor(pos, 2, 2);
 
@@ -85,20 +85,20 @@ export const examples: Example[] = [
     let avg = neumann_avg(pos, 2);
     return u32(ceil(avg));
 }`,
-        skipFrames: false
+        skip_frames: false
     },
     {
         name: 'Rain',
-        colors: () => ['#00bbff', '#003261'],
-        nStates: 24,
-        updateShader: theta_cyclic_CA_shader('f32(n_states / 24)'),
-        skipFrames: false
+        hex_colors: () => ['#00bbff', '#003261'],
+        n_states: 24,
+        update_shader: theta_cyclic_CA_shader('f32(states.n / 24)'),
+        skip_frames: false
     },
     {
         name: 'Maze',
-        colors: () => ['#FF0000', '#000000'],
-        nStates: 24,
-        updateShader: theta_cyclic_CA_shader('- f32(n_states / 12)'),
-        skipFrames: true
+        hex_colors: () => ['#FF0000', '#000000'],
+        n_states: 24,
+        update_shader: theta_cyclic_CA_shader('- f32(states.n / 12)'),
+        skip_frames: true
     }
 ]
