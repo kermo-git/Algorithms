@@ -179,11 +179,11 @@ export function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
 }
 
 export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
-    const visibility = new Map<string, GPUFlagsConstant>()
-    let resolved_resources: ReadOnlyResource[] = []
-
     const resolved_vertex = resolveImports(shader.vertexShader)
     const resolved_fragment = resolveImports(shader.fragmentShader)
+
+    const visibility = new Map<string, GPUFlagsConstant>()
+    let resolved_resources: ReadOnlyResource[] = []
 
     for (const r of resolved_vertex.resources || []) {
         resolved_resources.push(r)
@@ -209,14 +209,14 @@ export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
         resolved_module_names.add(i.name)
         resolved_code += i.code + '\n'
     }
-    resolved_code += shader.vertexShader.code + '\n'
+    resolved_code += resolved_vertex.code + '\n'
 
     for (const i of resolved_fragment.imports || []) {
         if (!resolved_module_names.has(i.name)) {
             resolved_code += i.code + '\n'
         }
     }
-    resolved_code += shader.fragmentShader.code
+    resolved_code += resolved_fragment.code
 
     return {
         kind: 'LinkedRenderShader',
@@ -225,6 +225,6 @@ export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
         visibility: visibility,
         resources: resolved_resources,
         indexBuffer: shader.indexBuffer,
-        code: `${resolved_code}${resolved_vertex.code}\n${resolved_fragment.code}`
+        code: resolved_code
     }
 }

@@ -10,17 +10,22 @@ export interface NoiseModule extends ReadOnlyShaderModule {
 }
 
 export function FBMNoiseModule(noise: NoiseModule): ReadOnlyShaderModule {
-    return {
-        name: `${noise.name}_fbm`,
-        imports: [noise],
-
+    const fbm_params = {
+        name: 'FBMParams',
         code: /* wgsl */ `
             struct FBMParams {
                 n_octaves: u32,
                 lacunarity: f32,
                 persistence: f32
             };
+        `
+    }
 
+    return {
+        name: `${noise.name}_fbm`,
+        imports: [noise, fbm_params],
+
+        code: /* wgsl */ `
             fn ${noise.name}_fbm(noise_pos: ${noise.posType}, 
                                  seed: u32, 
                                  fbm_params: FBMParams) -> f32 {

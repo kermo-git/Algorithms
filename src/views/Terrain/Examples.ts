@@ -73,6 +73,19 @@ function terrainColorShader(
 
 export const examples: Example[] = [
     {
+        name: 'Test',
+        grid_size: 16,
+        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
+    return perlin_2d(pos, 0);
+}`,
+        color_shader: /* wgsl */ `fn color(pos: vec2f, 
+         elevation: f32,
+         gradient: vec2f) -> vec3f {
+    return vec3f(1);
+}
+        `
+    },
+    {
         name: 'Mountains',
         grid_size: 4,
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {

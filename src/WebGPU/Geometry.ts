@@ -1,5 +1,16 @@
 export const DEG_TO_RAD = Math.PI / 180
 
+export interface Vec2 {
+    x: number
+    y: number
+}
+
+export interface Vec3 {
+    x: number
+    y: number
+    z: number
+}
+
 export class Mat4x4 {
     columns_flat: Float32Array
 
@@ -36,18 +47,23 @@ export class Mat4x4 {
         return res
     }
 
-    matmul_vec(vec3: number[]): number[] {
+    matmul_vec(vec3: Vec3): Vec3 {
+        const input = [vec3.x, vec3.y, vec3.z]
         const res = new Array(3)
         const last_dim = 3
 
         for (let row = 0; row < last_dim; row++) {
             let value = 0
             for (let col = 0; col < last_dim; col++) {
-                value += this.get(row, col) * vec3[col]
+                value += this.get(row, col) * input[col]
             }
             res[row] = value + this.get(row, last_dim)
         }
-        return res
+        return {
+            x: res[0],
+            y: res[1],
+            z: res[2]
+        }
     }
 
     toWebGPU() {

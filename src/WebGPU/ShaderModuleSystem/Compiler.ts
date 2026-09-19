@@ -105,7 +105,9 @@ function getDataTypeCode(resource: Resource) {
         case 'StorageBufferView':
             return resource.buffer.dataTypeCode
         case 'PingPongBuffers':
-            return resource.buffer_A.dataTypeCode
+            return (
+                resource.buffer_A.dataTypeCode || resource.buffer_B.dataTypeCode
+            )
     }
 }
 

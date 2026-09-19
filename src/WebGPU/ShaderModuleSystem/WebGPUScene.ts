@@ -222,8 +222,6 @@ export default class WebGPUScene {
             main_texture.width,
             main_texture.height
         )
-        const depth_attachment =
-            this.createDepthStencilAttachment(depth_texture)
 
         const pass_encoder = cmd_encoder.beginRenderPass({
             colorAttachments: [
@@ -234,7 +232,8 @@ export default class WebGPUScene {
                     storeOp: 'store'
                 }
             ],
-            depthStencilAttachment: depth_attachment
+            depthStencilAttachment:
+                this.createDepthStencilAttachment(depth_texture)
         })
         pass_encoder.setPipeline(shader.pipeline)
 

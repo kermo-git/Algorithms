@@ -14,14 +14,14 @@ import MenuItem from '@/components/MenuItem.vue'
 import Menu from '@/components/Menu.vue'
 
 import { examples, type Example } from './Examples'
-import WebGPUScene from './Scene'
+import Controller from './Controller'
 
 const active_tab = ref('Elevation')
 const shader_issues = ref<ShaderIssue[]>([])
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const scene = shallowRef(new WebGPUScene())
+const scene = shallowRef(new Controller())
 
-const grid_size = ref(4)
+const grid_size = ref(examples[0].grid_size)
 const noise_shader = ref(examples[0].elevation_shader)
 const color_shader = ref(examples[0].color_shader)
 
@@ -36,7 +36,7 @@ let terrain_rad_y = 70 * DEG_TO_RAD
 function createLightVector(deg_x: number, deg_y: number) {
     return rotateY(deg_y * DEG_TO_RAD)
         .matmul(rotateX(deg_x * DEG_TO_RAD))
-        .matmul_vec([0, 1, 0])
+        .matmul_vec({ x: 0, y: 1, z: 0 })
 }
 
 function createCameraViewmatrix(new_grid_size: number) {
@@ -48,13 +48,13 @@ function createCameraViewmatrix(new_grid_size: number) {
 
 async function initScene(new_grid_size: number) {
     if (canvasRef.value) {
-        scene.value.cleanup()
+        scene.value.destroy()
         await scene.value.init(
             {
                 noise_shader: noise_shader.value,
                 color_shader: color_shader.value,
-                terrain_dims: [1024, 1024],
-                grid_dims: [new_grid_size, new_grid_size],
+                terrain_dims: { x: 1024, y: 1024 },
+                grid_dims: { x: new_grid_size, y: new_grid_size },
                 light_dir: createLightVector(
                     light_deg_x.value,
                     light_deg_y.value
@@ -107,7 +107,7 @@ function setExample(example: Example) {
                         @click="
                             async () =>
                                 (shader_issues =
-                                    await scene.updateNoiseShader(noise_shader))
+                                    await scene.setNoiseFunction(noise_shader))
                         "
                     />
                     <CodeEditor class="terrain-editor" v-model="noise_shader" />
@@ -122,7 +122,7 @@ function setExample(example: Example) {
                         @click="
                             async () =>
                                 (shader_issues =
-                                    await scene.updateColorShader(color_shader))
+                                    await scene.setColorFunction(color_shader))
                         "
                     />
                     <CodeEditor class="terrain-editor" v-model="color_shader" />
