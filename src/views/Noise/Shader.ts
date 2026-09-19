@@ -14,11 +14,11 @@ export interface Setup {
     noise: NoiseModule
     transform: DomainTransform
     n_grid_columns?: number
+    z_coord?: number
+    w_coord?: number
     n_main_octaves?: number
     persistence?: number
     lacunarity?: number
-    z_coord?: number
-    w_coord?: number
     n_warp_octaves?: number
     warp_strength?: number
     colors?: string[]

@@ -19,37 +19,57 @@ import {
 } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
-import { Worley2D, Worley3D, Worley4D } from '@/Noise/Algorithms/Worley'
+import {
+    Worley2D,
+    Worley2DModule,
+    Worley3D,
+    Worley3DModule,
+    Worley4D,
+    Worley4DModule
+} from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
 
 import type { DomainTransform } from './Shader'
 import WebGPUScene from './Controller.js'
 
-const colors = ref(['#000000', '#FFFFFF'])
-const color_points = ref([0, 1])
 const algorithm = ref<string>('Simplex')
 const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
 const n_grid_columns = ref(16)
+const z_coord = ref(0)
+const w_coord = ref(0)
 const n_main_octaves = ref(1)
 const persistence = ref(0.5)
 const lacunarity = ref(2)
-const z_coord = ref(0)
-const w_coord = ref(0)
-const warp_strength = ref(0.1)
 const n_warp_octaves = ref(1)
+const warp_strength = ref(0.1)
+const colors = ref(['#000000', '#FFFFFF'])
+const color_points = ref([0, 1])
+
 const active_tab = ref('Configuration')
 const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
-    switch (noise_dimension) {
-        case '2D':
-            return Perlin2DModule()
-        case '3D':
-            return Perlin3DModule()
+    switch (algorithm_name) {
+        case 'Worley F1':
+            switch (noise_dimension) {
+                case '2D':
+                    return Worley2DModule()
+                case '3D':
+                    return Worley3DModule()
+                default:
+                    return Worley4DModule()
+            }
         default:
-            return Perlin4DModule()
+            switch (noise_dimension) {
+                case '2D':
+                    return Perlin2DModule()
+                case '3D':
+                    return Perlin3DModule()
+                default:
+                    return Perlin4DModule()
+            }
     }
 }
 
@@ -60,11 +80,11 @@ async function initScene(canvas: HTMLCanvasElement) {
             noise: createNoiseAlgorithm(algorithm.value, dimension.value),
             transform: domain_transform.value,
             n_grid_columns: n_grid_columns.value,
+            z_coord: z_coord.value,
+            w_coord: w_coord.value,
             n_main_octaves: n_main_octaves.value,
             persistence: persistence.value,
             lacunarity: lacunarity.value,
-            z_coord: z_coord.value,
-            w_coord: w_coord.value,
             n_warp_octaves: n_warp_octaves.value,
             warp_strength: warp_strength.value,
             colors: colors.value,
@@ -93,10 +113,11 @@ watch(
                     noise: createNoiseAlgorithm(new_algorithm, new_dimension),
                     transform: new_domain_transform,
                     n_grid_columns: n_grid_columns.value,
-                    n_main_octaves: n_main_octaves.value,
-                    persistence: persistence.value,
                     z_coord: z_coord.value,
                     w_coord: w_coord.value,
+                    n_main_octaves: n_main_octaves.value,
+                    persistence: persistence.value,
+                    lacunarity: lacunarity.value,
                     n_warp_octaves: n_warp_octaves.value,
                     warp_strength: warp_strength.value,
                     colors: colors.value,

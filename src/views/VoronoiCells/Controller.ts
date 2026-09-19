@@ -1,4 +1,5 @@
 import WebGPUScene from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
+
 import { createColorData, MainModule, type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
 
@@ -6,7 +7,6 @@ const wg_dim = 8
 
 export default class Controller {
     scene = new WebGPUScene()
-
     async init(setup: Setup, canvas: HTMLCanvasElement) {
         await this.scene.compileScene(canvas, [
             MainModule(setup, wg_dim, wg_dim)
@@ -29,64 +29,48 @@ export default class Controller {
         ])
     }
 
-    setNGridColumns(value: number) {
+    setVoronoiNColumns(value: number) {
         this.scene.writeFloat('parameters', value, 20)
-        this.render()
-    }
-
-    setZCoord(value: number) {
-        this.scene.writeFloat('parameters', value, 24)
-        this.render()
-    }
-
-    setWCoord(value: number) {
-        this.scene.writeFloat('parameters', value, 28)
-        this.render()
-    }
-
-    setNMainOctaves(value: number) {
-        this.scene.writeUint('parameters', value, 0)
-        this.render()
-    }
-
-    setPersistence(value: number) {
-        this.scene.writeFloat('parameters', value, 12)
-        this.render()
-    }
-
-    setLacunarity(value: number) {
-        this.scene.writeFloat('parameters', value, 16)
-        this.render()
-    }
-
-    setNWarpOctaves(value: number) {
-        this.scene.writeUint('parameters', value, 4)
-        this.render()
-    }
-
-    setWarpStrength(value: number) {
-        this.scene.writeFloat('parameters', value, 8)
         this.render()
     }
 
     setColor(index: number, hex_color: string) {
         const { red, green, blue } = parseHexColor(hex_color)
-        const data = new Float32Array([red / 255, green / 255, blue / 255])
-        this.scene.write('color_points', data.buffer, 16 + index * 16)
+        const data = new Float32Array([red / 255, green / 255, blue / 255, 1])
+            .buffer
+        this.scene.write('colors', data, 16 + index * 16)
         this.render()
     }
 
-    setColorPoint(index: number, value: number) {
-        this.scene.writeFloat('color_points', value, 28 + index * 16)
+    setAllColors(hex_colors: string[]) {
+        this.scene.write('colors', createColorData(hex_colors))
         this.render()
     }
 
-    setAllColors(colors: string[], points: number[]) {
-        this.scene.write('color_points', createColorData(colors, points))
+    setNoiseScale(value: number) {
+        this.scene.writeFloat('parameters', value, 16)
         this.render()
     }
 
-    cleanup() {
-        this.scene.destroy()
+    setNoiseStrength(value: number) {
+        this.scene.writeFloat('parameters', value, 8)
+        this.render()
     }
+
+    setNoiseZCoord(value: number) {
+        this.scene.writeFloat('parameters', value, 12)
+        this.render()
+    }
+
+    setNoiseNOctaves(value: number) {
+        this.scene.writeUint('parameters', value, 0)
+        this.render()
+    }
+
+    setNoisePersistence(value: number) {
+        this.scene.writeFloat('parameters', value, 4)
+        this.render()
+    }
+
+    cleanup() {}
 }
