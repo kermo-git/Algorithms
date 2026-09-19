@@ -1,4 +1,4 @@
-import { ShaderModule } from '@/WebGPU/ShaderModuleSystem/Modules'
+import { ReadOnlyShaderModule } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 function create_fade_fn(d: 2 | 3 | 4) {
     const name = `fade_${d}d`
@@ -235,14 +235,14 @@ const shader_functions = new Map<string, string>([
     ]
 ])
 
-export function importFn(name: string): ShaderModule {
+export function importFn(name: string): ReadOnlyShaderModule {
     return {
         name: name,
         code: shader_functions.get(name)!
     }
 }
 
-export function constSeed(name: string): ShaderModule {
+export function constSeed(name: string): ReadOnlyShaderModule {
     return {
         name: name,
         code: `const ${name} = bitcast<u32>(i32(${Date.now() >> 0}));`

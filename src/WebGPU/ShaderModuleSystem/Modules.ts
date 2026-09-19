@@ -2,6 +2,7 @@ export interface Uniform {
     kind: 'Uniform'
     name: string
     dataType: string
+    dataTypeCode?: string
     data: ArrayBuffer
 }
 
@@ -9,6 +10,7 @@ export interface StorageBuffer {
     kind: 'StorageBuffer'
     name: string
     dataType: string
+    dataTypeCode?: string
     byteLength?: number
     data?: ArrayBuffer
 }

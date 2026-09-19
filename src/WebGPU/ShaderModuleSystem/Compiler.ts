@@ -10,11 +10,21 @@ export function createComputeShaderCode(
     shader: LinkedComputeShader,
     canvas_color_format: GPUTextureFormat
 ) {
+    let declared_data_types = new Set<string>()
+    let data_type_declarations = ''
+
     let bind_declarations = ''
     let group_index = 0
     let bind_index = 0
 
     for (const resource of shader.staticResources) {
+        const data_type = getDataType(resource)
+        const data_type_code = getDataTypeCode(resource)
+
+        if (data_type_code && !declared_data_types.has(data_type)) {
+            declared_data_types.add(data_type)
+            data_type_declarations += `\n${data_type_code}`
+        }
         bind_declarations +=
             createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 1
@@ -26,6 +36,13 @@ export function createComputeShaderCode(
     }
 
     for (const resource of shader.pingPongResources) {
+        const data_type = getDataType(resource)
+        const data_type_code = getDataTypeCode(resource)
+
+        if (data_type_code && !declared_data_types.has(data_type)) {
+            declared_data_types.add(data_type)
+            data_type_declarations += `\n${data_type_code}`
+        }
         bind_declarations +=
             createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 2
@@ -43,21 +60,53 @@ export function createComputeShaderCode(
                 canvas_color_format
             ) + '\n'
     }
-    return `${bind_declarations}\n${shader.code}`
+    return `${data_type_declarations}\n${bind_declarations}\n${shader.code}`
 }
 
 export function createRenderShaderCode(shader: LinkedRenderShader) {
+    let declared_data_types = new Set<string>()
+    let data_type_declarations = ''
+
     let bind_declarations = ''
     let group_index = 0
     let bind_index = 0
 
     for (const resource of shader.resources) {
+        const data_type = getDataType(resource)
+        const data_type_code = getDataTypeCode(resource)
+
+        if (data_type_code && !declared_data_types.has(data_type)) {
+            declared_data_types.add(data_type)
+            data_type_declarations += `\n${data_type_code}`
+        }
         bind_declarations +=
             createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 2
     }
 
-    return `${bind_declarations}\n${shader.code}`
+    return `${data_type_declarations}\n${bind_declarations}\n${shader.code}`
+}
+
+function getDataType(resource: Resource) {
+    switch (resource.kind) {
+        case 'Uniform':
+            return resource.dataType
+        case 'StorageBufferView':
+            return resource.buffer.dataType
+        case 'PingPongBuffers':
+            return resource.buffer_A.dataType
+    }
+}
+
+function getDataTypeCode(resource: Resource) {
+    switch (resource.kind) {
+        case 'Uniform':
+            return resource.dataTypeCode
+        case 'StorageBufferView':
+            return resource.buffer.dataTypeCode
+        case 'PingPongBuffers':
+            return resource.buffer_A.dataTypeCode
+    }
 }
 
 function createResourceDeclaration(
@@ -65,20 +114,19 @@ function createResourceDeclaration(
     group_index: number,
     binding_index: number
 ) {
+    const data_type = getDataType(resource)
     const binding_declaration = `@group(${group_index}) @binding(${binding_index})`
 
     switch (resource.kind) {
         case 'Uniform':
-            return `${binding_declaration} var<uniform> ${resource.name}: ${resource.dataType};`
+            return `${binding_declaration} var<uniform> ${resource.name}: ${data_type};`
 
         case 'StorageBufferView':
             const buffer_name = resource.buffer.name
-            const buffer_datatype = resource.buffer.dataType
-            return `${binding_declaration} var<storage, ${resource.accessMode}> ${buffer_name}: ${buffer_datatype};`
+            return `${binding_declaration} var<storage, ${resource.accessMode}> ${buffer_name}: ${data_type};`
         case 'PingPongBuffers':
-            const data_type_A = resource.buffer_A.dataType
-            return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type_A};
-@group(${group_index}) @binding(${binding_index + 1}) var<storage, read_write> ${resource.writeName}: ${data_type_A};`
+            return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type};
+@group(${group_index}) @binding(${binding_index + 1}) var<storage, read_write> ${resource.writeName}: ${data_type};`
     }
 }
 

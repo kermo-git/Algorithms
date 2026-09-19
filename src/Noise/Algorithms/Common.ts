@@ -1,15 +1,15 @@
 import {
-    ShaderModule,
+    ReadOnlyShaderModule,
     StorageBuffer
 } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
-export interface NoiseModule extends ShaderModule {
+export interface NoiseModule extends ReadOnlyShaderModule {
     posType: VecType
 }
 
-export function FBMNoiseModule(noise: NoiseModule): ShaderModule {
+export function FBMNoiseModule(noise: NoiseModule): ReadOnlyShaderModule {
     return {
         name: `${noise.name}_fbm`,
         imports: [noise],

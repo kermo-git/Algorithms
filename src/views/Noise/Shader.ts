@@ -1,7 +1,8 @@
 import {
     ComputeShader,
     readView,
-    ShaderModule
+    ShaderModule,
+    Uniform
 } from '@/WebGPU/ShaderModuleSystem/Modules'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/Utils'
@@ -30,9 +31,9 @@ export function MainModule(
     wg_dim_y: number
 ): ComputeShader {
     const fbm_module = FBMNoiseModule(setup.noise)
+    const resources = [ParametersUniform(setup)]
     const imports = [
         constSeed('random_seed'),
-        ParametersUniform(setup),
         InterPolateColor(
             setup.colors || ['#000000', '#FFFFFF'],
             setup.color_points || [0, 1],
@@ -76,6 +77,7 @@ export function MainModule(
     return {
         kind: 'ComputeShader',
         name: 'main',
+        resources,
         imports,
         canvas: 'canvas',
         code: /* wgsl */ `
@@ -110,7 +112,7 @@ export function MainModule(
     }
 }
 
-function ParametersUniform(setup: Setup): ShaderModule {
+function ParametersUniform(setup: Setup): Uniform {
     const data = new ArrayBuffer(32)
     const int_view = new Uint32Array(data, 0, 2)
     const float_view = new Float32Array(data, 8)
@@ -126,16 +128,10 @@ function ParametersUniform(setup: Setup): ShaderModule {
     float_view[5] = setup.w_coord || 0
 
     return {
+        kind: 'Uniform',
         name: 'parameters',
-        resources: [
-            {
-                kind: 'Uniform',
-                name: 'parameters',
-                dataType: 'Parameters',
-                data: data
-            }
-        ],
-        code: /* wgsl */ `
+        dataType: 'Parameters',
+        dataTypeCode: /* wgsl */ `
             struct Parameters {
                 n_main_octaves: u32,
                 n_warp_octaves: u32,
@@ -146,7 +142,8 @@ function ParametersUniform(setup: Setup): ShaderModule {
                 z_coordinate: f32,
                 w_coordinate: f32
             };
-        `
+        `,
+        data: data
     }
 }
 
@@ -155,9 +152,9 @@ function Warp2D(setup: Setup): ShaderModule {
 
     return {
         name: `warp_2d`,
+        resources: [ParametersUniform(setup)],
         imports: [
             fbm_module,
-            ParametersUniform(setup),
             constSeed('random_seed'),
             importFn('unit_vector_2d')
         ],
@@ -182,9 +179,9 @@ function Warp3D(setup: Setup): ShaderModule {
 
     return {
         name: `warp_3d`,
+        resources: [ParametersUniform(setup)],
         imports: [
             fbm_module,
-            ParametersUniform(setup),
             constSeed('random_seed'),
             importFn('unit_vector_3d')
         ],
@@ -240,21 +237,22 @@ function InterPolateColor(
                 kind: 'StorageBuffer',
                 name: 'color_points',
                 dataType: 'ColorPointArray',
+                dataTypeCode: /* wgsl */ `
+                    struct ColorPoint {
+                        color: vec3f,
+                        value: f32,
+                    };
+
+                    struct ColorPointArray {
+                        n_colors: u32,
+                        arr: array<ColorPoint>
+                    };
+                `,
                 byteLength: 16 * max_n_colors + 16,
                 data: createColorData(initial_colors, initial_points)
             })
         ],
         code: /* wgsl */ `
-            struct ColorPoint {
-                color: vec3f,
-                value: f32,
-            };
-
-            struct ColorPointArray {
-                n_colors: u32,
-                arr: array<ColorPoint>
-            };
-
             fn interpolate_color(value: f32) -> vec4f {
                 let n_colors = color_points.n_colors;
                 

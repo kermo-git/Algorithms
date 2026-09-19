@@ -92,19 +92,20 @@ export function createShader(
                     kind: 'StorageBuffer',
                     name: 'ck',
                     dataType: 'ColorKernel',
+                    dataTypeCode: /* wgsl */ `
+                        struct ColorKernel {
+                            color_0: vec4f,
+                            color_1: vec4f,
+                            kernel_radius: u32,
+                            kernel: array<f32>
+                        };
+                    `,
                     data: color_kernel_data
                 }
             }
         ],
         canvas: 'canvas',
         code: /* wgsl */ `
-            struct ColorKernel {
-                color_0: vec4f,
-                color_1: vec4f,
-                kernel_radius: u32,
-                kernel: array<f32>
-            };
-
             ${activation_shader}
             
             @compute @workgroup_size(${WG_DIM}, ${WG_DIM})

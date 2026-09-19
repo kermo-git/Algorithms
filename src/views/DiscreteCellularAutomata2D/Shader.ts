@@ -1,6 +1,6 @@
 import { lerpColorArray } from '@/utils/Colors'
 import { WG_DIM } from '@/WebGPU/Engine'
-import { ComputeShader } from '@/WebGPU/ShaderModuleSystem/Modules'
+import { ComputeShader, readView } from '@/WebGPU/ShaderModuleSystem/Modules'
 
 export interface Setup {
     update_shader: string
@@ -42,17 +42,19 @@ export function createShader(
         name: 'main',
 
         resources: [
-            {
-                kind: 'StorageBufferView',
-                accessMode: 'read',
-                buffer: {
-                    kind: 'StorageBuffer',
-                    name: 'states',
-                    dataType: 'States',
-                    byteLength: vec4f_bytes + vec4f_bytes * (max_n_states || 1),
-                    data: state_data
-                }
-            },
+            readView({
+                kind: 'StorageBuffer',
+                name: 'states',
+                dataType: 'States',
+                dataTypeCode: /* wgsl */ `
+                    struct States {
+                        n: u32,
+                        colors: array<vec4f>,
+                    };
+                `,
+                byteLength: vec4f_bytes + vec4f_bytes * (max_n_states || 1),
+                data: state_data
+            }),
             {
                 kind: 'PingPongBuffers',
                 readName: 'prev_generation',
@@ -66,7 +68,7 @@ export function createShader(
                 buffer_B: {
                     kind: 'StorageBuffer',
                     name: 'generation_B',
-                    dataType: 'States',
+                    dataType: 'array<u32>',
                     byteLength: canvas_data?.byteLength
                 }
             }
@@ -75,11 +77,6 @@ export function createShader(
         canvas: 'canvas',
 
         code: /* wgsl */ `
-            struct States {
-                n: u32,
-                colors: array<vec4f>,
-            };
-
             fn neighbor(center_pos: vec2u, offset_x: i32, offset_y: i32) -> u32 {
                 let canvas_dims = vec2i(textureDimensions(canvas));
 
