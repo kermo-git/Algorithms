@@ -6,13 +6,12 @@ import {
     createComputeShaderCode,
     createRenderShaderCode
 } from './Compiler'
-import { getName } from './Linker'
 import {
     LinkedComputeShader,
     LinkedRenderShader,
     StaticResource
 } from './LinkedModules'
-import { PingPongBuffers } from './Modules'
+import { PingPongBuffers, getName } from './Modules'
 
 export interface CompiledComputeShader {
     name: string

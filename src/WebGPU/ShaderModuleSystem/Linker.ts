@@ -13,7 +13,10 @@ import {
     Resource,
     Shader,
     ShaderModule,
-    StorageBuffer
+    StorageBuffer,
+    getName,
+    getDataType,
+    getDataTypeCode
 } from './Modules'
 
 export function link(shaders: Shader[]): LinkedScene {
@@ -92,48 +95,47 @@ export function link(shaders: Shader[]): LinkedScene {
     }
 }
 
-export function getName(resource: Resource): string {
-    switch (resource.kind) {
-        case 'Uniform':
-            return resource.name
-        case 'StorageBufferView':
-            return resource.buffer.name
-        case 'PingPongBuffers':
-            return `${resource.readName}_${resource.writeName}`
-    }
-}
-
 function resolveImports<T extends ShaderModule>(shader: T): T {
-    const resolved_resource_names = new Set<string>(
-        (shader.resources || []).map(getName)
-    )
-    const resolved_resources: Resource[] = shader.resources || []
+    const resolved_resource_names = new Set<string>()
+    const resolved_resources: Resource[] = []
 
     const resolved_module_names = new Set<string>()
     const resolved_modules: ShaderModule[] = []
 
-    const stack = (shader.imports || []).slice()
+    const stack: ShaderModule[] = [shader]
 
     while (stack.length > 0) {
         const current = stack.pop()!
 
         if (!resolved_module_names.has(current.name)) {
             resolved_module_names.add(current.name)
-            resolved_modules.push(current)
+            resolved_modules.push({
+                name: current.name,
+                code: current.code
+            })
 
-            if (current.resources) {
-                for (const resource of current.resources) {
-                    const name = getName(resource)
-                    if (!resolved_resource_names.has(name)) {
-                        resolved_resource_names.add(name)
-                        resolved_resources.push(resource)
+            for (const resource of current.resources || []) {
+                const name = getName(resource)
+
+                if (!resolved_resource_names.has(name)) {
+                    resolved_resource_names.add(name)
+                    resolved_resources.push(resource)
+
+                    const datatype = getDataType(resource)
+                    const datatype_code = getDataTypeCode(resource)
+
+                    if (datatype_code && !resolved_module_names.has(datatype)) {
+                        resolved_module_names.add(datatype)
+                        resolved_modules.unshift({
+                            name: datatype,
+                            code: datatype_code
+                        })
                     }
                 }
             }
-            if (current.imports) {
-                for (const dependency of current.imports) {
-                    stack.push(dependency)
-                }
+
+            for (const dependency of current.imports || []) {
+                stack.push(dependency)
             }
         }
     }
@@ -141,7 +143,8 @@ function resolveImports<T extends ShaderModule>(shader: T): T {
     return {
         ...shader,
         resources: resolved_resources,
-        imports: resolved_modules
+        imports: resolved_modules,
+        code: ''
     }
 }
 
@@ -152,7 +155,6 @@ export function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     for (const module of resolved.imports || []) {
         code += module.code + '\n'
     }
-    code += shader.code
 
     const static_resources: StaticResource[] = []
     const ping_pong_groups: PingPongBuffers[] = []
@@ -209,14 +211,12 @@ export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
         resolved_module_names.add(i.name)
         resolved_code += i.code + '\n'
     }
-    resolved_code += resolved_vertex.code + '\n'
 
     for (const i of resolved_fragment.imports || []) {
         if (!resolved_module_names.has(i.name)) {
             resolved_code += i.code + '\n'
         }
     }
-    resolved_code += resolved_fragment.code
 
     return {
         kind: 'LinkedRenderShader',

@@ -65,6 +65,41 @@ export interface RenderShader {
 
 export type Shader = ComputeShader | RenderShader
 
+export function getName(resource: Resource): string {
+    switch (resource.kind) {
+        case 'Uniform':
+            return resource.name
+        case 'StorageBufferView':
+            return resource.buffer.name
+        case 'PingPongBuffers':
+            return `${resource.readName}_${resource.writeName}`
+    }
+}
+
+export function getDataType(resource: Resource) {
+    switch (resource.kind) {
+        case 'Uniform':
+            return resource.dataType
+        case 'StorageBufferView':
+            return resource.buffer.dataType
+        case 'PingPongBuffers':
+            return resource.buffer_A.dataType
+    }
+}
+
+export function getDataTypeCode(resource: Resource) {
+    switch (resource.kind) {
+        case 'Uniform':
+            return resource.dataTypeCode
+        case 'StorageBufferView':
+            return resource.buffer.dataTypeCode
+        case 'PingPongBuffers':
+            return (
+                resource.buffer_A.dataTypeCode || resource.buffer_B.dataTypeCode
+            )
+    }
+}
+
 export function readView(buffer: StorageBuffer): StorageBufferView<'read'> {
     return {
         kind: 'StorageBufferView',
