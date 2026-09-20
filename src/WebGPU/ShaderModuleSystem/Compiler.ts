@@ -48,13 +48,12 @@ export function createComputeShaderCode(
 
 export function createRenderShaderCode(shader: LinkedRenderShader) {
     let bind_declarations = ''
-    let group_index = 0
     let bind_index = 0
 
     for (const resource of shader.resources) {
         bind_declarations +=
-            createResourceDeclaration(resource, group_index, bind_index) + '\n'
-        bind_index += 2
+            createResourceDeclaration(resource, 0, bind_index) + '\n'
+        bind_index += 1
     }
 
     return `${bind_declarations}\n${shader.code}`

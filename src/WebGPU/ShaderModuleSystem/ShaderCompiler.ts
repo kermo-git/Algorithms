@@ -176,12 +176,10 @@ export async function compileRenderShader(
     canvas_color_format: GPUTextureFormat,
     shader: LinkedRenderShader
 ): Promise<CompiledRenderShader> {
-    const { resources } = shader
-
     const bindGroupLayouts: GPUBindGroupLayout[] = []
     let bindLayout
 
-    if (resources.length > 0) {
+    if (shader.resources.length > 0) {
         bindLayout = device.createBindGroupLayout({
             label: 'resources',
             entries: shader.resources.map((r, i) =>

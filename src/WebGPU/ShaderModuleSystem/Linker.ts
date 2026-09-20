@@ -80,8 +80,11 @@ export function link(shaders: Shader[]): LinkedScene {
                 const resolved = linkRenderShader(shader)
                 findBuffers(resolved.resources)
                 addStorageBuffer(resolved.indexBuffer)
-                buffers.get(resolved.indexBuffer.name)!.usage |=
-                    GPUBufferUsage.INDEX
+
+                const buffer = buffers.get(resolved.indexBuffer.name)!
+                buffer.usage |= GPUBufferUsage.INDEX
+                buffers.set(resolved.indexBuffer.name, buffer)
+
                 render_shaders.push(resolved)
                 break
             }
