@@ -160,6 +160,41 @@ export function createBuffer(device: GPUDevice, descriptor: LinkedBuffer) {
     return buffer
 }
 
+export function createDepthStencilState(): GPUDepthStencilState {
+    return {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth24plus-stencil8'
+    }
+}
+
+export function createDepthTexture(
+    device: GPUDevice,
+    width: number,
+    height: number
+): GPUTexture {
+    return device.createTexture({
+        size: { width, height },
+        dimension: '2d',
+        format: 'depth24plus-stencil8',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
+    })
+}
+
+export function createDepthStencilAttachment(
+    depth_texture: GPUTexture
+): GPURenderPassDepthStencilAttachment {
+    return {
+        view: depth_texture.createView(),
+        depthClearValue: 1,
+        depthLoadOp: 'clear',
+        depthStoreOp: 'store',
+        stencilClearValue: 0,
+        stencilLoadOp: 'load',
+        stencilStoreOp: 'store'
+    }
+}
+
 export function createLayoutEntry(
     resource: StaticResource,
     bind_index: number,

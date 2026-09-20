@@ -4,7 +4,8 @@ import {
     createLayoutEntry,
     createPingPongLayoutEntries,
     createComputeShaderCode,
-    createRenderShaderCode
+    createRenderShaderCode,
+    createDepthStencilState
 } from './Compiler'
 import {
     LinkedComputeShader,
@@ -182,9 +183,11 @@ export async function compileRenderShader(
     if (shader.resources.length > 0) {
         bindLayout = device.createBindGroupLayout({
             label: 'resources',
-            entries: shader.resources.map((r, i) =>
-                createLayoutEntry(r, i, GPUShaderStage.COMPUTE)
-            )
+            entries: shader.resources.map((r, i) => {
+                const name = getName(r)
+                const visibility = shader.visibility.get(name)!
+                return createLayoutEntry(r, i, visibility)
+            })
         })
         bindGroupLayouts.push(bindLayout)
     }
@@ -195,27 +198,30 @@ export async function compileRenderShader(
     const code = createRenderShaderCode(shader)
     const { module } = await compileShaderCode(device, code)
 
+    const pipeline = device.createRenderPipeline({
+        label: shader.name,
+        layout: pipelineLayout,
+        depthStencil: createDepthStencilState(),
+        vertex: {
+            module
+        },
+        fragment: {
+            module,
+            targets: [
+                {
+                    format: canvas_color_format
+                }
+            ]
+        },
+        primitive: {
+            topology: shader.primitiveTopology
+        }
+    })
+
     return {
         name: shader.name,
         pipelineLayout,
-        pipeline: device.createRenderPipeline({
-            label: shader.name,
-            layout: pipelineLayout,
-            vertex: {
-                module
-            },
-            fragment: {
-                module,
-                targets: [
-                    {
-                        format: canvas_color_format
-                    }
-                ]
-            },
-            primitive: {
-                topology: shader.primitiveTopology
-            }
-        }),
+        pipeline,
         indexBufferName: shader.indexBuffer.name,
         resources: shader.resources,
         bindLayout
@@ -228,7 +234,6 @@ export function bindRenderShader(
     compiled_shader: CompiledRenderShader
 ) {
     const { indexBufferName, resources, bindLayout } = compiled_shader
-
     if (resources && bindLayout) {
         compiled_shader.bindGroup = device.createBindGroup({
             layout: bindLayout,

@@ -89,14 +89,14 @@ function RenderSetup(setup: Setup, aspect_ratio: number = 1): Uniform {
         kind: 'Uniform',
         name: 'render_setup',
         dataType: 'RenderSetup',
-        data: data,
         dataTypeCode: /* wgsl */ `
-            struct RenderSetup {
-                light_direction: vec3f,
-                ambient_light_intensity: f32,
-                camera_projection_view: mat4x4f,
-            };
-        `
+        struct RenderSetup {
+            light_direction: vec3f,
+            ambient_light_intensity: f32,
+            camera_projection_view: mat4x4f,
+        };
+        `,
+        data: data
     }
 }
 

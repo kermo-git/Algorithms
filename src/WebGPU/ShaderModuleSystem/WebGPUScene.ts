@@ -1,8 +1,10 @@
 import {
-    compileShaderCode,
-    createBuffer,
     createComputeShaderCode,
     createRenderShaderCode,
+    compileShaderCode,
+    createBuffer,
+    createDepthStencilAttachment,
+    createDepthTexture,
     requestDevice,
     ShaderIssue
 } from './Compiler'
@@ -218,7 +220,8 @@ export default class WebGPUScene {
         const shader = this.render_shaders.get(command.name)!
 
         const main_texture = this.context.getCurrentTexture()
-        const depth_texture = this.createDepthTexture(
+        const depth_texture = createDepthTexture(
+            this.device,
             main_texture.width,
             main_texture.height
         )
@@ -232,8 +235,7 @@ export default class WebGPUScene {
                     storeOp: 'store'
                 }
             ],
-            depthStencilAttachment:
-                this.createDepthStencilAttachment(depth_texture)
+            depthStencilAttachment: createDepthStencilAttachment(depth_texture)
         })
         pass_encoder.setPipeline(shader.pipeline)
 
@@ -327,58 +329,26 @@ export default class WebGPUScene {
                     return issues
                 }
                 const compiled = this.render_shaders.get(shader.name)!
+                const pipeline = this.device.createRenderPipeline({
+                    label: shader.name,
+                    layout: compiled.pipelineLayout,
+                    vertex: { module },
+                    fragment: {
+                        module,
+                        targets: [{ format: this.canvas_color_format }]
+                    },
+                    primitive: {
+                        topology: shader.primitiveTopology
+                    }
+                })
 
                 this.render_shaders.set(shader.name, {
                     ...compiled,
-                    pipeline: this.device.createRenderPipeline({
-                        label: shader.name,
-                        layout: compiled.pipelineLayout,
-                        vertex: { module },
-                        fragment: {
-                            module,
-                            targets: [{ format: this.canvas_color_format }]
-                        },
-                        primitive: {
-                            topology: shader.primitiveTopology
-                        }
-                    })
+                    pipeline
                 })
                 break
         }
         return []
-    }
-
-    /* Render pipeline depth buffer */
-
-    createDepthStencilState(): GPUDepthStencilState {
-        return {
-            depthWriteEnabled: true,
-            depthCompare: 'less',
-            format: 'depth24plus-stencil8'
-        }
-    }
-
-    createDepthTexture(width: number, height: number): GPUTexture {
-        return this.device.createTexture({
-            size: { width, height },
-            dimension: '2d',
-            format: 'depth24plus-stencil8',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        })
-    }
-
-    createDepthStencilAttachment(
-        depth_texture: GPUTexture
-    ): GPURenderPassDepthStencilAttachment {
-        return {
-            view: depth_texture.createView(),
-            depthClearValue: 1,
-            depthLoadOp: 'clear',
-            depthStoreOp: 'store',
-            stencilClearValue: 0,
-            stencilLoadOp: 'load',
-            stencilStoreOp: 'store'
-        }
     }
 
     /* Canvas resizing */
