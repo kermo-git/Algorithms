@@ -10,16 +10,10 @@ import VBox from '@/components/VBox.vue'
 
 import { colorPalette } from '@/utils/Colors'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
-import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
-import {
-    Perlin2D,
-    Perlin2DModule,
-    Perlin3D,
-    Perlin3DModule
-} from '@/Noise/Algorithms/Perlin'
+import { DistanceMeasure, Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
+import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 
-import { type DistanceMeasure } from './Shader'
 import Controller from './Controller'
 
 const voronoi_distance = ref<DistanceMeasure>('Euclidean')
@@ -60,10 +54,12 @@ async function initScene(canvas: HTMLCanvasElement) {
 
 function createNoiseAlgorithm(name: string, dimension: string) {
     switch (name) {
+        case 'Perlin':
+            return dimension === '2D' ? Perlin2D() : Perlin3D()
+        case 'Worley':
+            return dimension === '2D' ? Worley2D() : Worley3D()
         default:
-            return dimension === '2D'
-                ? Perlin2DModule(false)
-                : Perlin3DModule(false)
+            return dimension === '2D' ? Simplex2D() : Simplex3D()
     }
 }
 
@@ -106,7 +102,7 @@ onBeforeUnmount(() => {
                 <template v-if="active_tab === 'Configuration'">
                     <TextSingleSelect
                         text="Distance measure"
-                        :options="['Euclidean', 'Manhattan']"
+                        :options="['Euclidean', 'Manhattan', 'Chebyshev']"
                         v-model="voronoi_distance"
                     />
 

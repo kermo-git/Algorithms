@@ -1,22 +1,12 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import type { NoiseShaderFactory, Config, VecType } from '../Deprecated'
+import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from './Common'
+import { importFn } from '../Utils'
 import {
-    generateUnitVectors2D,
-    generateUnitVectors3D,
-    generateUnitVectors4D
-} from './Common'
-import {
-    hash_2u_1u,
-    hash_2u_1f,
-    hash_3u_1u,
-    hash_3u_1f,
-    hash_4u_1u,
-    hash_4u_1f,
-    seed_2d,
-    seed_3d,
-    seed_4d
-} from '../Utils'
+    ReadOnlyResource,
+    ReadOnlyShaderModule,
+    readView
+} from '@/WebGPU/ShaderModuleSystem/Modules'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions
@@ -26,77 +16,78 @@ function get_unskew_constant(n_dimensions: number) {
     return (1 - 1 / Math.sqrt(n_dimensions + 1)) / n_dimensions
 }
 
-export class Simplex2D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec2f'
-    extra_data_type: string
-    value_noise: boolean
+export function Simplex2D(value_noise?: boolean): NoiseModule {
+    const skew_module = {
+        name: 'simplex_2d_skew',
+        code: /* wgsl */ `
+            const SKEW_2D_CONST = ${get_skew_constant(2)};
+            const UNSKEW_2D_CONST = ${get_unskew_constant(2)};
 
-    constructor(value_noise?: boolean) {
-        this.value_noise = value_noise || false
-        this.extra_data_type = value_noise ? '' : 'array<vec2f>'
-    }
+            fn skew_2d(v: vec2f) -> vec2f {
+                return v + (v.x + v.y) * SKEW_2D_CONST;
+            }
 
-    generateExtraData() {
-        return generateUnitVectors2D(16)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_2d}
-            ${this.value_noise ? hash_2u_1f : hash_2u_1u}
+            fn unskew_2d(v: vec2f) -> vec2f {
+                return v - (v.x + v.y) * UNSKEW_2D_CONST;
+            }
         `
     }
 
-    contributionFunction({ functionName, extraBufferName }: Config) {
-        if (this.value_noise) {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec2u, c_pos: vec2f) -> f32 {
-                    let t = 0.5 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let vertex_value = hash_2u_1f(skew_c)*2 - 1;
-                    return t * t * t * t * vertex_value;
+    let imports: ReadOnlyShaderModule[] = []
+    let resources: ReadOnlyResource[] = []
+
+    let name: string
+    let corner_code: string
+    let corner_fn: string
+    let norm_constant: number
+
+    if (value_noise) {
+        name = 'simplex_value_2d'
+        imports = [importFn('seed_2d'), importFn('hash_2u_1f'), skew_module]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                let t = 0.5 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        } else {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec2u, c_pos: vec2f) -> f32 {
-                    let t = 0.5 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let hash = hash_2u_1u(skew_c) >> 28;
-                    let gradient = ${extraBufferName}[hash];
-                    return t * t * t * t * dot(gradient, c_pos);
+                let vertex_value = hash_2u_1f(skew_c)*2 - 1;
+                return t * t * t * t * vertex_value;
+            }
+        `
+        norm_constant = 16
+    } else {
+        name = 'simplex_2d'
+        imports = [importFn('seed_2d'), importFn('hash_2u_1u'), skew_module]
+        resources = [readView(Gradients2D)]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec2u, c_pos: vec2f) -> f32 {
+                let t = 0.5 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        }
+                let hash = hash_2u_1u(skew_c) >> 28;
+                let gradient = gradients_2D[hash];
+                return t * t * t * t * dot(gradient, c_pos);
+            }
+        `
+        norm_constant = 99
     }
 
-    createShader({ functionName, extraBufferName }: Config) {
-        const norm_constant = this.value_noise ? 16 : 99
-        const contribution = `${functionName}_contribution`
-        const skew = `${functionName}_skew`
-        const unskew = `${functionName}_unskew`
+    return {
+        name,
+        posType: 'vec2f',
+        resources,
+        imports,
+        code: /* wgsl */ `
+            ${corner_code}
 
-        const SKEW_CONST = get_skew_constant(2)
-        const UNSKEW_CONST = get_unskew_constant(2)
-
-        return /* wgsl */ `
-            ${this.contributionFunction({ functionName, extraBufferName })}
-            
-            fn ${skew}(v: vec2f) -> vec2f {
-                return v + (v.x + v.y) * ${SKEW_CONST};
-            }
-
-            fn ${unskew}(v: vec2f) -> vec2f {
-                return v - (v.x + v.y) * ${UNSKEW_CONST};
-            }
-
-            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
-                let f_skew_c0 = floor(${skew}(pos));
-                let c0_pos = pos - ${unskew}(f_skew_c0);
+            fn ${name}(pos: vec2f, seed: u32) -> f32 {
+                let f_skew_c0 = floor(skew_2d(pos));
+                let c0_pos = pos - unskew_2d(f_skew_c0);
 
                 let skew_c0_c1 = select(
                     /* false */ vec2u(0, 1), 
@@ -105,19 +96,19 @@ export class Simplex2D implements NoiseShaderFactory {
                 );
                 const skew_c0_c2 = vec2u(1, 1);
 
-                let c0_c1 = ${unskew}(vec2f(skew_c0_c1));
-                const c0_c2 = vec2f(1, 1) - 2 * ${UNSKEW_CONST};
+                let c0_c1 = unskew_2d(vec2f(skew_c0_c1));
+                const c0_c2 = vec2f(1, 1) - 2 * UNSKEW_2D_CONST;
 
                 let c1_pos = c0_pos - c0_c1;
                 let c2_pos = c0_pos - c0_c2;
 
-                let skew_c0 = seed_2d(vec2i(f_skew_c0), channel);
+                let skew_c0 = seed_2d(vec2i(f_skew_c0), seed);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
 
-                let i0 = ${contribution}(skew_c0, c0_pos);
-                let i1 = ${contribution}(skew_c1, c1_pos);
-                let i2 = ${contribution}(skew_c2, c2_pos);
+                let i0 = ${corner_fn}(skew_c0, c0_pos);
+                let i1 = ${corner_fn}(skew_c1, c1_pos);
+                let i2 = ${corner_fn}(skew_c2, c2_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
@@ -126,78 +117,79 @@ export class Simplex2D implements NoiseShaderFactory {
     }
 }
 
-export class Simplex3D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec3f'
-    extra_data_type: string
-    value_noise: boolean
+export function Simplex3D(value_noise?: boolean): NoiseModule {
+    const skew_module = {
+        name: 'simplex_3d_skew',
+        code: /* wgsl */ `
+            const SKEW_3D_CONST = ${get_skew_constant(3)};
+            const UNSKEW_3D_CONST = ${get_unskew_constant(3)};
 
-    constructor(value_noise?: boolean) {
-        this.value_noise = value_noise || false
-        this.extra_data_type = value_noise ? '' : 'array<vec3f>'
-    }
+            fn skew_3d(v: vec3f) -> vec3f {
+                return v + (v.x + v.y + v.z) * SKEW_3D_CONST;
+            }
 
-    generateExtraData() {
-        return generateUnitVectors3D(64)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_3d}
-            ${this.value_noise ? hash_3u_1f : hash_3u_1u}
+            fn unskew_3d(v: vec3f) -> vec3f {
+                return v - (v.x + v.y + v.z) * UNSKEW_3D_CONST;
+            }
         `
     }
 
-    contributionFunction({ functionName, extraBufferName }: Config) {
-        if (this.value_noise) {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec3u, c_pos: vec3f) -> f32 {
-                    let t = 0.6 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let vertex_value = hash_3u_1f(skew_c)*2 - 1;
-                    return t * t * t * t * vertex_value;
+    let imports: ReadOnlyShaderModule[] = []
+    let resources: ReadOnlyResource[] = []
+
+    let name: string
+    let corner_code: string
+    let corner_fn: string
+    let norm_constant: number
+
+    if (value_noise) {
+        name = 'simplex_value_3d'
+        imports = [importFn('seed_3d'), importFn('hash_3u_1f'), skew_module]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                let t = 0.6 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        } else {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec3u, c_pos: vec3f) -> f32 {
-                    let t = 0.6 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let hash = hash_3u_1u(skew_c) >> 26;
-                    let gradient = ${extraBufferName}[hash];
-                    return t * t * t * t * dot(gradient, c_pos);
+                let vertex_value = hash_3u_1f(skew_c)*2 - 1;
+                return t * t * t * t * vertex_value;
+            }
+        `
+        norm_constant = 8
+    } else {
+        name = 'simplex_3d'
+        imports = [importFn('seed_3d'), importFn('hash_3u_1u'), skew_module]
+        resources = [readView(Gradients3D)]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec3u, c_pos: vec3f) -> f32 {
+                let t = 0.6 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        }
+                let hash = hash_3u_1u(skew_c) >> 26;
+                let gradient = gradients_3D[hash];
+                return t * t * t * t * dot(gradient, c_pos);
+            }
+        `
+        norm_constant = 42
     }
 
-    createShader({ functionName, extraBufferName }: Config) {
-        const norm_constant = this.value_noise ? 8 : 42
-        const contribution = `${functionName}_contribution`
-        const skew = `${functionName}_skew`
-        const unskew = `${functionName}_unskew`
+    return {
+        name,
+        posType: 'vec3f',
+        resources,
+        imports,
+        code: /* wgsl */ `
+            ${corner_code}
 
-        const SKEW_CONST = get_skew_constant(3)
-        const UNSKEW_CONST = get_unskew_constant(3)
+            fn ${name}(pos: vec3f, seed: u32) -> f32 {
+                let f_skew_c0 = floor(skew_3d(pos));
 
-        return /* wgsl */ `
-            ${this.contributionFunction({ functionName, extraBufferName })}
-            
-            fn ${skew}(v: vec3f) -> vec3f {
-                return v + (v.x + v.y + v.z) * ${SKEW_CONST};
-            }
-
-            fn ${unskew}(v: vec3f) -> vec3f {
-                return v - (v.x + v.y + v.z) * ${UNSKEW_CONST};
-            }
-
-            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
-                let f_skew_c0 = floor(${skew}(pos));
-
-                let c0 = ${unskew}(f_skew_c0);
+                let c0 = unskew_3d(f_skew_c0);
                 let c0_pos = pos - c0;
 
                 var skew_c0_c1: vec3u;
@@ -227,23 +219,23 @@ export class Simplex3D implements NoiseShaderFactory {
                         skew_c0_c2 = vec3u(1, 1, 0);
                     }
                 }
-                let c0_c1 = ${unskew}(vec3f(skew_c0_c1));
-                let c0_c2 = ${unskew}(vec3f(skew_c0_c2));
-                const c0_c3 = vec3f(1, 1, 1) - 3 * ${UNSKEW_CONST};
+                let c0_c1 = unskew_3d(vec3f(skew_c0_c1));
+                let c0_c2 = unskew_3d(vec3f(skew_c0_c2));
+                const c0_c3 = vec3f(1, 1, 1) - 3 * UNSKEW_3D_CONST;
 
                 let c1_pos = c0_pos - c0_c1;
                 let c2_pos = c0_pos - c0_c2;
                 let c3_pos = c0_pos - c0_c3;
 
-                let skew_c0 = seed_3d(vec3i(f_skew_c0), channel);
+                let skew_c0 = seed_3d(vec3i(f_skew_c0), seed);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
                 let skew_c3 = skew_c0 + skew_c0_c3;
 
-                let i0 = ${contribution}(skew_c0, c0_pos);
-                let i1 = ${contribution}(skew_c1, c1_pos);
-                let i2 = ${contribution}(skew_c2, c2_pos);
-                let i3 = ${contribution}(skew_c3, c3_pos);
+                let i0 = ${corner_fn}(skew_c0, c0_pos);
+                let i1 = ${corner_fn}(skew_c1, c1_pos);
+                let i2 = ${corner_fn}(skew_c2, c2_pos);
+                let i3 = ${corner_fn}(skew_c3, c3_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2 + i3);
                 return clamp(n, -1, 1) * 0.5 + 0.5;
@@ -252,82 +244,80 @@ export class Simplex3D implements NoiseShaderFactory {
     }
 }
 
-export class Simplex4D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec4f'
-    extra_data_type: string
-    value_noise: boolean
+export function Simplex4D(value_noise?: boolean): NoiseModule {
+    const skew_module = {
+        name: 'simplex_4d_skew',
+        code: /* wgsl */ `
+            const SKEW_4D_CONST = ${get_skew_constant(4)};
+            const UNSKEW_4D_CONST = ${get_unskew_constant(4)};
 
-    constructor(value_noise?: boolean) {
-        this.value_noise = value_noise || false
-        this.extra_data_type = value_noise ? '' : 'array<vec4f>'
-    }
+            fn skew_4d(v: vec4f) -> vec4f {
+                return v + (v.x + v.y + v.z + v.w) * SKEW_4D_CONST;
+            }
 
-    generateExtraData() {
-        return generateUnitVectors4D(64)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_4d}
-            ${this.value_noise ? hash_4u_1f : hash_4u_1u}
+            fn unskew_4d(v: vec4f) -> vec4f {
+                return v - (v.x + v.y + v.z + v.w) * UNSKEW_4D_CONST;
+            }
         `
     }
 
-    contributionFunction({ functionName, extraBufferName }: Config) {
-        if (this.value_noise) {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec4u, c_pos: vec4f) -> f32 {
-                    let t = 0.6 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let vertex_value = hash_4u_1f(skew_c)*2 - 1;
-                    return t * t * t * t * vertex_value;
+    let imports: ReadOnlyShaderModule[] = []
+    let resources: ReadOnlyResource[] = []
+
+    let name: string
+    let corner_code: string
+    let corner_fn: string
+    let norm_constant: number
+
+    if (value_noise) {
+        name = 'simplex_value_4d'
+        imports = [importFn('seed_4d'), importFn('hash_4u_1f'), skew_module]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                let t = 0.6 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        } else {
-            return /* wgsl */ `
-                fn ${functionName}_contribution(skew_c: vec4u, c_pos: vec4f) -> f32 {
-                    let t = 0.6 - dot(c_pos, c_pos);
-                    if (t < 0) {
-                        return 0;
-                    }
-                    let hash = hash_4u_1u(skew_c) >> 26;
-                    let gradient = ${extraBufferName}[hash];
-                    return t * t * t * t * dot(gradient, c_pos);
+                let vertex_value = hash_4u_1f(skew_c)*2 - 1;
+                return t * t * t * t * vertex_value;
+            }
+        `
+        norm_constant = 8
+    } else {
+        name = 'simplex_4d'
+        imports = [importFn('seed_4d'), importFn('hash_4u_1u'), skew_module]
+        resources = [readView(Gradients4D)]
+
+        corner_fn = `${name}_corner`
+        corner_code = /* wgsl */ `
+            fn ${corner_fn}(skew_c: vec4u, c_pos: vec4f) -> f32 {
+                let t = 0.6 - dot(c_pos, c_pos);
+                if (t < 0) {
+                    return 0;
                 }
-            `
-        }
+                let hash = hash_4u_1u(skew_c) >> 26;
+                let gradient = gradients_4D[hash];
+                return t * t * t * t * dot(gradient, c_pos);
+            }
+        `
+        norm_constant = 42
     }
 
-    createShader({ functionName, extraBufferName }: Config) {
-        const norm_constant = this.value_noise ? 8 : 42
-        const contribution = `${functionName}_contribution`
-        const skew = `${functionName}_skew`
-        const unskew = `${functionName}_unskew`
+    return {
+        name,
+        posType: 'vec4f',
+        resources,
+        imports,
+        code: /* wgsl */ `
+            ${corner_code}
 
-        const SKEW_CONST = get_skew_constant(4)
-        const UNSKEW_CONST = get_unskew_constant(4)
-
-        return /* wgsl */ `
-            ${this.contributionFunction({ functionName, extraBufferName })}
-            
-            fn ${skew}(v: vec4f) -> vec4f {
-                return v + (v.x + v.y + v.z + v.w) * ${SKEW_CONST};
-            }
-
-            fn ${unskew}(v: vec4f) -> vec4f {
-                return v - (v.x + v.y + v.z + v.w) * ${UNSKEW_CONST};
-            }
-
-            const skew_c0_c4 = vec4u(1, 1, 1, 1);
-            const c0_c4 = vec4f(1, 1, 1, 1) - 4 * ${UNSKEW_CONST};
-
-            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
-                let skew_pos = ${skew}(pos);
+            fn ${name}(pos: vec4f, seed: u32) -> f32 {
+                let skew_pos = skew_4d(pos);
                 let f_skew_c0 = floor(skew_pos);
 
-                let c0 = ${unskew}(f_skew_c0);
+                let c0 = unskew_4d(f_skew_c0);
                 let c0_pos = pos - c0;
 
                 var skew_c0_c1: vec4u;
@@ -476,27 +466,29 @@ export class Simplex4D implements NoiseShaderFactory {
                         }
                     }
                 }
-
-                let c0_c1 = ${unskew}(vec4f(skew_c0_c1));
-                let c0_c2 = ${unskew}(vec4f(skew_c0_c2));
-                let c0_c3 = ${unskew}(vec4f(skew_c0_c3));
+                const skew_c0_c4 = vec4u(1, 1, 1, 1);
+                
+                let c0_c1 = unskew_4d(vec4f(skew_c0_c1));
+                let c0_c2 = unskew_4d(vec4f(skew_c0_c2));
+                let c0_c3 = unskew_4d(vec4f(skew_c0_c3));
+                const c0_c4 = vec4f(1, 1, 1, 1) - 4 * UNSKEW_4D_CONST;
 
                 let c1_pos = c0_pos - c0_c1;
                 let c2_pos = c0_pos - c0_c2;
                 let c3_pos = c0_pos - c0_c3;
                 let c4_pos = c0_pos - c0_c4;
 
-                let skew_c0 = seed_4d(vec4i(f_skew_c0), channel);
+                let skew_c0 = seed_4d(vec4i(f_skew_c0), seed);
                 let skew_c1 = skew_c0 + skew_c0_c1;
                 let skew_c2 = skew_c0 + skew_c0_c2;
                 let skew_c3 = skew_c0 + skew_c0_c3;
                 let skew_c4 = skew_c0 + skew_c0_c4;
 
-                let i0 = ${contribution}(skew_c0, c0_pos);
-                let i1 = ${contribution}(skew_c1, c1_pos);
-                let i2 = ${contribution}(skew_c2, c2_pos);
-                let i3 = ${contribution}(skew_c3, c3_pos);
-                let i4 = ${contribution}(skew_c4, c4_pos);
+                let i0 = ${corner_fn}(skew_c0, c0_pos);
+                let i1 = ${corner_fn}(skew_c1, c1_pos);
+                let i2 = ${corner_fn}(skew_c2, c2_pos);
+                let i3 = ${corner_fn}(skew_c3, c3_pos);
+                let i4 = ${corner_fn}(skew_c4, c4_pos);
 
                 let n = ${norm_constant} * (i0 + i1 + i2 + i3 + i4);
                 return clamp(n, -1, 1) * 0.5 + 0.5;

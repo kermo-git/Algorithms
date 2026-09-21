@@ -1,51 +1,87 @@
-import type { NoiseShaderFactory, Config } from '../Deprecated'
-import {
-    seed_2d,
-    hash_2u_2f,
-    seed_3d,
-    hash_3u_3f,
-    seed_4d,
-    hash_4u_4f,
-    importFn
-} from '../Utils'
+import { importFn } from '../Utils'
 import { NoiseModule } from './Common'
 
-export function Worley2DModule(): NoiseModule {
+// https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
+export type DistanceMeasure = 'Euclidean' | 'Manhattan' | 'Chebyshev'
+
+export function Worley2D(
+    distance_measure: DistanceMeasure = 'Euclidean'
+): NoiseModule {
+    let name = ''
+    let compare_expr = ''
+    let final_dist_expr = ''
+
+    if (distance_measure === 'Euclidean') {
+        name = 'worley_2d'
+        // No need to calculate square root because
+        // we only need to compare which distance is the shortest
+        compare_expr = 'dot(dist_vec, dist_vec) * 1.02'
+        final_dist_expr = 'sqrt(min_dist)'
+    } else if (distance_measure === 'Manhattan') {
+        name = 'worley_manhattan_2d'
+        compare_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
+        final_dist_expr = 'min_dist * 0.7'
+    } else {
+        name = 'worley_chebyshev_2d'
+        compare_expr = 'max(abs(dist_vec.x), abs(dist_vec.y))'
+        final_dist_expr = 'min_dist * 1.02'
+    }
+
     return {
         posType: 'vec2f',
-        name: 'worley_2d',
+        name,
         imports: [importFn('seed_2d'), importFn('hash_2u_2f')],
         code: /* wgsl */ `
-        fn worley_2d(pos: vec2f, seed: u32) -> f32 {
-            let grid_pos = vec2i(floor(pos));
-            var min_dist_sqr = 10.0;
+            fn ${name}(pos: vec2f, seed: u32) -> f32 {
+                let grid_pos = vec2i(floor(pos));
+                var min_dist = 10.0;
 
-            for (var offset_x = -1; offset_x < 2; offset_x++) {
-                for (var offset_y = -1; offset_y < 2; offset_y++) {
-                    
-                    let neighbor = grid_pos + vec2i(offset_x, offset_y);
-                    let point = hash_2u_2f(seed_2d(neighbor, seed));
+                for (var offset_x = -1; offset_x < 2; offset_x++) {
+                    for (var offset_y = -1; offset_y < 2; offset_y++) {
+                        
+                        let neighbor = grid_pos + vec2i(offset_x, offset_y);
+                        let point = hash_2u_2f(seed_2d(neighbor, seed));
 
-                    let v_pos_point = vec2f(neighbor) + point - pos;
-                    let dist_sqr = dot(v_pos_point, v_pos_point);
-                    min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                        let dist_vec = vec2f(neighbor) + point - pos;
+                        min_dist = min(min_dist, ${compare_expr});
+                    }
                 }
+                return clamp(${final_dist_expr}, 0, 1);
             }
-            return clamp(sqrt(min_dist_sqr) * 1.05, 0, 1);
-        }
-    `
+        `
     }
 }
 
-export function Worley3DModule(): NoiseModule {
+export function Worley3D(
+    distance_measure: DistanceMeasure = 'Euclidean'
+): NoiseModule {
+    let name = ''
+    let compare_expr = ''
+    let final_dist_expr = ''
+
+    if (distance_measure === 'Euclidean') {
+        name = 'worley_3d'
+        compare_expr = 'dot(dist_vec, dist_vec)'
+        final_dist_expr = 'sqrt(min_dist)'
+    } else if (distance_measure === 'Manhattan') {
+        name = 'worley_manhattan_3d'
+        compare_expr = 'abs(dist_vec.x) + abs(dist_vec.y) + abs(dist_vec.z)'
+        final_dist_expr = 'min_dist * 0.6'
+    } else {
+        name = 'worley_chebyshev_3d'
+        compare_expr =
+            'max(max(abs(dist_vec.x), abs(dist_vec.y)), abs(dist_vec.z))'
+        final_dist_expr = 'min_dist * 1.1'
+    }
+
     return {
         posType: 'vec3f',
-        name: 'worley_3d',
+        name,
         imports: [importFn('seed_3d'), importFn('hash_3u_3f')],
         code: /* wgsl */ `
-            fn worley_3d(pos: vec3f, seed: u32) -> f32 {
+            fn ${name}(pos: vec3f, seed: u32) -> f32 {
                 let grid_pos = vec3i(floor(pos));
-                var min_dist_sqr = 10.0;
+                var min_dist = 10.0;
 
                 for (var offset_x = -1; offset_x < 2; offset_x++) {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
@@ -54,132 +90,48 @@ export function Worley3DModule(): NoiseModule {
                             let neighbor = grid_pos + vec3i(offset_x, offset_y, offset_z);
                             let point = hash_3u_3f(seed_3d(neighbor, seed));
 
-                            let v_pos_point = vec3f(neighbor) + point - pos;
-                            let dist_sqr = dot(v_pos_point, v_pos_point);
-                            min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                            let dist_vec = vec3f(neighbor) + point - pos;
+                            min_dist = min(min_dist, ${compare_expr});
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr), 0, 1);
+                return clamp(${final_dist_expr}, 0, 1);
             }
         `
     }
 }
 
-export function Worley4DModule(): NoiseModule {
+export function Worley4D(
+    distance_measure: DistanceMeasure = 'Euclidean'
+): NoiseModule {
+    let name = ''
+    let compare_expr = ''
+    let final_dist_expr = ''
+
+    if (distance_measure === 'Euclidean') {
+        name = 'worley_4d'
+        compare_expr = 'dot(dist_vec, dist_vec)'
+        final_dist_expr = 'sqrt(min_dist) * 0.95'
+    } else if (distance_measure === 'Manhattan') {
+        name = 'worley_manhattan_4d'
+        compare_expr =
+            'abs(dist_vec.x) + abs(dist_vec.y) + abs(dist_vec.z) + abs(dist_vec.w)'
+        final_dist_expr = 'min_dist * 0.5'
+    } else {
+        name = 'worley_chebyshev_4d'
+        compare_expr =
+            'max(max(abs(dist_vec.x), abs(dist_vec.y)), max(abs(dist_vec.z), abs(dist_vec.w)))'
+        final_dist_expr = 'min_dist * 1.2'
+    }
+
     return {
         posType: 'vec4f',
-        name: 'worley_4d',
+        name,
         imports: [importFn('seed_4d'), importFn('hash_4u_4f')],
         code: /* wgsl */ `
-        fn worley_4d(pos: vec4f, seed: u32) -> f32 {
-            let grid_pos = vec4i(floor(pos));
-            var min_dist_sqr = 10.0;
-
-            for (var offset_x = -1; offset_x < 2; offset_x++) {
-                for (var offset_y = -1; offset_y < 2; offset_y++) {
-                    for (var offset_z = -1; offset_z < 2; offset_z++) {
-                        for (var offset_w = -1; offset_w < 2; offset_w++) {
-
-                            let neighbor = grid_pos + vec4i(offset_x, offset_y, offset_z, offset_w);
-                            let point = hash_4u_4f(seed_4d(neighbor, seed));
-
-                            let v_pos_point = vec4f(neighbor) + point - pos;
-                            let dist_sqr = dot(v_pos_point, v_pos_point);
-                            min_dist_sqr = min(min_dist_sqr, dist_sqr);
-                        }
-                    }
-                }
-            }
-            return clamp(sqrt(min_dist_sqr), 0, 1);
-        }
-    `
-    }
-}
-
-export const Worley2D: NoiseShaderFactory = {
-    pos_type: 'vec2f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_2d}
-            ${hash_2u_2f}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec2f, seed: u32) -> f32 {
-                let grid_pos = vec2i(floor(pos));
-                var min_dist_sqr = 10.0;
-
-                for (var offset_x = -1; offset_x < 2; offset_x++) {
-                    for (var offset_y = -1; offset_y < 2; offset_y++) {
-                        
-                        let neighbor = grid_pos + vec2i(offset_x, offset_y);
-                        let point = hash_2u_2f(seed_2d(neighbor, seed));
-
-                        let v_pos_point = vec2f(neighbor) + point - pos;
-                        let dist_sqr = dot(v_pos_point, v_pos_point);
-                        min_dist_sqr = min(min_dist_sqr, dist_sqr);
-                    }
-                }
-                return clamp(sqrt(min_dist_sqr) * 1.05, 0, 1);
-            }
-        `
-    }
-}
-
-export const Worley3D: NoiseShaderFactory = {
-    pos_type: 'vec3f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_3d}
-            ${hash_3u_3f}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
-                let grid_pos = vec3i(floor(pos));
-                var min_dist_sqr = 10.0;
-
-                for (var offset_x = -1; offset_x < 2; offset_x++) {
-                    for (var offset_y = -1; offset_y < 2; offset_y++) {
-                        for (var offset_z = -1; offset_z < 2; offset_z++) {
-
-                            let neighbor = grid_pos + vec3i(offset_x, offset_y, offset_z);
-                            let point = hash_3u_3f(seed_3d(neighbor, channel));
-
-                            let v_pos_point = vec3f(neighbor) + point - pos;
-                            let dist_sqr = dot(v_pos_point, v_pos_point);
-                            min_dist_sqr = min(min_dist_sqr, dist_sqr);
-                        }
-                    }
-                }
-                return clamp(sqrt(min_dist_sqr), 0, 1);
-            }
-        `
-    }
-}
-
-export const Worley4D: NoiseShaderFactory = {
-    pos_type: 'vec4f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_4d}
-            ${hash_4u_4f}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
+            fn ${name}(pos: vec4f, seed: u32) -> f32 {
                 let grid_pos = vec4i(floor(pos));
-                var min_dist_sqr = 10.0;
+                var min_dist = 10.0;
 
                 for (var offset_x = -1; offset_x < 2; offset_x++) {
                     for (var offset_y = -1; offset_y < 2; offset_y++) {
@@ -187,16 +139,15 @@ export const Worley4D: NoiseShaderFactory = {
                             for (var offset_w = -1; offset_w < 2; offset_w++) {
 
                                 let neighbor = grid_pos + vec4i(offset_x, offset_y, offset_z, offset_w);
-                                let point = hash_4u_4f(seed_4d(neighbor, channel));
+                                let point = hash_4u_4f(seed_4d(neighbor, seed));
 
-                                let v_pos_point = vec4f(neighbor) + point - pos;
-                                let dist_sqr = dot(v_pos_point, v_pos_point);
-                                min_dist_sqr = min(min_dist_sqr, dist_sqr);
+                                let dist_vec = vec4f(neighbor) + point - pos;
+                                min_dist = min(min_dist, ${compare_expr});
                             }
                         }
                     }
                 }
-                return clamp(sqrt(min_dist_sqr), 0, 1);
+                return clamp(${final_dist_expr}, 0, 1);
             }
         `
     }

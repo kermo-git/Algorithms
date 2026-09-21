@@ -1,4 +1,5 @@
 import { FBMNoiseModule, NoiseModule } from '@/Noise/Algorithms/Common'
+import { DistanceMeasure } from '@/Noise/Algorithms/Worley'
 import { importFn } from '@/Noise/Utils'
 import { shaderColorArray } from '@/utils/Colors'
 import {
@@ -8,9 +9,6 @@ import {
     StorageBufferView,
     Uniform
 } from '@/WebGPU/ShaderModuleSystem/Modules'
-
-// https://www.researchgate.net/figure/Shapes-and-sizes-of-geometries-corresponding-to-different-distance-metrics_tbl1_331203691
-export type DistanceMeasure = 'Euclidean' | 'Manhattan'
 
 export interface Setup {
     distance_measure: DistanceMeasure
@@ -166,8 +164,10 @@ function VoronoiColor(distance_measure: DistanceMeasure): ShaderModule {
         // No need to calculate square root because
         // we only need to compare which distance is the shortest
         dist_expr = 'dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y'
-    } else {
+    } else if (distance_measure === 'Manhattan') {
         dist_expr = 'abs(dist_vec.x) + abs(dist_vec.y)'
+    } else {
+        dist_expr = 'max(abs(dist_vec.x), abs(dist_vec.y))'
     }
 
     return {

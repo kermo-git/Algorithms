@@ -9,30 +9,27 @@ import VBox from '@/components/VBox.vue'
 import ColorPanel from './ColorPanel.vue'
 
 import { Simplex2D, Simplex3D, Simplex4D } from '@/Noise/Algorithms/Simplex'
-import {
-    Perlin2D,
-    Perlin2DModule,
-    Perlin3D,
-    Perlin3DModule,
-    Perlin4D,
-    Perlin4DModule
-} from '@/Noise/Algorithms/Perlin'
+import { Perlin2D, Perlin3D, Perlin4D } from '@/Noise/Algorithms/Perlin'
 import { Value2D, Value3D, Value4D } from '@/Noise/Algorithms/Value'
 import { Cubic2D, Cubic3D, Cubic4D } from '@/Noise/Algorithms/Cubic'
 import {
+    DistanceMeasure,
     Worley2D,
-    Worley2DModule,
     Worley3D,
-    Worley3DModule,
-    Worley4D,
-    Worley4DModule
+    Worley4D
 } from '@/Noise/Algorithms/Worley'
 import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
 
 import type { DomainTransform } from './Shader'
 import WebGPUScene from './Controller.js'
+import Checkbox from '@/components/Checkbox.vue'
+import HBox from '@/components/HBox.vue'
 
 const algorithm = ref<string>('Simplex')
+const quadratic_perlin = ref(false)
+const simplex_value = ref(false)
+const worley_distance = ref<DistanceMeasure>('Euclidean')
+
 const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
 const n_grid_columns = ref(16)
@@ -50,25 +47,40 @@ const active_tab = ref('Configuration')
 const scene = shallowRef(new WebGPUScene())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function createNoiseAlgorithm(algorithm_name: string, noise_dimension: string) {
+function createNoiseAlgorithm(
+    algorithm_name: string,
+    noise_dimension: string,
+    quadratic_perlin: boolean,
+    simplex_value: boolean,
+    worley_distance: DistanceMeasure
+) {
     switch (algorithm_name) {
         case 'Worley F1':
             switch (noise_dimension) {
                 case '2D':
-                    return Worley2DModule()
+                    return Worley2D(worley_distance)
                 case '3D':
-                    return Worley3DModule()
+                    return Worley3D(worley_distance)
                 default:
-                    return Worley4DModule()
+                    return Worley4D(worley_distance)
+            }
+        case 'Perlin':
+            switch (noise_dimension) {
+                case '2D':
+                    return Perlin2D(quadratic_perlin)
+                case '3D':
+                    return Perlin3D(quadratic_perlin)
+                default:
+                    return Perlin4D(quadratic_perlin)
             }
         default:
             switch (noise_dimension) {
                 case '2D':
-                    return Perlin2DModule()
+                    return Simplex2D(simplex_value)
                 case '3D':
-                    return Perlin3DModule()
+                    return Simplex3D(simplex_value)
                 default:
-                    return Perlin4DModule()
+                    return Simplex4D(simplex_value)
             }
     }
 }
@@ -77,7 +89,13 @@ async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
     await scene.value.init(
         {
-            noise: createNoiseAlgorithm(algorithm.value, dimension.value),
+            noise: createNoiseAlgorithm(
+                algorithm.value,
+                dimension.value,
+                quadratic_perlin.value,
+                simplex_value.value,
+                worley_distance.value
+            ),
             transform: domain_transform.value,
             n_grid_columns: n_grid_columns.value,
             z_coord: z_coord.value,
@@ -104,13 +122,33 @@ watch(dimension, (new_dimension) => {
 })
 
 watch(
-    [algorithm, dimension, domain_transform],
-    ([new_algorithm, new_dimension, new_domain_transform]) => {
+    [
+        algorithm,
+        dimension,
+        quadratic_perlin,
+        simplex_value,
+        worley_distance,
+        domain_transform
+    ],
+    ([
+        new_algorithm,
+        new_dimension,
+        new_quadratic_perlin,
+        new_simplex_value,
+        new_worley_distance,
+        new_domain_transform
+    ]) => {
         if (canvasRef.value) {
             scene.value.cleanup()
             scene.value.init(
                 {
-                    noise: createNoiseAlgorithm(new_algorithm, new_dimension),
+                    noise: createNoiseAlgorithm(
+                        new_algorithm,
+                        new_dimension,
+                        new_quadratic_perlin,
+                        new_simplex_value,
+                        new_worley_distance
+                    ),
                     transform: new_domain_transform,
                     n_grid_columns: n_grid_columns.value,
                     z_coord: z_coord.value,
@@ -155,15 +193,36 @@ const available_transforms = computed(() =>
                         text="Noise algorithm"
                         :options="[
                             'Simplex',
-                            'Simplex Value',
                             'Perlin',
-                            'Quadratic',
                             'Cubic',
                             'Value',
                             'Worley F1',
                             'Worley F2 - F1'
                         ]"
                         v-model="algorithm"
+                    />
+
+                    <Checkbox
+                        v-if="algorithm === 'Perlin'"
+                        name="quadratic_perlin"
+                        v-model="quadratic_perlin"
+                    >
+                        Quadratic trick
+                    </Checkbox>
+                    <Checkbox
+                        v-else-if="algorithm === 'Simplex'"
+                        name="simplex_value"
+                        v-model="simplex_value"
+                    >
+                        Use values instead of gradients
+                    </Checkbox>
+                    <TextSingleSelect
+                        v-else-if="
+                            ['Worley F1', 'Worley F2 - F1'].includes(algorithm)
+                        "
+                        text="Distance metric"
+                        :options="['Euclidean', 'Manhattan', 'Chebyshev']"
+                        v-model="worley_distance"
                     />
 
                     <TextSingleSelect

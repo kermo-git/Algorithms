@@ -1,31 +1,10 @@
 import { readView } from '@/WebGPU/ShaderModuleSystem/Modules'
 
-import {
-    generateUnitVectors2D,
-    generateUnitVectors3D,
-    generateUnitVectors4D,
-    Gradients2D,
-    Gradients3D,
-    Gradients4D,
-    NoiseModule,
-    type VecType
-} from './Common'
-import { type NoiseShaderFactory, type Config } from '../Deprecated'
-import {
-    importFn,
-    fade_2d,
-    fade_3d,
-    fade_4d,
-    hash_2u_1u,
-    hash_3u_1u,
-    hash_4u_1u,
-    seed_2d,
-    seed_3d,
-    seed_4d
-} from '../Utils'
+import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from './Common'
+import { importFn } from '../Utils'
 
 // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
-export function Perlin2DModule(quadratic?: boolean): NoiseModule {
+export function Perlin2D(quadratic?: boolean): NoiseModule {
     // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
     const norm_factor = quadratic ? 1.35 : 1.6
 
@@ -68,7 +47,7 @@ export function Perlin2DModule(quadratic?: boolean): NoiseModule {
     }
 }
 
-export function Perlin3DModule(quadratic?: boolean): NoiseModule {
+export function Perlin3D(quadratic?: boolean): NoiseModule {
     const norm_factor = quadratic ? 1.5 : 1.7
 
     return {
@@ -118,7 +97,7 @@ export function Perlin3DModule(quadratic?: boolean): NoiseModule {
     }
 }
 
-export function Perlin4DModule(quadratic?: boolean): NoiseModule {
+export function Perlin4D(quadratic?: boolean): NoiseModule {
     const norm_factor = quadratic ? 1.5 : 1.7
 
     return {
@@ -194,205 +173,5 @@ function gradientCalculation(quadratic: boolean) {
             `
     } else {
         return 'return result;'
-    }
-}
-
-export class Perlin2D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec2f'
-    extra_data_type = 'array<vec2f>'
-    // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
-    quadratic: boolean
-
-    constructor(quadratic?: boolean) {
-        this.quadratic = quadratic || false
-    }
-
-    generateExtraData() {
-        return generateUnitVectors2D(16)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_2d}
-            ${hash_2u_1u}
-            ${fade_2d}
-        `
-    }
-
-    createShader({ functionName, extraBufferName }: Config) {
-        // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-        const norm_constant = this.quadratic ? 1.35 : 1.6
-        const contribution = `${functionName}_contribution`
-
-        return /* wgsl */ `
-            fn ${contribution}(grid_corner: vec2u, vec_corner_to_pos: vec2f) -> f32 {
-                let hash = hash_2u_1u(grid_corner);
-                let gradient = ${extraBufferName}[hash >> 28];
-                let result = dot(gradient, vec_corner_to_pos);
-                ${gradientCalculation(this.quadratic)}
-            }
-
-            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
-                let floor_pos = floor(pos);
-                let u0 = pos - floor_pos;
-                let u1 = u0 - 1;
-
-                let p0 = seed_2d(vec2i(floor_pos), channel);
-                let p1 = p0 + 1u;
-                
-                let a = ${contribution}(p0, u0);
-                let b = ${contribution}(vec2u(p1.x, p0.y), vec2f(u1.x, u0.y));
-                let c = ${contribution}(vec2u(p0.x, p1.y), vec2f(u0.x, u1.y));
-                let d = ${contribution}(p1, u1);
-
-                let s = fade_2d(u0);
-                let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
-
-                return clamp(${norm_constant} * n, -1, 1) * 0.5 + 0.5;
-            }
-        `
-    }
-}
-
-export class Perlin3D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec3f'
-    extra_data_type = 'array<vec3f>'
-    quadratic: boolean
-
-    constructor(quadratic?: boolean) {
-        this.quadratic = quadratic || false
-    }
-
-    generateExtraData() {
-        return generateUnitVectors3D(64)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_3d}
-            ${hash_3u_1u}
-            ${fade_3d}
-        `
-    }
-
-    createShader({ functionName, extraBufferName }: Config) {
-        const norm_constant = this.quadratic ? 1.5 : 1.7
-        const contribution = `${functionName}_contribution`
-
-        return /* wgsl */ `
-            fn ${contribution}(grid_corner: vec3u, vec_corner_to_pos: vec3f) -> f32 {
-                let hash = hash_3u_1u(grid_corner);
-                let gradient = ${extraBufferName}[hash >> 26];
-                let result = dot(gradient, vec_corner_to_pos);
-                ${gradientCalculation(this.quadratic)}
-            }
-
-            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
-                let floor_pos = floor(pos);
-                let u0 = pos - floor_pos;
-                let u1 = u0 - 1;
-
-                let p0 = seed_3d(vec3i(floor_pos), channel);
-                let p1 = p0 + 1u;
-                
-                let a = ${contribution}(p0, u0);
-                let b = ${contribution}(vec3u(p1.x, p0.y, p0.z), vec3f(u1.x, u0.y, u0.z));
-                let c = ${contribution}(vec3u(p0.x, p1.y, p0.z), vec3f(u0.x, u1.y, u0.z));
-                let d = ${contribution}(vec3u(p1.x, p1.y, p0.z), vec3f(u1.x, u1.y, u0.z));
-                let e = ${contribution}(vec3u(p0.x, p0.y, p1.z), vec3f(u0.x, u0.y, u1.z));
-                let f = ${contribution}(vec3u(p1.x, p0.y, p1.z), vec3f(u1.x, u0.y, u1.z));
-                let g = ${contribution}(vec3u(p0.x, p1.y, p1.z), vec3f(u0.x, u1.y, u1.z));
-                let h = ${contribution}(p1, u1);
-
-                let s = fade_3d(u0);
-                
-                let n = mix(
-                    mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
-                    mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
-                    s.z
-                );
-                return clamp(${norm_constant} * n, -1, 1) * 0.5 + 0.5;
-            }
-        `
-    }
-}
-
-export class Perlin4D implements NoiseShaderFactory {
-    pos_type: VecType = 'vec4f'
-    extra_data_type = 'array<vec4f>'
-    quadratic: boolean
-
-    constructor(quadratic?: boolean) {
-        this.quadratic = quadratic || false
-    }
-
-    generateExtraData() {
-        return generateUnitVectors4D(64)
-    }
-
-    createShaderDependencies() {
-        return `
-            ${seed_4d}
-            ${hash_4u_1u}
-            ${fade_4d}
-        `
-    }
-
-    createShader({ functionName, extraBufferName }: Config) {
-        const norm_constant = this.quadratic ? 1.5 : 1.7
-        const contribution = `${functionName}_contribution`
-
-        return /* wgsl */ `
-            fn ${contribution}(grid_corner: vec4u, vec_corner_to_pos: vec4f) -> f32 {
-                let hash = hash_4u_1u(grid_corner);
-                let gradient = ${extraBufferName}[hash >> 26];
-                let result = dot(gradient, vec_corner_to_pos);
-                ${gradientCalculation(this.quadratic)}
-            }
-
-            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
-                let floor_pos = floor(pos);
-                let u0 = pos - floor_pos;
-                let u1 = u0 - 1;
-
-                let p0 = seed_4d(vec4i(floor_pos), channel);
-                let p1 = p0 + 1u;
-                
-                let a = ${contribution}(p0, u0);
-                let b = ${contribution}(vec4u(p1.x, p0.y, p0.z, p0.w), vec4f(u1.x, u0.y, u0.z, u0.w));
-                let c = ${contribution}(vec4u(p0.x, p1.y, p0.z, p0.w), vec4f(u0.x, u1.y, u0.z, u0.w));
-                let d = ${contribution}(vec4u(p1.x, p1.y, p0.z, p0.w), vec4f(u1.x, u1.y, u0.z, u0.w));
-                let e = ${contribution}(vec4u(p0.x, p0.y, p1.z, p0.w), vec4f(u0.x, u0.y, u1.z, u0.w));
-                let f = ${contribution}(vec4u(p1.x, p0.y, p1.z, p0.w), vec4f(u1.x, u0.y, u1.z, u0.w));
-                let g = ${contribution}(vec4u(p0.x, p1.y, p1.z, p0.w), vec4f(u0.x, u1.y, u1.z, u0.w));
-                let h = ${contribution}(vec4u(p1.x, p1.y, p1.z, p0.w), vec4f(u1.x, u1.y, u1.z, u0.w));
-
-                let i = ${contribution}(vec4u(p0.x, p0.y, p0.z, p1.w), vec4f(u0.x, u0.y, u0.z, u1.w));
-                let j = ${contribution}(vec4u(p1.x, p0.y, p0.z, p1.w), vec4f(u1.x, u0.y, u0.z, u1.w));
-                let k = ${contribution}(vec4u(p0.x, p1.y, p0.z, p1.w), vec4f(u0.x, u1.y, u0.z, u1.w));
-                let l = ${contribution}(vec4u(p1.x, p1.y, p0.z, p1.w), vec4f(u1.x, u1.y, u0.z, u1.w));
-                let m = ${contribution}(vec4u(p0.x, p0.y, p1.z, p1.w), vec4f(u0.x, u0.y, u1.z, u1.w));
-                let n = ${contribution}(vec4u(p1.x, p0.y, p1.z, p1.w), vec4f(u1.x, u0.y, u1.z, u1.w));
-                let o = ${contribution}(vec4u(p0.x, p1.y, p1.z, p1.w), vec4f(u0.x, u1.y, u1.z, u1.w));
-                let p = ${contribution}(p1, u1);
-
-                let s = fade_4d(u0);
-                
-                let result = mix(
-                    mix(
-                        mix(mix(a, b, s.x), mix(c, d, s.x), s.y),
-                        mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
-                        s.z
-                    ),
-                    mix(
-                        mix(mix(i, j, s.x), mix(k, l, s.x), s.y),
-                        mix(mix(m, n, s.x), mix(o, p, s.x), s.y),
-                        s.z
-                    ),
-                    s.w
-                );
-                return clamp(${norm_constant} * result, -1, 1) * 0.5 + 0.5;
-            }
-        `
     }
 }

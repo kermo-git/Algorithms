@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, shallowRef } from 'vue'
 
-import { type ShaderIssue } from '@/WebGPU/Engine'
+import { ShaderIssue } from '@/WebGPU/ShaderModuleSystem/Compiler'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import Checkbox from '@/components/Checkbox.vue'

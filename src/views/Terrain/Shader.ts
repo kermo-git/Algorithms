@@ -18,7 +18,7 @@ import {
 
 import { FBMNoiseModule } from '@/Noise/Algorithms/Common'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
-import { Perlin2DModule, Perlin3DModule } from '@/Noise/Algorithms/Perlin'
+import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
@@ -136,7 +136,7 @@ export function VertexIndexShader(terrain_dims: Vec2): ComputeShader {
 }
 
 function noiseImports(): ShaderModule[] {
-    return [Perlin2DModule(), Perlin3DModule()].map(FBMNoiseModule)
+    return [Perlin2D(), Perlin3D()].map(FBMNoiseModule)
 }
 
 export function NoiseShader(

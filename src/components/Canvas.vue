@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, useTemplateRef, getCurrentInstance } from 'vue'
 
-import type { ShaderIssue } from '@/WebGPU/Engine'
+import { ShaderIssue } from '@/WebGPU/ShaderModuleSystem/Compiler'
 import PanelButton from '@/components/PanelButton.vue'
 
 interface Props {
