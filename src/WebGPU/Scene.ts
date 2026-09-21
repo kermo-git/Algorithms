@@ -51,13 +51,13 @@ export default class WebGPUScene {
     canvas_color_format!: GPUTextureFormat
 
     buffers = new Map<string, GPUBuffer>()
-    compute_shaders = new Map<string, ComputeStage>()
-    render_shaders = new Map<string, RenderStage>()
+    compute_stages = new Map<string, ComputeStage>()
+    render_stages = new Map<string, RenderStage>()
 
     /* Initialization */
 
-    async compileScene(canvas: HTMLCanvasElement, shaders: Shader[]) {
-        const linked = link(shaders)
+    async build(canvas: HTMLCanvasElement, modules: Shader[]) {
+        const linked = link(modules)
         let canvas_usage = 0
 
         if (
@@ -81,14 +81,12 @@ export default class WebGPUScene {
             )
         ).then((compiled) =>
             compiled.forEach((shader) => {
-                this.compute_shaders.set(shader.name, shader)
+                this.compute_stages.set(shader.name, shader)
             })
         )
 
         linked.computeShaders.forEach((linked_shader) => {
-            const compiled_shader = this.compute_shaders.get(
-                linked_shader.name
-            )!
+            const compiled_shader = this.compute_stages.get(linked_shader.name)!
             bindComputeStage(this.device, this.buffers, compiled_shader)
         })
 
@@ -98,12 +96,12 @@ export default class WebGPUScene {
             )
         ).then((compiled) =>
             compiled.forEach((shader) => {
-                this.render_shaders.set(shader.name, shader)
+                this.render_stages.set(shader.name, shader)
             })
         )
 
         linked.renderShaders.forEach((linked_shader) => {
-            const compiled_shader = this.render_shaders.get(linked_shader.name)!
+            const compiled_shader = this.render_stages.get(linked_shader.name)!
             bindRenderStage(this.device, this.buffers, compiled_shader)
         })
     }
@@ -157,7 +155,7 @@ export default class WebGPUScene {
     }
 
     executeCompute(cmd_encoder: GPUCommandEncoder, command: ComputeExecution) {
-        const shader = this.compute_shaders.get(command.name)!
+        const shader = this.compute_stages.get(command.name)!
         const { x, y, z } = command.n_workgroups
 
         const pass_encoder = cmd_encoder.beginComputePass()
@@ -211,7 +209,7 @@ export default class WebGPUScene {
     }
 
     executeRender(cmd_encoder: GPUCommandEncoder, command: RenderExecution) {
-        const shader = this.render_shaders.get(command.name)!
+        const shader = this.render_stages.get(command.name)!
 
         const main_texture = this.context.getCurrentTexture()
         const depth_texture = createDepthTexture(
@@ -275,13 +273,13 @@ export default class WebGPUScene {
         )
     }
 
-    rebindComputeShader(name: string) {
-        const shader = this.compute_shaders.get(name)!
+    rebindComputeResources(name: string) {
+        const shader = this.compute_stages.get(name)!
         bindComputeStage(this.device, this.buffers, shader)
     }
 
-    rebindRenderShader(name: string) {
-        const shader = this.render_shaders.get(name)!
+    rebindRenderResources(name: string) {
+        const shader = this.render_stages.get(name)!
         bindRenderStage(this.device, this.buffers, shader)
     }
 
@@ -300,9 +298,9 @@ export default class WebGPUScene {
                 if (issues.length > 0) {
                     return issues
                 }
-                const compiled = this.compute_shaders.get(shader.name)!
+                const compiled = this.compute_stages.get(shader.name)!
 
-                this.compute_shaders.set(shader.name, {
+                this.compute_stages.set(shader.name, {
                     ...compiled,
                     pipeline: this.device.createComputePipeline({
                         label: shader.name,
@@ -322,7 +320,7 @@ export default class WebGPUScene {
                 if (issues.length > 0) {
                     return issues
                 }
-                const compiled = this.render_shaders.get(shader.name)!
+                const compiled = this.render_stages.get(shader.name)!
                 const pipeline = this.device.createRenderPipeline({
                     label: shader.name,
                     layout: compiled.pipelineLayout,
@@ -336,7 +334,7 @@ export default class WebGPUScene {
                     }
                 })
 
-                this.render_shaders.set(shader.name, {
+                this.render_stages.set(shader.name, {
                     ...compiled,
                     pipeline
                 })

@@ -24,7 +24,7 @@ export class Controller {
         this.n_workgroups_x = Math.ceil(setup.canvas_width / WG_DIM)
         this.n_workgroups_y = Math.ceil(canvas_height / WG_DIM)
 
-        await this.scene.compileScene(canvas, [
+        await this.scene.build(canvas, [
             createShader(setup.activation_shader, color_kernel_data, {
                 x: setup.canvas_width,
                 y: canvas_height
@@ -58,7 +58,7 @@ export class Controller {
 
         this.scene.resizeBuffer('generation_A', 4 * this.n_pixels)
         this.scene.resizeBuffer('generation_B', 4 * this.n_pixels)
-        this.scene.rebindComputeShader('main')
+        this.scene.rebindComputeResources('main')
 
         this.reset(redraw)
     }

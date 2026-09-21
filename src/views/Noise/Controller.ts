@@ -8,9 +8,7 @@ export default class Controller {
     scene = new WebGPUScene()
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
-        await this.scene.compileScene(canvas, [
-            MainModule(setup, wg_dim, wg_dim)
-        ])
+        await this.scene.build(canvas, [MainModule(setup, wg_dim, wg_dim)])
         this.scene.watchResize(() => this.render())
     }
 

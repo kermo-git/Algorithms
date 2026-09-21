@@ -31,7 +31,7 @@ export default class Controller {
         this.scene.setCanvasWidth(this.terrain_dims.x)
         const aspect_ratio = canvas.width / canvas.height
 
-        await this.scene.compileScene(canvas, [
+        await this.scene.build(canvas, [
             VertexIndexShader(setup.terrain_dims),
             NoiseShader(
                 setup.terrain_dims,

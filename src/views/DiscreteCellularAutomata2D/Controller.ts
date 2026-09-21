@@ -33,7 +33,7 @@ export class Controller {
         const state_data = createStateData(setup.n_states, setup.hex_colors)
         const canvas_data = createCanvasData(setup.n_states, this.n_pixels)
 
-        await this.scene.compileScene(canvas, [
+        await this.scene.build(canvas, [
             createShader(
                 setup.update_shader,
                 setup.max_n_states,
@@ -69,7 +69,7 @@ export class Controller {
 
         this.scene.resizeBuffer('generation_A', 4 * this.n_pixels)
         this.scene.resizeBuffer('generation_B', 4 * this.n_pixels)
-        this.scene.rebindComputeShader('main')
+        this.scene.rebindComputeResources('main')
 
         this.reset(redraw)
     }
