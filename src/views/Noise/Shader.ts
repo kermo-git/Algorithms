@@ -3,7 +3,7 @@ import {
     readView,
     ShaderModule,
     Uniform
-} from '@/WebGPU/ShaderModuleSystem/Modules'
+} from '@/WebGPU/Modules'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/HelperFunctions'
 import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'

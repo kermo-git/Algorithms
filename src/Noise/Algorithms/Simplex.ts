@@ -6,7 +6,7 @@ import {
     ReadOnlyResource,
     ReadOnlyShaderModule,
     readView
-} from '@/WebGPU/ShaderModuleSystem/Modules'
+} from '@/WebGPU/Modules'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions

@@ -1,7 +1,4 @@
-import {
-    ReadOnlyShaderModule,
-    StorageBuffer
-} from '@/WebGPU/ShaderModuleSystem/Modules'
+import { ReadOnlyShaderModule, StorageBuffer } from '@/WebGPU/Modules'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 

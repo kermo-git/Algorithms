@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ShaderIssue } from '@/WebGPU/ShaderModuleSystem/Compiler.js'
+import { ShaderIssue } from '@/WebGPU/ShaderCode'
 import Canvas from './Canvas.vue'
 import TabControl from './TabControl.vue'
 

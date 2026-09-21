@@ -1,7 +1,4 @@
-import WebGPUScene, {
-    ShaderExecution,
-    WG_DIM
-} from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
+import WebGPUScene, { ShaderExecution, WG_DIM } from '@/WebGPU/Scene'
 import { Mat4x4, Vec2, Vec3 } from '@/WebGPU/Geometry'
 
 import {

@@ -1,4 +1,4 @@
-import { ReadOnlyShaderModule } from '@/WebGPU/ShaderModuleSystem/Modules'
+import { ReadOnlyShaderModule } from '@/WebGPU/Modules'
 
 function create_fade_fn(d: 2 | 3 | 4) {
     const name = `fade_${d}d`

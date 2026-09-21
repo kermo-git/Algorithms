@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef } from 'vue'
 
-import { ShaderIssue } from '@/WebGPU/ShaderModuleSystem/Compiler'
+import { ShaderIssue } from '@/WebGPU/ShaderCode'
 import { DEG_TO_RAD, rotateX, rotateY, translate } from '@/WebGPU/Geometry'
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import CodeEditor from '@/components/CodeEditor.vue'

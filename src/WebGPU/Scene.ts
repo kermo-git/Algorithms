@@ -1,21 +1,23 @@
 import {
-    createComputeShaderCode,
-    createRenderShaderCode,
-    compileShaderCode,
     createBuffer,
     createDepthStencilAttachment,
     createDepthTexture,
-    requestDevice,
-    ShaderIssue
-} from './Compiler'
+    requestDevice
+} from './Resources'
 import {
-    CompiledComputeShader,
-    CompiledRenderShader,
-    bindComputeShader,
-    bindRenderShader,
-    compileComputeShader,
-    compileRenderShader
-} from './ShaderCompiler'
+    createComputeShaderCode,
+    createRenderShaderCode,
+    compileShaderCode,
+    ShaderIssue
+} from './ShaderCode'
+import {
+    ComputeStage,
+    RenderStage,
+    buildComputeStage,
+    bindComputeStage,
+    buildRenderStage,
+    bindRenderStage
+} from './ShaderStage'
 import { link, linkComputeShader, linkRenderShader } from './Linker'
 import { Shader } from './Modules'
 
@@ -49,8 +51,8 @@ export default class WebGPUScene {
     canvas_color_format!: GPUTextureFormat
 
     buffers = new Map<string, GPUBuffer>()
-    compute_shaders = new Map<string, CompiledComputeShader>()
-    render_shaders = new Map<string, CompiledRenderShader>()
+    compute_shaders = new Map<string, ComputeStage>()
+    render_shaders = new Map<string, RenderStage>()
 
     /* Initialization */
 
@@ -75,11 +77,7 @@ export default class WebGPUScene {
 
         await Promise.all(
             linked.computeShaders.map((shader) =>
-                compileComputeShader(
-                    this.device,
-                    this.canvas_color_format,
-                    shader
-                )
+                buildComputeStage(this.device, this.canvas_color_format, shader)
             )
         ).then((compiled) =>
             compiled.forEach((shader) => {
@@ -91,16 +89,12 @@ export default class WebGPUScene {
             const compiled_shader = this.compute_shaders.get(
                 linked_shader.name
             )!
-            bindComputeShader(this.device, this.buffers, compiled_shader)
+            bindComputeStage(this.device, this.buffers, compiled_shader)
         })
 
         await Promise.all(
             linked.renderShaders.map((shader) =>
-                compileRenderShader(
-                    this.device,
-                    this.canvas_color_format,
-                    shader
-                )
+                buildRenderStage(this.device, this.canvas_color_format, shader)
             )
         ).then((compiled) =>
             compiled.forEach((shader) => {
@@ -110,7 +104,7 @@ export default class WebGPUScene {
 
         linked.renderShaders.forEach((linked_shader) => {
             const compiled_shader = this.render_shaders.get(linked_shader.name)!
-            bindRenderShader(this.device, this.buffers, compiled_shader)
+            bindRenderStage(this.device, this.buffers, compiled_shader)
         })
     }
 
@@ -283,12 +277,12 @@ export default class WebGPUScene {
 
     rebindComputeShader(name: string) {
         const shader = this.compute_shaders.get(name)!
-        bindComputeShader(this.device, this.buffers, shader)
+        bindComputeStage(this.device, this.buffers, shader)
     }
 
     rebindRenderShader(name: string) {
         const shader = this.render_shaders.get(name)!
-        bindRenderShader(this.device, this.buffers, shader)
+        bindRenderStage(this.device, this.buffers, shader)
     }
 
     async updateShaderCode(shader: Shader): Promise<ShaderIssue[]> {

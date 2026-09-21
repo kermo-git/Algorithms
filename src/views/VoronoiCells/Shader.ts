@@ -8,7 +8,7 @@ import {
     ShaderModule,
     StorageBufferView,
     Uniform
-} from '@/WebGPU/ShaderModuleSystem/Modules'
+} from '@/WebGPU/Modules'
 
 export interface Setup {
     distance_measure: DistanceMeasure

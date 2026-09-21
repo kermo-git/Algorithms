@@ -1,20 +1,22 @@
+import { createDepthStencilState } from './Resources'
 import {
     createCanvasLayout,
-    compileShaderCode,
     createLayoutEntry,
-    createPingPongLayoutEntries,
-    createComputeShaderCode,
-    createRenderShaderCode,
-    createDepthStencilState
-} from './Compiler'
+    createPingPongLayoutEntries
+} from './Layout'
 import {
     LinkedComputeShader,
     LinkedRenderShader,
     StaticResource
 } from './LinkedModules'
 import { PingPongBuffers, getName } from './Modules'
+import {
+    createComputeShaderCode,
+    createRenderShaderCode,
+    compileShaderCode
+} from './ShaderCode'
 
-export interface CompiledComputeShader {
+export interface ComputeStage {
     name: string
     pipelineLayout: GPUPipelineLayout
     pipeline: GPUComputePipeline
@@ -31,7 +33,7 @@ export interface CompiledComputeShader {
     canvasLayout?: GPUBindGroupLayout
 }
 
-export interface CompiledRenderShader {
+export interface RenderStage {
     name: string
     pipelineLayout: GPUPipelineLayout
     pipeline: GPURenderPipeline
@@ -44,11 +46,11 @@ export interface CompiledRenderShader {
     bindGroup?: GPUBindGroup
 }
 
-export async function compileComputeShader(
+export async function buildComputeStage(
     device: GPUDevice,
     canvas_color_format: GPUTextureFormat,
     shader: LinkedComputeShader
-): Promise<CompiledComputeShader> {
+): Promise<ComputeStage> {
     const { staticResources, pingPongResources } = shader
 
     const bindGroupLayouts: GPUBindGroupLayout[] = []
@@ -107,10 +109,10 @@ export async function compileComputeShader(
     }
 }
 
-export function bindComputeShader(
+export function bindComputeStage(
     device: GPUDevice,
     buffers: Map<string, GPUBuffer>,
-    compiled_shader: CompiledComputeShader
+    compute_stage: ComputeStage
 ) {
     const {
         name,
@@ -118,7 +120,7 @@ export function bindComputeShader(
         staticLayout,
         pingPongResources,
         pingPongLayout
-    } = compiled_shader
+    } = compute_stage
 
     if (staticResources && staticLayout) {
         const bind_group_entries = staticResources.map((r, i) => ({
@@ -128,7 +130,7 @@ export function bindComputeShader(
             }
         }))
 
-        compiled_shader.staticGroup = device.createBindGroup({
+        compute_stage.staticGroup = device.createBindGroup({
             label: `${name}_static_group`,
             layout: staticLayout,
             entries: bind_group_entries
@@ -136,7 +138,7 @@ export function bindComputeShader(
     }
 
     if (pingPongResources && pingPongLayout) {
-        compiled_shader.pingPongGroupAB = device.createBindGroup({
+        compute_stage.pingPongGroupAB = device.createBindGroup({
             label: `${name}_ping_pong_AB`,
             layout: pingPongLayout,
             entries: pingPongResources.flatMap((r, i) => {
@@ -153,7 +155,7 @@ export function bindComputeShader(
             })
         })
 
-        compiled_shader.pingPongGroupBA = device.createBindGroup({
+        compute_stage.pingPongGroupBA = device.createBindGroup({
             label: `${name}_ping_pong_BA`,
             layout: pingPongLayout,
             entries: pingPongResources.flatMap((r, i) => {
@@ -172,11 +174,11 @@ export function bindComputeShader(
     }
 }
 
-export async function compileRenderShader(
+export async function buildRenderStage(
     device: GPUDevice,
     canvas_color_format: GPUTextureFormat,
     shader: LinkedRenderShader
-): Promise<CompiledRenderShader> {
+): Promise<RenderStage> {
     const bindGroupLayouts: GPUBindGroupLayout[] = []
     let bindLayout
 
@@ -228,14 +230,14 @@ export async function compileRenderShader(
     }
 }
 
-export function bindRenderShader(
+export function bindRenderStage(
     device: GPUDevice,
     buffers: Map<string, GPUBuffer>,
-    compiled_shader: CompiledRenderShader
+    render_stage: RenderStage
 ) {
-    const { indexBufferName, resources, bindLayout } = compiled_shader
+    const { indexBufferName, resources, bindLayout } = render_stage
     if (resources && bindLayout) {
-        compiled_shader.bindGroup = device.createBindGroup({
+        render_stage.bindGroup = device.createBindGroup({
             layout: bindLayout,
             entries: resources.map((r, i) => ({
                 binding: i,
@@ -245,5 +247,5 @@ export function bindRenderShader(
             }))
         })
     }
-    compiled_shader.indexBuffer = buffers.get(indexBufferName)!
+    render_stage.indexBuffer = buffers.get(indexBufferName)!
 }

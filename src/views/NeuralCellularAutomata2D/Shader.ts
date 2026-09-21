@@ -1,6 +1,6 @@
 import { shaderColorArray } from '@/utils/Colors'
-import { ComputeShader } from '@/WebGPU/ShaderModuleSystem/Modules'
-import { WG_DIM } from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
+import { ComputeShader } from '@/WebGPU/Modules'
+import { WG_DIM } from '@/WebGPU/Scene'
 
 export interface Setup {
     activation_shader: string

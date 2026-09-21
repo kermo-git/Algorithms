@@ -7,8 +7,8 @@ import {
     StorageBuffer,
     Uniform,
     writeView
-} from '@/WebGPU/ShaderModuleSystem/Modules'
-import { WG_DIM } from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
+} from '@/WebGPU/Modules'
+import { WG_DIM } from '@/WebGPU/Scene'
 import {
     perspectiveProjection,
     Vec2,

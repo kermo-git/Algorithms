@@ -5,8 +5,8 @@ import {
     kernelBufferSize,
     createColorKernelData
 } from './Shader'
-import WebGPUScene, { WG_DIM } from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
-import { ShaderIssue } from '@/WebGPU/ShaderModuleSystem/Compiler'
+import WebGPUScene, { WG_DIM } from '@/WebGPU/Scene'
+import { ShaderIssue } from '@/WebGPU/ShaderCode'
 
 export class Controller {
     scene = new WebGPUScene()

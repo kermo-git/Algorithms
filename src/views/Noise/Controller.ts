@@ -1,4 +1,4 @@
-import WebGPUScene from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
+import WebGPUScene from '@/WebGPU/Scene'
 import { createColorData, MainModule, type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
 

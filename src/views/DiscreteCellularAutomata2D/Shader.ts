@@ -1,5 +1,5 @@
-import { WG_DIM } from '@/WebGPU/ShaderModuleSystem/WebGPUScene'
-import { ComputeShader, readView } from '@/WebGPU/ShaderModuleSystem/Modules'
+import { WG_DIM } from '@/WebGPU/Scene'
+import { ComputeShader, readView } from '@/WebGPU/Modules'
 import { lerpColorArray } from '@/utils/Colors'
 
 export interface Setup {
