@@ -1,7 +1,7 @@
 import { readView } from '@/WebGPU/ShaderModuleSystem/Modules'
 
-import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from './Common'
-import { importFn } from '../Utils'
+import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '../Modules'
+import { importFn } from '../HelperFunctions'
 
 // https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
 export function Perlin2D(quadratic?: boolean): NoiseModule {

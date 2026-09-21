@@ -1,7 +1,7 @@
 // https://cgvr.cs.uni-bremen.de/teaching/cg_literatur/simplexnoise.pdf
 
-import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from './Common'
-import { importFn } from '../Utils'
+import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '../Modules'
+import { importFn } from '../HelperFunctions'
 import {
     ReadOnlyResource,
     ReadOnlyShaderModule,
@@ -16,7 +16,9 @@ function get_unskew_constant(n_dimensions: number) {
     return (1 - 1 / Math.sqrt(n_dimensions + 1)) / n_dimensions
 }
 
-export function Simplex2D(value_noise?: boolean): NoiseModule {
+export function Simplex2D(
+    type: 'Gradient' | 'Value' = 'Gradient'
+): NoiseModule {
     const skew_module = {
         name: 'simplex_2d_skew',
         code: /* wgsl */ `
@@ -41,7 +43,7 @@ export function Simplex2D(value_noise?: boolean): NoiseModule {
     let corner_fn: string
     let norm_constant: number
 
-    if (value_noise) {
+    if (type === 'Value') {
         name = 'simplex_value_2d'
         imports = [importFn('seed_2d'), importFn('hash_2u_1f'), skew_module]
 
@@ -117,7 +119,9 @@ export function Simplex2D(value_noise?: boolean): NoiseModule {
     }
 }
 
-export function Simplex3D(value_noise?: boolean): NoiseModule {
+export function Simplex3D(
+    type: 'Gradient' | 'Value' = 'Gradient'
+): NoiseModule {
     const skew_module = {
         name: 'simplex_3d_skew',
         code: /* wgsl */ `
@@ -142,7 +146,7 @@ export function Simplex3D(value_noise?: boolean): NoiseModule {
     let corner_fn: string
     let norm_constant: number
 
-    if (value_noise) {
+    if (type === 'Value') {
         name = 'simplex_value_3d'
         imports = [importFn('seed_3d'), importFn('hash_3u_1f'), skew_module]
 
@@ -244,7 +248,9 @@ export function Simplex3D(value_noise?: boolean): NoiseModule {
     }
 }
 
-export function Simplex4D(value_noise?: boolean): NoiseModule {
+export function Simplex4D(
+    type: 'Gradient' | 'Value' = 'Gradient'
+): NoiseModule {
     const skew_module = {
         name: 'simplex_4d_skew',
         code: /* wgsl */ `
@@ -269,7 +275,7 @@ export function Simplex4D(value_noise?: boolean): NoiseModule {
     let corner_fn: string
     let norm_constant: number
 
-    if (value_noise) {
+    if (type === 'Value') {
         name = 'simplex_value_4d'
         imports = [importFn('seed_4d'), importFn('hash_4u_1f'), skew_module]
 

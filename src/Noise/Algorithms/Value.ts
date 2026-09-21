@@ -1,32 +1,19 @@
-import type { NoiseShaderFactory, Config } from '../Deprecated'
-import {
-    fade_2d,
-    fade_3d,
-    fade_4d,
-    hash_2u_1f,
-    hash_3u_1f,
-    hash_4u_1f,
-    seed_2d,
-    seed_3d,
-    seed_4d
-} from '../Utils'
+import { importFn } from '../HelperFunctions'
+import { NoiseModule } from '../Modules'
 
-export const Value2D: NoiseShaderFactory = {
-    pos_type: 'vec2f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_2d}
-            ${hash_2u_1f}
-            ${fade_2d}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec2f, channel: u32) -> f32 {
+export function Value2D(): NoiseModule {
+    return {
+        name: 'value_2d',
+        posType: 'vec2f',
+        imports: [
+            importFn('seed_2d'),
+            importFn('hash_2u_1f'),
+            importFn('fade_2d')
+        ],
+        code: /* wgsl */ `
+            fn value_2d(pos: vec2f, seed: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = seed_2d(vec2i(floor_pos), channel);
+                let p0 = seed_2d(vec2i(floor_pos), seed);
                 let p1 = p0 + 1u;
                 
                 let a = hash_2u_1f(p0);
@@ -43,22 +30,19 @@ export const Value2D: NoiseShaderFactory = {
     }
 }
 
-export const Value3D: NoiseShaderFactory = {
-    pos_type: 'vec3f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_3d}
-            ${hash_3u_1f}
-            ${fade_3d}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec3f, channel: u32) -> f32 {
+export function Value3D(): NoiseModule {
+    return {
+        name: 'value_3d',
+        posType: 'vec3f',
+        imports: [
+            importFn('seed_3d'),
+            importFn('hash_3u_1f'),
+            importFn('fade_3d')
+        ],
+        code: /* wgsl */ `
+            fn value_3d(pos: vec3f, seed: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = seed_3d(vec3i(floor_pos), channel);
+                let p0 = seed_3d(vec3i(floor_pos), seed);
                 let p1 = p0 + 1u;
                 
                 let a = hash_3u_1f(p0);
@@ -83,22 +67,19 @@ export const Value3D: NoiseShaderFactory = {
     }
 }
 
-export const Value4D: NoiseShaderFactory = {
-    pos_type: 'vec4f',
-
-    createShaderDependencies() {
-        return `
-            ${seed_4d}
-            ${hash_4u_1f}
-            ${fade_4d}
-        `
-    },
-
-    createShader({ functionName }: Config) {
-        return /* wgsl */ `
-            fn ${functionName}(pos: vec4f, channel: u32) -> f32 {
+export function Value4D(): NoiseModule {
+    return {
+        name: 'value_4d',
+        posType: 'vec4f',
+        imports: [
+            importFn('seed_4d'),
+            importFn('hash_4u_1f'),
+            importFn('fade_4d')
+        ],
+        code: /* wgsl */ `
+            fn value_4d(pos: vec4f, seed: u32) -> f32 {
                 let floor_pos = floor(pos);
-                let p0 = seed_4d(vec4i(floor_pos), channel);
+                let p0 = seed_4d(vec4i(floor_pos), seed);
                 let p1 = p0 + 1u;
                 
                 let a = hash_4u_1f(p0);

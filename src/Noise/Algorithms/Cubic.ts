@@ -1,8 +1,8 @@
 // Blog post: https://jobtalle.com/cubic_noise.html
 // GitHub repo: https://github.com/jobtalle/CubicNoise
 
-import { importFn } from '../Utils'
-import { NoiseModule } from './Common'
+import { importFn } from '../HelperFunctions'
+import { NoiseModule } from '../Modules'
 
 export function Cubic2D(): NoiseModule {
     return {
@@ -135,7 +135,7 @@ export function Cubic4D(): NoiseModule {
                 let floor_pos = floor(pos);
                 let local_pos = pos - floor_pos;
 
-                let corner = seed_4d(vec4i(floor_pos), channel);
+                let corner = seed_4d(vec4i(floor_pos), seed);
 
                 let x0 = corner.x - 1;
                 let x2 = corner.x + 1;

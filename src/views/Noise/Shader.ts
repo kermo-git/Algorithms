@@ -5,8 +5,8 @@ import {
     Uniform
 } from '@/WebGPU/ShaderModuleSystem/Modules'
 import { parseHexColor } from '@/utils/Colors'
-import { importFn, constSeed } from '@/Noise/Utils'
-import { FBMNoiseModule, NoiseModule } from '@/Noise/Algorithms/Common'
+import { importFn, constSeed } from '@/Noise/HelperFunctions'
+import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp'
 

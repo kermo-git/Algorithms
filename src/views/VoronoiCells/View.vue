@@ -54,12 +54,14 @@ async function initScene(canvas: HTMLCanvasElement) {
 
 function createNoiseAlgorithm(name: string, dimension: string) {
     switch (name) {
+        case 'Simplex':
+            return dimension === '2D' ? Simplex2D() : Simplex3D()
         case 'Perlin':
             return dimension === '2D' ? Perlin2D() : Perlin3D()
-        case 'Worley':
-            return dimension === '2D' ? Worley2D() : Worley3D()
+        case 'Value':
+            return dimension === '2D' ? Value2D() : Value3D()
         default:
-            return dimension === '2D' ? Simplex2D() : Simplex3D()
+            return dimension === '2D' ? Worley2D() : Worley3D()
     }
 }
 

@@ -16,13 +16,13 @@ import {
     type Mat4x4
 } from '@/WebGPU/Geometry'
 
-import { FBMNoiseModule } from '@/Noise/Algorithms/Common'
+import { FBMNoiseModule } from '@/Noise/Modules'
 import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
-import { Cubic2D, Cubic3D } from '@/Noise/Algorithms/Cubic'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
-import { WorleyF22D, WorleyF23D } from '@/Noise/Algorithms/WorleyF2'
+import { WorleyEdge2D, WorleyEdge3D } from '@/Noise/Algorithms/WorleyEdge'
+import { importFn } from '@/Noise/HelperFunctions'
 
 export interface Setup {
     noise_shader: string
@@ -135,8 +135,27 @@ export function VertexIndexShader(terrain_dims: Vec2): ComputeShader {
     }
 }
 
-function noiseImports(): ShaderModule[] {
-    return [Perlin2D(), Perlin3D()].map(FBMNoiseModule)
+function NoiseModule(): ShaderModule[] {
+    return [
+        Perlin2D(),
+        Perlin3D(),
+        Simplex2D('Gradient'),
+        Simplex2D('Value'),
+        Simplex3D('Gradient'),
+        Simplex3D('Value'),
+        Value2D(),
+        Value3D(),
+        Worley2D('Euclidean'),
+        Worley2D('Manhattan'),
+        Worley2D('Chebyshev'),
+        Worley3D('Euclidean'),
+        Worley3D('Manhattan'),
+        Worley3D('Chebyshev'),
+        WorleyEdge2D(),
+        WorleyEdge3D()
+    ]
+        .map(FBMNoiseModule)
+        .concat([importFn('unit_vector_2d'), importFn('unit_vector_3d')])
 }
 
 export function NoiseShader(
@@ -148,7 +167,7 @@ export function NoiseShader(
         kind: 'ComputeShader',
         name: 'noise',
         resources: [TerrainPingPong(terrain_dims)],
-        imports: noiseImports(),
+        imports: NoiseModule(),
         code: /* wgsl */ `
             const terrain_dims = vec2u(${terrain_dims.x}, ${terrain_dims.y});
             const grid_dims = vec2f(${grid_dims.x}, ${grid_dims.y});
@@ -183,7 +202,7 @@ export function ColorShader(
         kind: 'ComputeShader',
         name: 'color',
         resources: [TerrainPingPong(terrain_dims)],
-        imports: noiseImports(),
+        imports: NoiseModule(),
         code: /* wgsl */ `
             ${color_function}
 

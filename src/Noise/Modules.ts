@@ -15,8 +15,8 @@ export function FBMNoiseModule(noise: NoiseModule): ReadOnlyShaderModule {
         code: /* wgsl */ `
             struct FBMParams {
                 n_octaves: u32,
-                lacunarity: f32,
-                persistence: f32
+                persistence: f32,
+                lacunarity: f32
             };
         `
     }

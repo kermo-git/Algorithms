@@ -73,57 +73,37 @@ function terrainColorShader(
 
 export const examples: Example[] = [
     {
-        name: 'Test',
-        grid_size: 16,
-        elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
-    return perlin_2d(pos, 0);
-}`,
-        color_shader: /* wgsl */ `fn color(pos: vec2f, 
-         elevation: f32,
-         gradient: vec2f) -> vec3f {
-    return vec3f(1);
-}
-        `
-    },
-    {
         name: 'Mountains',
         grid_size: 4,
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     const warp_1_channel = 0;
     const warp_2_channel = 1;
-    const warp_1_octaves = 5;
-    const warp_2_octaves = 5;
+    const warp_1_fbm = FBMParams(5, 0.4, 2);
+    const warp_2_fbm = FBMParams(5, 0.4, 2);
     const warp_scale = vec3f(0.7);
-    const warp_persistence = 0.4;
     const warp_strength = 0.3;
 
     const noise_channel = 2;
-    const noise_octaves = 1;
-    const noise_persistence = 0.5;
 
     let pos_3d = vec3f(pos, 0);
 
-    let warp_1 = simplex_3d_octaves(
+    let warp_1 = simplex_3d_fbm(
         warp_scale*pos_3d, 
         warp_1_channel,
-        warp_1_octaves,
-        warp_persistence
+        warp_1_fbm
     );
-    let warp_2 = simplex_3d_octaves(
+    let warp_2 = simplex_3d_fbm(
         warp_scale*pos_3d, 
         warp_2_channel,
-        warp_2_octaves,
-        warp_persistence
+        warp_2_fbm
     );
     let warp_dir = unit_vector_3d(
         warp_1, warp_2
     );
 
-    return simplex_3d_octaves(
+    return simplex_3d(
         pos_3d + warp_strength * warp_dir,
-        noise_channel, 
-        noise_octaves, 
-        noise_persistence
+        noise_channel
     );
 }`,
         color_shader: terrainColorShader('#15b342', 0.58, '#FFFFFF', 0.62)
@@ -135,8 +115,7 @@ export const examples: Example[] = [
         elevation_shader: /* wgsl */ `fn elevation(pos: vec2f) -> f32 {
     const warp_channel = 0;
     const warp_scale = 1;
-    const warp_octaves = 4;
-    const warp_persistence = 0.5;
+    const warp_fbm = FBMParams(4, 0.5, 2);
     const warp_strength = 0.1;
 
     const valley_depth = 0.5;
@@ -144,25 +123,22 @@ export const examples: Example[] = [
 
     const hills_scale = 0.2;
     const hills_channel = 14;
-    const hills_octaves = 4;
-    const hills_persistence = 0.5;
+    const hills_fbm = FBMParams(4, 0.5, 2);
 
-    let valley_warp = perlin_2d_octaves(
+    let valley_warp = perlin_2d_fbm(
         pos*warp_scale, 
         warp_channel,
-        warp_octaves, 
-        warp_persistence
+        warp_fbm
     );
 
     let warp_dir = unit_vector_2d(
         valley_warp
     );
 
-    let floor = perlin_2d_octaves(
+    let floor = perlin_2d_fbm(
         pos*hills_scale, 
         hills_channel, 
-        hills_octaves,
-        hills_persistence
+        hills_fbm
     );
 
     return min(
@@ -188,16 +164,16 @@ export const examples: Example[] = [
     )*0.05;
     let warp3 = vec3f(warp, 0);
 
-    var plains = simplex_2d_octaves(
-        pos*0.05, 1, 3, 0.5
+    var plains = simplex_2d_fbm(
+        pos*0.05, 1, FBMParams(3, 0.5, 2)
     );
     var rivers = abs(plains*2 - 1); 
 
     var mountain_area = smoothstep(
         0.6, 1, plains
     );
-    var mountains = simplex_3d_octaves(
-        (pos3 + warp3)*0.2, 0, 3, 0.5
+    var mountains = simplex_3d_fbm(
+        (pos3 + warp3)*0.2, 0, FBMParams(3, 0.5, 2)
     );
     mountains = 2*smoothstep(0, 1,
         1 - abs(mountains*2 - 1)
@@ -209,8 +185,8 @@ export const examples: Example[] = [
     var canyon_area = smoothstep(
         0.4, 0, plains
     );
-    var canyon_border = perlin_2d_octaves(
-       pos*0.1, 1, 1, 0.5
+    var canyon_border = perlin_2d_fbm(
+       pos*0.1, 1, FBMParams(1, 0.5, 2)
     );
     canyon_border = smoothstep(
         0, 0.9, canyon_border

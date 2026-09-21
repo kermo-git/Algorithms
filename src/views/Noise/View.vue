@@ -18,16 +18,19 @@ import {
     Worley3D,
     Worley4D
 } from '@/Noise/Algorithms/Worley'
-import { WorleyF22D, WorleyF23D, WorleyF24D } from '@/Noise/Algorithms/WorleyF2'
+import {
+    WorleyEdge2D,
+    WorleyEdge3D,
+    WorleyEdge4D
+} from '@/Noise/Algorithms/WorleyEdge.js'
 
 import type { DomainTransform } from './Shader'
 import WebGPUScene from './Controller.js'
 import Checkbox from '@/components/Checkbox.vue'
-import HBox from '@/components/HBox.vue'
 
 const algorithm = ref<string>('Simplex')
 const quadratic_perlin = ref(false)
-const simplex_value = ref(false)
+const simplex_type = ref<'Gradient' | 'Value'>('Gradient')
 const worley_distance = ref<DistanceMeasure>('Euclidean')
 
 const dimension = ref<string>('2D')
@@ -51,18 +54,18 @@ function createNoiseAlgorithm(
     algorithm_name: string,
     noise_dimension: string,
     quadratic_perlin: boolean,
-    simplex_value: boolean,
+    simplex_value: 'Gradient' | 'Value',
     worley_distance: DistanceMeasure
 ) {
     switch (algorithm_name) {
-        case 'Worley F1':
+        case 'Simplex':
             switch (noise_dimension) {
                 case '2D':
-                    return Worley2D(worley_distance)
+                    return Simplex2D(simplex_value)
                 case '3D':
-                    return Worley3D(worley_distance)
+                    return Simplex3D(simplex_value)
                 default:
-                    return Worley4D(worley_distance)
+                    return Simplex4D(simplex_value)
             }
         case 'Perlin':
             switch (noise_dimension) {
@@ -73,14 +76,41 @@ function createNoiseAlgorithm(
                 default:
                     return Perlin4D(quadratic_perlin)
             }
+        case 'Cubic':
+            switch (noise_dimension) {
+                case '2D':
+                    return Cubic2D()
+                case '3D':
+                    return Cubic3D()
+                default:
+                    return Cubic4D()
+            }
+        case 'Value':
+            switch (noise_dimension) {
+                case '2D':
+                    return Value2D()
+                case '3D':
+                    return Value3D()
+                default:
+                    return Value4D()
+            }
+        case 'Worley F1':
+            switch (noise_dimension) {
+                case '2D':
+                    return Worley2D(worley_distance)
+                case '3D':
+                    return Worley3D(worley_distance)
+                default:
+                    return Worley4D(worley_distance)
+            }
         default:
             switch (noise_dimension) {
                 case '2D':
-                    return Simplex2D(simplex_value)
+                    return WorleyEdge2D()
                 case '3D':
-                    return Simplex3D(simplex_value)
+                    return WorleyEdge3D()
                 default:
-                    return Simplex4D(simplex_value)
+                    return WorleyEdge4D()
             }
     }
 }
@@ -93,7 +123,7 @@ async function initScene(canvas: HTMLCanvasElement) {
                 algorithm.value,
                 dimension.value,
                 quadratic_perlin.value,
-                simplex_value.value,
+                simplex_type.value,
                 worley_distance.value
             ),
             transform: domain_transform.value,
@@ -126,7 +156,7 @@ watch(
         algorithm,
         dimension,
         quadratic_perlin,
-        simplex_value,
+        simplex_type,
         worley_distance,
         domain_transform
     ],
@@ -209,17 +239,14 @@ const available_transforms = computed(() =>
                     >
                         Quadratic trick
                     </Checkbox>
-                    <Checkbox
-                        v-else-if="algorithm === 'Simplex'"
-                        name="simplex_value"
-                        v-model="simplex_value"
-                    >
-                        Use values instead of gradients
-                    </Checkbox>
                     <TextSingleSelect
-                        v-else-if="
-                            ['Worley F1', 'Worley F2 - F1'].includes(algorithm)
-                        "
+                        v-else-if="algorithm === 'Simplex'"
+                        text="Random element type"
+                        :options="['Gradient', 'Value']"
+                        v-model="simplex_type"
+                    />
+                    <TextSingleSelect
+                        v-else-if="algorithm === 'Worley F1'"
                         text="Distance metric"
                         :options="['Euclidean', 'Manhattan', 'Chebyshev']"
                         v-model="worley_distance"

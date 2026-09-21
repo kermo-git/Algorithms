@@ -1,6 +1,6 @@
-import { FBMNoiseModule, NoiseModule } from '@/Noise/Algorithms/Common'
+import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'
 import { DistanceMeasure } from '@/Noise/Algorithms/Worley'
-import { importFn } from '@/Noise/Utils'
+import { importFn } from '@/Noise/HelperFunctions'
 import { shaderColorArray } from '@/utils/Colors'
 import {
     ComputeShader,
