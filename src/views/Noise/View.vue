@@ -94,7 +94,7 @@ function createNoiseAlgorithm(
                 default:
                     return Value4D()
             }
-        case 'Worley F1':
+        case 'Worley ':
             switch (noise_dimension) {
                 case '2D':
                     return Worley2D(worley_distance)
@@ -266,7 +266,7 @@ const available_dimensions = computed(() =>
                         v-model="simplex_type"
                     />
                     <TextSingleSelect
-                        v-else-if="algorithm === 'Worley F1'"
+                        v-else-if="algorithm === 'Worley'"
                         text="Distance metric"
                         :options="['Euclidean', 'Manhattan', 'Chebyshev']"
                         v-model="worley_distance"
