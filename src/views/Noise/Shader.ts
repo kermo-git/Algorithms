@@ -4,6 +4,7 @@ import {
     ShaderModule,
     Uniform
 } from '@/WebGPU/Modules'
+import { WG_DIM } from '@/WebGPU/Scene'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/HelperFunctions'
 import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'
@@ -25,11 +26,7 @@ export interface Setup {
     color_points?: number[]
 }
 
-export function MainModule(
-    setup: Setup,
-    wg_dim_x: number,
-    wg_dim_y: number
-): ComputeShader {
+export function MainModule(setup: Setup): ComputeShader {
     const fbm_module = FBMNoiseModule(setup.noise)
     const resources = [ParametersUniform(setup)]
     const imports = [
@@ -81,7 +78,7 @@ export function MainModule(
         imports,
         canvas: 'canvas',
         code: /* wgsl */ `
-        @compute @workgroup_size(${wg_dim_x}, ${wg_dim_y})
+        @compute @workgroup_size(${WG_DIM}, ${WG_DIM})
         fn main(
             @builtin(global_invocation_id) gid: vec3u
         ) {

@@ -1,14 +1,12 @@
-import WebGPUScene from '@/WebGPU/Scene'
+import WebGPUScene, { WG_DIM } from '@/WebGPU/Scene'
 import { createColorData, MainModule, type Setup } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
-
-const wg_dim = 8
 
 export default class Controller {
     scene = new WebGPUScene()
 
     async init(setup: Setup, canvas: HTMLCanvasElement) {
-        await this.scene.build(canvas, [MainModule(setup, wg_dim, wg_dim)])
+        await this.scene.build(canvas, [MainModule(setup)])
         this.scene.watchResize(() => this.render())
     }
 
@@ -20,8 +18,8 @@ export default class Controller {
                 kind: 'Compute',
                 name: 'main',
                 n_workgroups: {
-                    x: Math.ceil(texture.width / wg_dim),
-                    y: Math.ceil(texture.height / wg_dim)
+                    x: Math.ceil(texture.width / WG_DIM),
+                    y: Math.ceil(texture.height / WG_DIM)
                 }
             }
         ])

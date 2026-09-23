@@ -19,10 +19,10 @@ import {
     Worley4D
 } from '@/Noise/Algorithms/Worley'
 import {
-    WorleyEdge2D,
-    WorleyEdge3D,
-    WorleyEdge4D
-} from '@/Noise/Algorithms/WorleyEdge.js'
+    VoronoiEdge2D,
+    VoronoiFace3D,
+    VoronoiEdge3D
+} from '@/Noise/Algorithms/VoronoiEdge.js'
 
 import type { DomainTransform } from './Shader'
 import WebGPUScene from './Controller.js'
@@ -106,11 +106,11 @@ function createNoiseAlgorithm(
         default:
             switch (noise_dimension) {
                 case '2D':
-                    return WorleyEdge2D()
-                case '3D':
-                    return WorleyEdge3D()
+                    return VoronoiEdge2D()
+                case '3D faces':
+                    return VoronoiFace3D()
                 default:
-                    return WorleyEdge4D()
+                    return VoronoiEdge3D()
             }
     }
 }
@@ -146,8 +146,22 @@ watch(dimension, (new_dimension) => {
     if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
         domain_transform.value = 'None'
     }
-    if (new_dimension === '4D' && domain_transform.value.startsWith('Warp')) {
+    if (new_dimension === '4D' && domain_transform.value !== 'Warp') {
         domain_transform.value = 'None'
+    }
+})
+
+watch(algorithm, (new_algorithm) => {
+    if (
+        new_algorithm !== 'Voronoi borders' &&
+        dimension.value.startsWith('3D')
+    ) {
+        dimension.value = '3D'
+    } else if (
+        new_algorithm === 'Voronoi borders' &&
+        dimension.value !== '2D'
+    ) {
+        dimension.value = '3D faces'
     }
 })
 
@@ -204,9 +218,15 @@ onBeforeUnmount(() => {
 const available_transforms = computed(() =>
     dimension.value === '2D'
         ? ['None', 'Warp']
-        : dimension.value === '3D'
-          ? ['None', 'Rotate', 'Warp']
-          : ['None', 'Rotate']
+        : dimension.value === '4D'
+          ? ['None', 'Rotate']
+          : ['None', 'Rotate', 'Warp']
+)
+
+const available_dimensions = computed(() =>
+    algorithm.value !== 'Voronoi borders'
+        ? ['2D', '3D', '4D']
+        : ['2D', '3D faces', '3D edges']
 )
 </script>
 
@@ -226,8 +246,8 @@ const available_transforms = computed(() =>
                             'Perlin',
                             'Cubic',
                             'Value',
-                            'Worley F1',
-                            'Worley F2 - F1'
+                            'Worley',
+                            'Voronoi borders'
                         ]"
                         v-model="algorithm"
                     />
@@ -254,7 +274,7 @@ const available_transforms = computed(() =>
 
                     <TextSingleSelect
                         text="Noise dimension"
-                        :options="['2D', '3D', '4D']"
+                        :options="available_dimensions"
                         v-model="dimension"
                     />
 
@@ -286,7 +306,7 @@ const available_transforms = computed(() =>
                         v-model="domain_transform"
                     />
 
-                    <template v-if="domain_transform.startsWith('Warp')">
+                    <template v-if="domain_transform === 'Warp'">
                         <p>Warp strength: {{ warp_strength }}</p>
                         <RangeInput
                             :min="0.01"
@@ -297,7 +317,7 @@ const available_transforms = computed(() =>
                         />
                     </template>
                     <NumberSingleSelect
-                        v-if="domain_transform.startsWith('Warp')"
+                        v-if="domain_transform === 'Warp'"
                         text="Warp octaves"
                         :options="[1, 2, 3, 4, 5]"
                         v-model="n_warp_octaves"
@@ -308,7 +328,7 @@ const available_transforms = computed(() =>
 
                     <NumberSingleSelect
                         :text="
-                            domain_transform.startsWith('Warp')
+                            domain_transform !== 'Warp'
                                 ? 'Main octaves'
                                 : 'Octaves'
                         "
@@ -322,8 +342,7 @@ const available_transforms = computed(() =>
                     <template
                         v-if="
                             n_main_octaves > 1 ||
-                            (domain_transform.startsWith('Warp') &&
-                                n_warp_octaves > 1)
+                            (domain_transform !== 'Warp' && n_warp_octaves > 1)
                         "
                     >
                         <p>Persistence: {{ persistence }}</p>
