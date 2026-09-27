@@ -21,11 +21,12 @@ import {
 import {
     VoronoiEdge2D,
     VoronoiFace3D,
-    VoronoiEdge3D
-} from '@/Noise/Algorithms/VoronoiEdge.js'
+    VoronoiEdge3DExact,
+    VoronoiEdge3DApproximate
+} from '@/Noise/Algorithms/VoronoiBorders.js'
 
 import type { DomainTransform } from './Shader'
-import WebGPUScene from './Controller.js'
+import Controller from './Controller.js'
 import Checkbox from '@/components/Checkbox.vue'
 
 const algorithm = ref<string>('Simplex')
@@ -47,7 +48,7 @@ const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])
 
 const active_tab = ref('Configuration')
-const scene = shallowRef(new WebGPUScene())
+const scene = shallowRef(new Controller())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function createNoiseAlgorithm(
@@ -109,8 +110,10 @@ function createNoiseAlgorithm(
                     return VoronoiEdge2D()
                 case '3D faces':
                     return VoronoiFace3D()
+                case '3D edges (approximate)':
+                    return VoronoiEdge3DApproximate()
                 default:
-                    return VoronoiEdge3D()
+                    return VoronoiEdge3DExact()
             }
     }
 }
@@ -226,7 +229,7 @@ const available_transforms = computed(() =>
 const available_dimensions = computed(() =>
     algorithm.value !== 'Voronoi borders'
         ? ['2D', '3D', '4D']
-        : ['2D', '3D faces', '3D edges']
+        : ['2D', '3D faces', '3D edges (approximate)', '3D edges (exact)']
 )
 </script>
 

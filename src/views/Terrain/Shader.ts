@@ -21,7 +21,7 @@ import { Value2D, Value3D } from '@/Noise/Algorithms/Value'
 import { Perlin2D, Perlin3D } from '@/Noise/Algorithms/Perlin'
 import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 import { Worley2D, Worley3D } from '@/Noise/Algorithms/Worley'
-import { VoronoiEdge2D, VoronoiEdge3D } from '@/Noise/Algorithms/VoronoiEdge'
+import { VoronoiEdge2D, VoronoiFace3D } from '@/Noise/Algorithms/VoronoiBorders'
 import { importFn } from '@/Noise/HelperFunctions'
 
 export interface Setup {
@@ -152,7 +152,7 @@ function NoiseModule(): ShaderModule[] {
         Worley3D('Manhattan'),
         Worley3D('Chebyshev'),
         VoronoiEdge2D(),
-        VoronoiEdge3D()
+        VoronoiFace3D()
     ]
         .map(FBMNoiseModule)
         .concat([importFn('unit_vector_2d'), importFn('unit_vector_3d')])
