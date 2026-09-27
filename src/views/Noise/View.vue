@@ -94,7 +94,7 @@ function createNoiseAlgorithm(
                 default:
                     return Value4D()
             }
-        case 'Worley ':
+        case 'Worley':
             switch (noise_dimension) {
                 case '2D':
                     return Worley2D(worley_distance)
