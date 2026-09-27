@@ -159,20 +159,24 @@ export function VoronoiEdge3D(): NoiseModule {
             }
 
             fn worley_edge_3d(pos: vec3f, seed: u32) -> f32 {
-                let grid_pos = vec3i(floor(pos));
+                const radius = 1;
+                const diameter = 2 * radius + 1;
+                const n_cells = diameter * diameter * diameter;
+                var cache_arr: array<vec3f, n_cells>;
 
+                let grid_pos = vec3i(floor(pos));
                 // Distance to closest Voronoi seed point
                 var min_point_dist = 10.0;
                 // Vector to closest Voronoi seed point
                 var min_point_vec = vec3f(0);
 
-                for (var offset_x = -1; offset_x < 2; offset_x++) {
-                    for (var offset_y = -1; offset_y < 2; offset_y++) {
-                        for (var offset_z = -1; offset_z < 2; offset_z++) {
-                            let offset = vec3i(offset_x, offset_y, offset_z);
+                for (var offset_x = 0; offset_x < diameter; offset_x++) {
+                    for (var offset_y = 0; offset_y < diameter; offset_y++) {
+                        for (var offset_z = 0; offset_z < diameter; offset_z++) {
+                            let offset = vec3i(offset_x-radius, offset_y-radius, offset_z-radius);
                             let neighbor = grid_pos + offset;
-                            let point = hash_3u_3f(seed_3d(neighbor, seed));
-
+                            let point = hash_3u_3f(seed_3d(neighbor, 0));
+                            
                             let point_vec = vec3f(neighbor) + point - pos;
                             let point_dist = dot(point_vec, point_vec);
                             
@@ -180,6 +184,8 @@ export function VoronoiEdge3D(): NoiseModule {
                                 min_point_dist = point_dist;
                                 min_point_vec = point_vec;
                             }
+                            let i = (offset_x*diameter + offset_y)*diameter + offset_z;
+                            cache_arr[i] = point_vec;
                         }
                     }
                 }
@@ -187,61 +193,36 @@ export function VoronoiEdge3D(): NoiseModule {
                 // Distances to closest face of the surrounding Voronoi cell
                 var min_face_dist = 10.0;
                 var min_face_vec = vec3f(0);
-                var min_face_offset = vec3i(0);
+                var min_face_index = 0;
 
-                for (var offset_x = -1; offset_x < 2; offset_x++) {
-                    for (var offset_y = -1; offset_y < 2; offset_y++) {
-                        for (var offset_z = -1; offset_z < 2; offset_z++) {
+                for (var i = 0; i < n_cells; i++) {
+                    let point_vec = cache_arr[i];
+                    let point_to_point = normalize(point_vec - min_point_vec);
+                    let face_dist = dot(
+                        0.5 * (point_vec + min_point_vec), 
+                        point_to_point
+                    );
+                    let face_vec = face_dist * point_to_point;
+                    cache_arr[i] = face_vec;
 
-                            let offset = vec3i(offset_x, offset_y, offset_z);
-                            let neighbor = grid_pos + offset;
-                            let point = hash_3u_3f(seed_3d(neighbor, seed));
-
-                            let point_vec = vec3f(neighbor) + point - pos;
-                            let point_to_point = normalize(point_vec - min_point_vec);
-
-                            let face_dist = dot(
-                                0.5 * (point_vec + min_point_vec), 
-                                point_to_point
-                            );
-                            let face_vec = face_dist * point_to_point;
-
-                            if (face_dist < min_face_dist) {
-                                min_face_dist = face_dist;
-                                min_face_vec = face_vec;
-                                min_face_offset = offset;
-                            }
-                        }
+                    if (face_dist < min_face_dist) {
+                        min_face_dist = face_dist;
+                        min_face_vec = face_vec;
+                        min_face_index = i;
                     }
                 }
 
                 var min_edge_dist = 10.0;
 
-                for (var offset_x = -1; offset_x < 2; offset_x++) {
-                    for (var offset_y = -1; offset_y < 2; offset_y++) {
-                        for (var offset_z = -1; offset_z < 2; offset_z++) {
-
-                            let offset = vec3i(offset_x, offset_y, offset_z);
-                            if all(offset == min_face_offset) {
-                                continue;
-                            }
-                            let neighbor = grid_pos + offset;
-                            let point = hash_3u_3f(seed_3d(neighbor, seed));
-
-                            let point_vec = vec3f(neighbor) + point - pos;
-                            let point_to_point = normalize(point_vec - min_point_vec);
-
-                            let face_dist = dot(
-                                0.5 * (point_vec + min_point_vec), 
-                                point_to_point
-                            );
-                            let face_vec = face_dist * point_to_point;
-                            let edge_dist = find_edge_distance(
-                                pos, min_face_vec, face_vec
-                            );
-                            min_edge_dist = min(edge_dist, min_edge_dist);
-                        }
+                for (var i = 0; i < n_cells; i++) {
+                    if i == min_face_index {
+                        continue;
                     }
+                    let face_vec = cache_arr[i];
+                    let edge_dist = find_edge_distance(
+                        pos, min_face_vec, face_vec
+                    );
+                    min_edge_dist = min(edge_dist, min_edge_dist);
                 }
                 
                 return clamp(1.8 * min_edge_dist, 0, 1);
