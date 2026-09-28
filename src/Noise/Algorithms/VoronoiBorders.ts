@@ -240,7 +240,7 @@ export function VoronoiEdge3DExact(): NoiseModule {
                         for (var z = 0; z < diameter; z++) {
                             let offset = vec3i(x-radius, y-radius, z-radius);
                             let neighbor = grid_pos + offset;
-                            let local_point = hash_3u_3f(seed_3d(neighbor, 0));
+                            let local_point = hash_3u_3f(seed_3d(neighbor, seed));
                             let point = vec3f(neighbor) + local_point;
                             
                             let pos_to_point = point - pos;
