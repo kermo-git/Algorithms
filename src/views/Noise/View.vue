@@ -20,10 +20,9 @@ import {
 } from '@/Noise/Algorithms/Worley'
 import {
     VoronoiEdge2D,
-    VoronoiFace3D,
-    VoronoiEdge3DExact,
-    VoronoiEdge3DApproximate
-} from '@/Noise/Algorithms/VoronoiBorders.js'
+    VoronoiEdge3D,
+    VoronoiEdge4D
+} from '@/Noise/Algorithms/VoronoiEdge.js'
 
 import type { DomainTransform } from './Shader'
 import Controller from './Controller.js'
@@ -108,12 +107,10 @@ function createNoiseAlgorithm(
             switch (noise_dimension) {
                 case '2D':
                     return VoronoiEdge2D()
-                case '3D faces':
-                    return VoronoiFace3D()
-                case '3D edges (approximate)':
-                    return VoronoiEdge3DApproximate()
+                case '3D':
+                    return VoronoiEdge3D()
                 default:
-                    return VoronoiEdge3DExact()
+                    return VoronoiEdge4D()
             }
     }
 }
@@ -151,20 +148,6 @@ watch(dimension, (new_dimension) => {
     }
     if (new_dimension === '4D' && domain_transform.value !== 'Warp') {
         domain_transform.value = 'None'
-    }
-})
-
-watch(algorithm, (new_algorithm) => {
-    if (
-        new_algorithm !== 'Voronoi borders' &&
-        dimension.value.startsWith('3D')
-    ) {
-        dimension.value = '3D'
-    } else if (
-        new_algorithm === 'Voronoi borders' &&
-        dimension.value !== '2D'
-    ) {
-        dimension.value = '3D faces'
     }
 })
 
@@ -225,12 +208,6 @@ const available_transforms = computed(() =>
           ? ['None', 'Rotate']
           : ['None', 'Rotate', 'Warp']
 )
-
-const available_dimensions = computed(() =>
-    algorithm.value !== 'Voronoi borders'
-        ? ['2D', '3D', '4D']
-        : ['2D', '3D faces', '3D edges (approximate)', '3D edges (exact)']
-)
 </script>
 
 <template>
@@ -250,7 +227,7 @@ const available_dimensions = computed(() =>
                             'Cubic',
                             'Value',
                             'Worley',
-                            'Voronoi borders'
+                            'Voronoi edge'
                         ]"
                         v-model="algorithm"
                     />
@@ -277,7 +254,7 @@ const available_dimensions = computed(() =>
 
                     <TextSingleSelect
                         text="Noise dimension"
-                        :options="available_dimensions"
+                        :options="['2D', '3D', '4D']"
                         v-model="dimension"
                     />
 
