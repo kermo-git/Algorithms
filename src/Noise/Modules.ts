@@ -113,7 +113,7 @@ export function generateUnitVectors4D(n: number) {
     const data = new Float32Array(4 * n)
 
     const phi = Math.SQRT2
-    const psi = 1.533751168755204288118041
+    const psi = 1.533751168755204
 
     for (let i = 0; i < n; i++) {
         const s = i + 0.5

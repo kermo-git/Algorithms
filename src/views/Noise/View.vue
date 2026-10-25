@@ -26,10 +26,8 @@ import {
 
 import type { DomainTransform } from './Shader'
 import Controller from './Controller.js'
-import Checkbox from '@/components/Checkbox.vue'
 
 const algorithm = ref<string>('Simplex')
-const quadratic_perlin = ref(false)
 const simplex_type = ref<'Gradient' | 'Value'>('Gradient')
 const worley_distance = ref<DistanceMeasure>('Euclidean')
 
@@ -53,7 +51,6 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 function createNoiseAlgorithm(
     algorithm_name: string,
     noise_dimension: string,
-    quadratic_perlin: boolean,
     simplex_value: 'Gradient' | 'Value',
     worley_distance: DistanceMeasure
 ) {
@@ -70,11 +67,11 @@ function createNoiseAlgorithm(
         case 'Perlin':
             switch (noise_dimension) {
                 case '2D':
-                    return Perlin2D(quadratic_perlin)
+                    return Perlin2D()
                 case '3D':
-                    return Perlin3D(quadratic_perlin)
+                    return Perlin3D()
                 default:
-                    return Perlin4D(quadratic_perlin)
+                    return Perlin4D()
             }
         case 'Cubic':
             switch (noise_dimension) {
@@ -122,7 +119,6 @@ async function initScene(canvas: HTMLCanvasElement) {
             noise: createNoiseAlgorithm(
                 algorithm.value,
                 dimension.value,
-                quadratic_perlin.value,
                 simplex_type.value,
                 worley_distance.value
             ),
@@ -152,18 +148,10 @@ watch(dimension, (new_dimension) => {
 })
 
 watch(
-    [
-        algorithm,
-        dimension,
-        quadratic_perlin,
-        simplex_type,
-        worley_distance,
-        domain_transform
-    ],
+    [algorithm, dimension, simplex_type, worley_distance, domain_transform],
     ([
         new_algorithm,
         new_dimension,
-        new_quadratic_perlin,
         new_simplex_value,
         new_worley_distance,
         new_domain_transform
@@ -175,7 +163,6 @@ watch(
                     noise: createNoiseAlgorithm(
                         new_algorithm,
                         new_dimension,
-                        new_quadratic_perlin,
                         new_simplex_value,
                         new_worley_distance
                     ),
@@ -231,16 +218,8 @@ const available_transforms = computed(() =>
                         ]"
                         v-model="algorithm"
                     />
-
-                    <Checkbox
-                        v-if="algorithm === 'Perlin'"
-                        name="quadratic_perlin"
-                        v-model="quadratic_perlin"
-                    >
-                        Quadratic trick
-                    </Checkbox>
                     <TextSingleSelect
-                        v-else-if="algorithm === 'Simplex'"
+                        v-if="algorithm === 'Simplex'"
                         text="Random element type"
                         :options="['Gradient', 'Value']"
                         v-model="simplex_type"

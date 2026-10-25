@@ -3,11 +3,7 @@ import { readView } from '@/WebGPU/Modules'
 import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '../Modules'
 import { importFn } from '../HelperFunctions'
 
-// https://milesoetzel.substack.com/p/introducing-quadratic-noise-a-better
-export function Perlin2D(quadratic?: boolean): NoiseModule {
-    // https://digitalfreepen.com/2017/06/20/range-perlin-noise.html
-    const norm_factor = quadratic ? 1.35 : 1.6
-
+export function Perlin2D(): NoiseModule {
     return {
         name: 'perlin_2d',
         posType: 'vec2f',
@@ -22,7 +18,7 @@ export function Perlin2D(quadratic?: boolean): NoiseModule {
                 let hash = hash_2u_1u(grid_corner);
                 let gradient = gradients_2D[hash >> 28];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(!!quadratic)}
+                return result;
             }
 
             fn perlin_2d(pos: vec2f, seed: u32) -> f32 {
@@ -41,15 +37,13 @@ export function Perlin2D(quadratic?: boolean): NoiseModule {
                 let s = fade_2d(u0);
                 let n = mix(mix(a, b, s.x), mix(c, d, s.x), s.y);
 
-                return clamp(${norm_factor} * n, -1, 1) * 0.5 + 0.5;
+                return clamp(1.6 * n, -1, 1) * 0.5 + 0.5;
             }
         `
     }
 }
 
-export function Perlin3D(quadratic?: boolean): NoiseModule {
-    const norm_factor = quadratic ? 1.5 : 1.7
-
+export function Perlin3D(): NoiseModule {
     return {
         name: 'perlin_3d',
         posType: 'vec3f',
@@ -64,7 +58,7 @@ export function Perlin3D(quadratic?: boolean): NoiseModule {
                 let hash = hash_3u_1u(grid_corner);
                 let gradient = gradients_3D[hash >> 26];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(!!quadratic)}
+                return result;
             }
 
             fn perlin_3d(pos: vec3f, seed: u32) -> f32 {
@@ -91,15 +85,13 @@ export function Perlin3D(quadratic?: boolean): NoiseModule {
                     mix(mix(e, f, s.x), mix(g, h, s.x), s.y),
                     s.z
                 );
-                return clamp(${norm_factor} * n, -1, 1) * 0.5 + 0.5;
+                return clamp(1.7 * n, -1, 1) * 0.5 + 0.5;
             }
         `
     }
 }
 
-export function Perlin4D(quadratic?: boolean): NoiseModule {
-    const norm_factor = quadratic ? 1.5 : 1.7
-
+export function Perlin4D(): NoiseModule {
     return {
         name: 'perlin_4d',
         posType: 'vec4f',
@@ -114,7 +106,7 @@ export function Perlin4D(quadratic?: boolean): NoiseModule {
                 let hash = hash_4u_1u(grid_corner);
                 let gradient = gradients_4D[hash >> 26];
                 let result = dot(gradient, vec_to_sample_pos);
-                ${gradientCalculation(!!quadratic)}
+                return result;
             }
 
             fn perlin_4d(pos: vec4f, seed: u32) -> f32 {
@@ -158,20 +150,8 @@ export function Perlin4D(quadratic?: boolean): NoiseModule {
                     ),
                     s.w
                 );
-                return clamp(${norm_factor} * result, -1, 1) * 0.5 + 0.5;
+                return clamp(1.7 * result, -1, 1) * 0.5 + 0.5;
             }
         `
-    }
-}
-
-function gradientCalculation(quadratic: boolean) {
-    if (quadratic) {
-        return /* wgsl */ `
-                const float_factor = 3.0 / f32(0xFFFFFFFFu);
-                let c = f32(hash) * float_factor - 1.5;
-                return result + result * result * c;
-            `
-    } else {
-        return 'return result;'
     }
 }
