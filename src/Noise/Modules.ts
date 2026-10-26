@@ -32,7 +32,7 @@ export function FBMNoiseModule(noise: NoiseModule): ReadOnlyShaderModule {
                 var min_noise_value: f32 = 0;
                 var max_noise_value: f32 = 1;
 
-                var frequency: f32 = 2;
+                var frequency: f32 = fbm_params.lacunarity;
                 var amplitude: f32 = fbm_params.persistence;
 
                 for (var i = 1u; i < fbm_params.n_octaves; i++) {
