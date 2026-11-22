@@ -7,7 +7,7 @@ export function Perlin2D(): NoiseModule {
     return {
         name: 'perlin_2d',
         posType: 'vec2f',
-        resources: [readView(Gradients2D)],
+        resources: [Gradients2D],
         imports: [
             importFn('seed_2d'),
             importFn('hash_2u_1u'),
@@ -47,7 +47,7 @@ export function Perlin3D(): NoiseModule {
     return {
         name: 'perlin_3d',
         posType: 'vec3f',
-        resources: [readView(Gradients3D)],
+        resources: [Gradients3D],
         imports: [
             importFn('seed_3d'),
             importFn('hash_3u_1u'),
@@ -95,7 +95,7 @@ export function Perlin4D(): NoiseModule {
     return {
         name: 'perlin_4d',
         posType: 'vec4f',
-        resources: [readView(Gradients4D)],
+        resources: [Gradients4D],
         imports: [
             importFn('seed_4d'),
             importFn('hash_4u_1u'),

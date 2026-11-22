@@ -1,4 +1,4 @@
-import { ReadOnlyShaderModule, StorageBuffer } from '@/WebGPU/Modules'
+import { ReadOnlyShaderModule, readView, StorageBuffer, StorageBufferView } from '@/WebGPU/Modules'
 
 export type VecType = 'vec2f' | 'vec3f' | 'vec4f'
 
@@ -51,26 +51,26 @@ export function FBMNoiseModule(noise: NoiseModule): ReadOnlyShaderModule {
     }
 }
 
-export const Gradients2D: StorageBuffer = {
+export const Gradients2D = readView({
     kind: 'StorageBuffer',
     name: 'gradients_2D',
     dataType: 'array<vec2f>',
     data: generateUnitVectors2D(16).buffer
-}
+})
 
-export const Gradients3D: StorageBuffer = {
+export const Gradients3D = readView({
     kind: 'StorageBuffer',
     name: 'gradients_3D',
     dataType: 'array<vec3f>',
     data: generateUnitVectors3D(64).buffer
-}
+})
 
-export const Gradients4D: StorageBuffer = {
+export const Gradients4D = readView({
     kind: 'StorageBuffer',
     name: 'gradients_4D',
     dataType: 'array<vec4f>',
     data: generateUnitVectors4D(64).buffer
-}
+})
 
 export function generateUnitVectors2D(n: number) {
     const data = new Float32Array(2 * n)

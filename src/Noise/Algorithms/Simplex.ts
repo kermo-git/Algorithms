@@ -62,7 +62,7 @@ export function Simplex2D(
     } else {
         name = 'simplex_2d'
         imports = [importFn('seed_2d'), importFn('hash_2u_1u'), skew_module]
-        resources = [readView(Gradients2D)]
+        resources = [Gradients2D]
 
         corner_fn = `${name}_corner`
         corner_code = /* wgsl */ `
@@ -165,7 +165,7 @@ export function Simplex3D(
     } else {
         name = 'simplex_3d'
         imports = [importFn('seed_3d'), importFn('hash_3u_1u'), skew_module]
-        resources = [readView(Gradients3D)]
+        resources = [Gradients3D]
 
         corner_fn = `${name}_corner`
         corner_code = /* wgsl */ `
@@ -294,7 +294,7 @@ export function Simplex4D(
     } else {
         name = 'simplex_4d'
         imports = [importFn('seed_4d'), importFn('hash_4u_1u'), skew_module]
-        resources = [readView(Gradients4D)]
+        resources = [Gradients4D]
 
         corner_fn = `${name}_corner`
         corner_code = /* wgsl */ `

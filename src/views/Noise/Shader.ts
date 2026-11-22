@@ -7,44 +7,43 @@ import {
 import { WG_DIM } from '@/WebGPU/Scene'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/HelperFunctions'
-import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'
+import { FBMNoiseModule, Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '@/Noise/Modules'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp'
 
 export interface Setup {
     noise: NoiseModule
     transform: DomainTransform
-    n_grid_columns?: number
-    z_coord?: number
-    w_coord?: number
-    n_main_octaves?: number
-    persistence?: number
-    lacunarity?: number
-    n_warp_octaves?: number
-    warp_strength?: number
-    colors?: string[]
-    color_points?: number[]
 }
 
-export function MainModule(setup: Setup): ComputeShader {
+export interface Parameters {
+    n_grid_columns: number
+    z_coord: number
+    w_coord: number
+    n_main_octaves: number
+    persistence: number
+    lacunarity: number
+    n_warp_octaves: number
+    warp_strength: number
+    colors: string[]
+    color_points: number[]
+}
+
+export function createShader(setup: Setup, params?: Parameters): ComputeShader {
     const fbm_module = FBMNoiseModule(setup.noise)
-    const resources = [ParametersUniform(setup)]
+    const resources = [Gradients2D, Gradients3D, Gradients4D, ParametersUniform(params)]
     const imports = [
         constSeed('random_seed'),
-        InterPolateColor(
-            setup.colors || ['#000000', '#FFFFFF'],
-            setup.color_points || [0, 1],
-            16
-        ),
+        InterPolateColor(params),
         fbm_module
     ]
-    let noise_pos_expr
+    let noise_pos_expr = ''
 
     switch (setup.noise.posType) {
         case 'vec2f':
             noise_pos_expr = 'noise_pos_2D'
             if (setup.transform === 'Warp') {
-                imports.push(Warp2D(setup))
+                imports.push(Warp2D(setup.noise))
                 noise_pos_expr = `warp_2d(${noise_pos_expr})`
             }
             break
@@ -56,7 +55,7 @@ export function MainModule(setup: Setup): ComputeShader {
                     noise_pos_expr = `rotate_3d(${noise_pos_expr})`
                     break
                 case 'Warp':
-                    imports.push(Warp3D(setup))
+                    imports.push(Warp3D(setup.noise))
                     noise_pos_expr = `warp_3d(${noise_pos_expr})`
                     break
             }
@@ -109,20 +108,24 @@ export function MainModule(setup: Setup): ComputeShader {
     }
 }
 
-function ParametersUniform(setup: Setup): Uniform {
-    const data = new ArrayBuffer(32)
-    const int_view = new Uint32Array(data, 0, 2)
-    const float_view = new Float32Array(data, 8)
+function ParametersUniform(params?: Parameters): Uniform {
+    let data
 
-    int_view[0] = setup.n_main_octaves || 1
-    int_view[1] = setup.n_warp_octaves || 1
+    if (params) {
+        data = new ArrayBuffer(32)
+        const int_view = new Uint32Array(data, 0, 2)
+        const float_view = new Float32Array(data, 8)
 
-    float_view[0] = setup.warp_strength || 0.1
-    float_view[1] = setup.persistence || 0.5
-    float_view[2] = setup.lacunarity || 2
-    float_view[3] = setup.n_grid_columns || 16
-    float_view[4] = setup.z_coord || 0
-    float_view[5] = setup.w_coord || 0
+        int_view[0] = params.n_main_octaves
+        int_view[1] = params.n_warp_octaves
+
+        float_view[0] = params.warp_strength
+        float_view[1] = params.persistence
+        float_view[2] = params.lacunarity
+        float_view[3] = params.n_grid_columns
+        float_view[4] = params.z_coord
+        float_view[5] = params.w_coord
+    }
 
     return {
         kind: 'Uniform',
@@ -140,16 +143,16 @@ function ParametersUniform(setup: Setup): Uniform {
                 w_coordinate: f32
             };
         `,
-        data: data
+        data
     }
 }
 
-function Warp2D(setup: Setup): ShaderModule {
-    const fbm_module = FBMNoiseModule(setup.noise)
+function Warp2D(noise: NoiseModule, params?: Parameters): ShaderModule {
+    const fbm_module = FBMNoiseModule(noise)
 
     return {
         name: `warp_2d`,
-        resources: [ParametersUniform(setup)],
+        resources: [ParametersUniform(params)],
         imports: [
             fbm_module,
             constSeed('random_seed'),
@@ -171,12 +174,12 @@ function Warp2D(setup: Setup): ShaderModule {
     }
 }
 
-function Warp3D(setup: Setup): ShaderModule {
-    const fbm_module = FBMNoiseModule(setup.noise)
+function Warp3D(noise: NoiseModule, params?: Parameters): ShaderModule {
+    const fbm_module = FBMNoiseModule(noise)
 
     return {
         name: `warp_3d`,
-        resources: [ParametersUniform(setup)],
+        resources: [ParametersUniform(params)],
         imports: [
             fbm_module,
             constSeed('random_seed'),
@@ -222,11 +225,14 @@ export function createColorData(colors: string[], points: number[]) {
     return result
 }
 
-function InterPolateColor(
-    initial_colors: string[],
-    initial_points: number[],
-    max_n_colors: number
-): ShaderModule {
+function InterPolateColor(params?: Parameters): ShaderModule {
+    const MAX_N_COLORS = 16
+    let data
+
+    if (params) {
+        data = createColorData(params.colors, params.color_points)
+    }
+
     return {
         name: 'interpolate_color',
         resources: [
@@ -245,8 +251,8 @@ function InterPolateColor(
                         arr: array<ColorPoint>
                     };
                 `,
-                byteLength: 16 * max_n_colors + 16,
-                data: createColorData(initial_colors, initial_points)
+                byteLength: 16 * MAX_N_COLORS + 16,
+                data
             })
         ],
         code: /* wgsl */ `

@@ -3,7 +3,7 @@ export interface Uniform {
     name: string
     dataType: string
     dataTypeCode?: string
-    data: ArrayBuffer
+    data?: ArrayBuffer
 }
 
 export interface StorageBuffer {

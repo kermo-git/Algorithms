@@ -30,9 +30,9 @@ import Controller from './Controller.js'
 const algorithm = ref<string>('Simplex')
 const simplex_type = ref<'Gradient' | 'Value'>('Gradient')
 const worley_distance = ref<DistanceMeasure>('Euclidean')
-
 const dimension = ref<string>('2D')
 const domain_transform = ref<DomainTransform>('None')
+
 const n_grid_columns = ref(16)
 const z_coord = ref(0)
 const w_coord = ref(0)
@@ -45,27 +45,31 @@ const colors = ref(['#000000', '#FFFFFF'])
 const color_points = ref([0, 1])
 
 const active_tab = ref('Configuration')
-const scene = shallowRef(new Controller())
+const controller = shallowRef(new Controller())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function createNoiseAlgorithm(
-    algorithm_name: string,
-    noise_dimension: string,
-    simplex_value: 'Gradient' | 'Value',
-    worley_distance: DistanceMeasure
-) {
-    switch (algorithm_name) {
+watch(dimension, (new_dimension) => {
+    if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
+        domain_transform.value = 'None'
+    }
+    if (new_dimension === '4D' && domain_transform.value !== 'Warp') {
+        domain_transform.value = 'None'
+    }
+})
+
+const noise_shader_module = computed(() => {
+    switch (algorithm.value) {
         case 'Simplex':
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
-                    return Simplex2D(simplex_value)
+                    return Simplex2D(simplex_type.value)
                 case '3D':
-                    return Simplex3D(simplex_value)
+                    return Simplex3D(simplex_type.value)
                 default:
-                    return Simplex4D(simplex_value)
+                    return Simplex4D(simplex_type.value)
             }
         case 'Perlin':
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
                     return Perlin2D()
                 case '3D':
@@ -74,7 +78,7 @@ function createNoiseAlgorithm(
                     return Perlin4D()
             }
         case 'Cubic':
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
                     return Cubic2D()
                 case '3D':
@@ -83,7 +87,7 @@ function createNoiseAlgorithm(
                     return Cubic4D()
             }
         case 'Value':
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
                     return Value2D()
                 case '3D':
@@ -92,16 +96,16 @@ function createNoiseAlgorithm(
                     return Value4D()
             }
         case 'Worley':
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
-                    return Worley2D(worley_distance)
+                    return Worley2D(worley_distance.value)
                 case '3D':
-                    return Worley3D(worley_distance)
+                    return Worley3D(worley_distance.value)
                 default:
-                    return Worley4D(worley_distance)
+                    return Worley4D(worley_distance.value)
             }
         default:
-            switch (noise_dimension) {
+            switch (dimension.value) {
                 case '2D':
                     return VoronoiEdge2D()
                 case '3D':
@@ -110,19 +114,16 @@ function createNoiseAlgorithm(
                     return VoronoiEdge4D()
             }
     }
-}
+})
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    await scene.value.init(
+    await controller.value.init(
         {
-            noise: createNoiseAlgorithm(
-                algorithm.value,
-                dimension.value,
-                simplex_type.value,
-                worley_distance.value
-            ),
-            transform: domain_transform.value,
+            noise: noise_shader_module.value,
+            transform: domain_transform.value
+        },
+        {
             n_grid_columns: n_grid_columns.value,
             z_coord: z_coord.value,
             w_coord: w_coord.value,
@@ -138,218 +139,116 @@ async function initScene(canvas: HTMLCanvasElement) {
     )
 }
 
-watch(dimension, (new_dimension) => {
-    if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
-        domain_transform.value = 'None'
-    }
-    if (new_dimension === '4D' && domain_transform.value !== 'Warp') {
-        domain_transform.value = 'None'
-    }
-})
-
 watch(
-    [algorithm, dimension, simplex_type, worley_distance, domain_transform],
+    [noise_shader_module, domain_transform],
     ([
-        new_algorithm,
-        new_dimension,
-        new_simplex_value,
-        new_worley_distance,
+        new_noise_shader_module,
         new_domain_transform
     ]) => {
         if (canvasRef.value) {
-            scene.value.cleanup()
-            scene.value.init(
-                {
-                    noise: createNoiseAlgorithm(
-                        new_algorithm,
-                        new_dimension,
-                        new_simplex_value,
-                        new_worley_distance
-                    ),
-                    transform: new_domain_transform,
-                    n_grid_columns: n_grid_columns.value,
-                    z_coord: z_coord.value,
-                    w_coord: w_coord.value,
-                    n_main_octaves: n_main_octaves.value,
-                    persistence: persistence.value,
-                    lacunarity: lacunarity.value,
-                    n_warp_octaves: n_warp_octaves.value,
-                    warp_strength: warp_strength.value,
-                    colors: colors.value,
-                    color_points: color_points.value
-                },
-                canvasRef.value
-            )
+            controller.value.setNoiseFunction({
+                noise: new_noise_shader_module,
+                transform: new_domain_transform
+            })
         }
     }
 )
 
 onBeforeUnmount(() => {
-    scene.value.cleanup()
+    controller.value.cleanup()
 })
 
 const available_transforms = computed(() =>
     dimension.value === '2D'
         ? ['None', 'Warp']
         : dimension.value === '4D'
-          ? ['None', 'Rotate']
-          : ['None', 'Rotate', 'Warp']
+            ? ['None', 'Rotate']
+            : ['None', 'Rotate', 'Warp']
 )
 </script>
 
 <template>
-    <SidePanelCanvas
-        :tab-captions="['Configuration', 'Colors']"
-        v-model="active_tab"
-        @canvas-ready="initScene"
-    >
+    <SidePanelCanvas :tab-captions="['Configuration', 'Colors']" v-model="active_tab" @canvas-ready="initScene">
         <template v-slot:tabs>
             <VBox>
                 <template v-if="active_tab === 'Configuration'">
-                    <TextSingleSelect
-                        text="Noise algorithm"
-                        :options="[
-                            'Simplex',
-                            'Perlin',
-                            'Cubic',
-                            'Value',
-                            'Worley',
-                            'Voronoi edge'
-                        ]"
-                        v-model="algorithm"
-                    />
-                    <TextSingleSelect
-                        v-if="algorithm === 'Simplex'"
-                        text="Random element type"
-                        :options="['Gradient', 'Value']"
-                        v-model="simplex_type"
-                    />
-                    <TextSingleSelect
-                        v-else-if="algorithm === 'Worley'"
-                        text="Distance metric"
-                        :options="['Euclidean', 'Manhattan', 'Chebyshev']"
-                        v-model="worley_distance"
-                    />
+                    <TextSingleSelect text="Noise algorithm" :options="[
+                        'Simplex',
+                        'Perlin',
+                        'Cubic',
+                        'Value',
+                        'Worley',
+                        'Voronoi edge'
+                    ]" v-model="algorithm" />
+                    <TextSingleSelect v-if="algorithm === 'Simplex'" text="Random element type"
+                        :options="['Gradient', 'Value']" v-model="simplex_type" />
+                    <TextSingleSelect v-else-if="algorithm === 'Worley'" text="Distance metric"
+                        :options="['Euclidean', 'Manhattan', 'Chebyshev']" v-model="worley_distance" />
 
-                    <TextSingleSelect
-                        text="Noise dimension"
-                        :options="['2D', '3D', '4D']"
-                        v-model="dimension"
-                    />
+                    <TextSingleSelect text="Noise dimension" :options="['2D', '3D', '4D']" v-model="dimension" />
 
                     <template v-if="dimension !== '2D'">
                         <p>Z coordinate: {{ z_coord }}</p>
-                        <RangeInput
-                            :min="0"
-                            :max="1"
-                            :step="0.01"
-                            v-model="z_coord"
-                            @animation="(value) => scene.setZCoord(value)"
-                        />
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="z_coord"
+                            @animation="(value) => controller.setZCoord(value)" />
 
                         <template v-if="dimension === '4D'">
                             <p>W coordinate: {{ w_coord }}</p>
-                            <RangeInput
-                                :min="0"
-                                :max="1"
-                                :step="0.01"
-                                v-model="w_coord"
-                                @animation="(value) => scene.setWCoord(value)"
-                            />
+                            <RangeInput :min="0" :max="1" :step="0.01" v-model="w_coord"
+                                @animation="(value) => controller.setWCoord(value)" />
                         </template>
                     </template>
 
-                    <TextSingleSelect
-                        text="Domain transformation"
-                        :options="available_transforms"
-                        v-model="domain_transform"
-                    />
+                    <TextSingleSelect text="Domain transformation" :options="available_transforms"
+                        v-model="domain_transform" />
 
                     <template v-if="domain_transform === 'Warp'">
                         <p>Warp strength: {{ warp_strength }}</p>
-                        <RangeInput
-                            :min="0.01"
-                            :max="1"
-                            :step="0.01"
-                            v-model="warp_strength"
-                            @animation="(value) => scene.setWarpStrength(value)"
-                        />
+                        <RangeInput :min="0.01" :max="1" :step="0.01" v-model="warp_strength"
+                            @animation="(value) => controller.setWarpStrength(value)" />
                     </template>
-                    <NumberSingleSelect
-                        v-if="domain_transform === 'Warp'"
-                        text="Warp octaves"
-                        :options="[1, 2, 3, 4, 5]"
-                        v-model="n_warp_octaves"
-                        @update:model-value="
-                            (value) => scene.setNWarpOctaves(value)
-                        "
-                    />
+                    <NumberSingleSelect v-if="domain_transform === 'Warp'" text="Warp octaves"
+                        :options="[1, 2, 3, 4, 5]" v-model="n_warp_octaves" @update:model-value="
+                            (value) => controller.setNWarpOctaves(value)
+                        " />
 
-                    <NumberSingleSelect
-                        :text="
-                            domain_transform !== 'Warp'
-                                ? 'Main octaves'
-                                : 'Octaves'
-                        "
-                        :options="[1, 2, 3, 4, 5]"
-                        v-model="n_main_octaves"
-                        @update:model-value="
-                            (value) => scene.setNMainOctaves(value)
-                        "
-                    />
+                    <NumberSingleSelect :text="domain_transform !== 'Warp'
+                        ? 'Main octaves'
+                        : 'Octaves'
+                        " :options="[1, 2, 3, 4, 5]" v-model="n_main_octaves" @update:model-value="
+                            (value) => controller.setNMainOctaves(value)
+                        " />
 
-                    <template
-                        v-if="
-                            n_main_octaves > 1 ||
-                            (domain_transform !== 'Warp' && n_warp_octaves > 1)
-                        "
-                    >
+                    <template v-if="
+                        n_main_octaves > 1 ||
+                        (domain_transform !== 'Warp' && n_warp_octaves > 1)
+                    ">
                         <p>Persistence: {{ persistence }}</p>
-                        <RangeInput
-                            :min="0"
-                            :max="1"
-                            :step="0.01"
-                            v-model="persistence"
-                            @animation="(value) => scene.setPersistence(value)"
-                        />
+                        <RangeInput :min="0" :max="1" :step="0.01" v-model="persistence"
+                            @animation="(value) => controller.setPersistence(value)" />
                         <p>Lacunarity: {{ lacunarity }}</p>
-                        <RangeInput
-                            :min="1"
-                            :max="5"
-                            :step="0.01"
-                            v-model="lacunarity"
-                            @animation="(value) => scene.setLacunarity(value)"
-                        />
+                        <RangeInput :min="1" :max="5" :step="0.01" v-model="lacunarity"
+                            @animation="(value) => controller.setLacunarity(value)" />
                     </template>
                 </template>
                 <template v-else>
-                    <ColorPanel
-                        v-model:colors="colors"
-                        v-model:points="color_points"
-                        @change-single-color="
-                            (index, color) => scene.setColor(index, color)
-                        "
-                        @change-single-point="
-                            (index, value) => scene.setColorPoint(index, value)
-                        "
-                        @change-all-color-points="
-                            (colors, points) =>
-                                scene.setAllColors(colors, points)
-                        "
-                    />
+                    <ColorPanel v-model:colors="colors" v-model:points="color_points" @change-single-color="
+                        (index, color) => controller.setColor(index, color)
+                    " @change-single-point="
+                        (index, value) => controller.setColorPoint(index, value)
+                    " @change-all-color-points="
+                        (colors, points) =>
+                            controller.setAllColors(colors, points)
+                    " />
                 </template>
             </VBox>
         </template>
         <template v-slot:pinned>
             <VBox>
-                <NumberSingleSelect
-                    text="Grid size"
-                    :options="[4, 8, 16, 32, 64]"
-                    v-model="n_grid_columns"
+                <NumberSingleSelect text="Grid size" :options="[4, 8, 16, 32, 64]" v-model="n_grid_columns"
                     @update:model-value="
-                        (value) => scene.setNGridColumns(value)
-                    "
-                />
+                        (value) => controller.setNGridColumns(value)
+                    " />
             </VBox>
         </template>
     </SidePanelCanvas>

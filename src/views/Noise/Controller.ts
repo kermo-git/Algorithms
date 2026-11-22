@@ -1,12 +1,13 @@
 import WebGPUScene, { WG_DIM } from '@/WebGPU/Scene'
-import { createColorData, MainModule, type Setup } from './Shader'
+import { type Setup, type Parameters, createColorData, createShader } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
+import { ShaderIssue } from '@/WebGPU/ShaderCode'
 
 export default class Controller {
     scene = new WebGPUScene()
 
-    async init(setup: Setup, canvas: HTMLCanvasElement) {
-        await this.scene.build(canvas, [MainModule(setup)])
+    async init(setup: Setup, params: Parameters, canvas: HTMLCanvasElement) {
+        await this.scene.build(canvas, [createShader(setup, params)])
         this.scene.watchResize(() => this.render())
     }
 
@@ -23,6 +24,13 @@ export default class Controller {
                 }
             }
         ])
+    }
+
+    async setNoiseFunction(setup: Setup): Promise<ShaderIssue[]> {
+        const shader = createShader(setup)
+        const result = await this.scene.updateShaderCode(shader)
+        this.render()
+        return result
     }
 
     setNGridColumns(value: number) {
