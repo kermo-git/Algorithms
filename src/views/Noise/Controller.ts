@@ -1,7 +1,6 @@
 import WebGPUScene, { WG_DIM } from '@/WebGPU/Scene'
 import { type Setup, type Parameters, createColorData, createShader } from './Shader'
 import { parseHexColor } from '@/utils/Colors'
-import { ShaderIssue } from '@/WebGPU/ShaderCode'
 
 export default class Controller {
     scene = new WebGPUScene()
@@ -26,11 +25,10 @@ export default class Controller {
         ])
     }
 
-    async setNoiseFunction(setup: Setup): Promise<ShaderIssue[]> {
+    async setNoiseFunction(setup: Setup) {
         const shader = createShader(setup)
-        const result = await this.scene.updateShaderCode(shader)
+        await this.scene.updateShaderCode(shader)
         this.render()
-        return result
     }
 
     setNGridColumns(value: number) {

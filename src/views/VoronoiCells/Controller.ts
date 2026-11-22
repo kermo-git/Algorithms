@@ -1,14 +1,21 @@
 import WebGPUScene from '@/WebGPU/Scene'
 
-import { createColorData, MainModule, type Setup } from './Shader'
+import {
+    createColorData,
+    createShader,
+    type Parameters,
+    type Setup
+} from './Shader'
 import { parseHexColor } from '@/utils/Colors'
 
 const wg_dim = 8
 
 export default class Controller {
     scene = new WebGPUScene()
-    async init(setup: Setup, canvas: HTMLCanvasElement) {
-        await this.scene.build(canvas, [MainModule(setup, wg_dim, wg_dim)])
+    async init(setup: Setup, params: Parameters, canvas: HTMLCanvasElement) {
+        await this.scene.build(canvas, [
+            createShader(setup, wg_dim, wg_dim, params)
+        ])
         this.scene.watchResize(() => this.render())
     }
 
@@ -25,6 +32,12 @@ export default class Controller {
                 }
             }
         ])
+    }
+
+    async setNoiseFunctionAndDistanceMeasure(setup: Setup) {
+        const shader = createShader(setup, wg_dim, wg_dim)
+        await this.scene.updateShaderCode(shader)
+        this.render()
     }
 
     setVoronoiNColumns(value: number) {

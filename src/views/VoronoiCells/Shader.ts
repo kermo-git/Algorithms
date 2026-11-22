@@ -1,4 +1,9 @@
-import { FBMNoiseModule, NoiseModule } from '@/Noise/Modules'
+import {
+    NoiseModule,
+    FBMNoiseModule,
+    Gradients2D,
+    Gradients3D
+} from '@/Noise/Modules'
 import { DistanceMeasure } from '@/Noise/Algorithms/Worley'
 import { importFn } from '@/Noise/HelperFunctions'
 import { shaderColorArray } from '@/utils/Colors'
@@ -11,22 +16,25 @@ import {
 } from '@/WebGPU/Modules'
 
 export interface Setup {
-    distance_measure: DistanceMeasure
-    voronoi_n_columns?: number
-    voronoi_colors?: string[]
-    voronoi_max_n_colors?: number
     noise: NoiseModule
-    noise_scale?: number
-    noise_strength?: number
-    noise_z?: number
-    noise_n_octaves?: number
-    noise_persistence?: number
+    distance_measure: DistanceMeasure
 }
 
-export function MainModule(
+export interface Parameters {
+    voronoi_n_columns: number
+    voronoi_colors: string[]
+    noise_scale: number
+    noise_strength: number
+    noise_z: number
+    noise_n_octaves: number
+    noise_persistence: number
+}
+
+export function createShader(
     setup: Setup,
     wg_dim_x: number,
-    wg_dim_y: number
+    wg_dim_y: number,
+    params?: Parameters
 ): ComputeShader {
     const noise_module = FBMNoiseModule(setup.noise)
     const pos_type = setup.noise.posType
@@ -39,15 +47,16 @@ export function MainModule(
         pos_expr = 'vec3f(noise_pos, parameters.noise_z)'
     }
 
+    const MAX_N_COLORS = 16
+
     return {
         kind: 'ComputeShader',
         name: 'main',
         resources: [
-            ParametersUniform(setup),
-            ColorArray(
-                setup.voronoi_colors || [],
-                setup.voronoi_max_n_colors || 16
-            )
+            Gradients2D,
+            Gradients3D,
+            ParametersUniform(params),
+            ColorArray(params?.voronoi_colors, MAX_N_COLORS)
         ],
         imports: [noise_module, VoronoiColor(setup.distance_measure)],
         canvas: 'canvas',
@@ -96,17 +105,21 @@ export function MainModule(
     }
 }
 
-function ParametersUniform(setup: Setup): Uniform {
-    const data = new ArrayBuffer(24)
-    const int_view = new Uint32Array(data, 0, 1)
-    const float_view = new Float32Array(data, 4)
+function ParametersUniform(params?: Parameters): Uniform {
+    let data
 
-    int_view[0] = setup.noise_n_octaves || 1
-    float_view[0] = setup.noise_persistence || 0.5
-    float_view[1] = setup.noise_strength || 0
-    float_view[2] = setup.noise_z || 0
-    float_view[3] = setup.noise_scale || 1
-    float_view[4] = setup.voronoi_n_columns || 16
+    if (params) {
+        data = new ArrayBuffer(24)
+        const int_view = new Uint32Array(data, 0, 1)
+        const float_view = new Float32Array(data, 4)
+
+        int_view[0] = params.noise_n_octaves
+        float_view[0] = params.noise_persistence
+        float_view[1] = params.noise_strength
+        float_view[2] = params.noise_z
+        float_view[3] = params.noise_scale
+        float_view[4] = params.voronoi_n_columns
+    }
 
     return {
         kind: 'Uniform',
@@ -122,7 +135,7 @@ function ParametersUniform(setup: Setup): Uniform {
                 voronoi_n_columns: f32,
             };
         `,
-        data: data
+        data
     }
 }
 
@@ -139,9 +152,14 @@ export function createColorData(hex_colors: string[]) {
 }
 
 function ColorArray(
-    hex_colors: string[],
-    n_max_colors: number
+    hex_colors?: string[],
+    n_max_colors?: number
 ): StorageBufferView<'read'> {
+    let data
+
+    if (hex_colors) {
+        data = createColorData(hex_colors)
+    }
     return readView({
         kind: 'StorageBuffer',
         name: 'colors',
@@ -152,8 +170,8 @@ function ColorArray(
                 values: array<vec4f>
             }
         `,
-        byteLength: 16 + 16 * n_max_colors,
-        data: createColorData(hex_colors)
+        byteLength: 16 + 16 * (n_max_colors || 0),
+        data
     })
 }
 

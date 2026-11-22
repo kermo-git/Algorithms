@@ -22,10 +22,10 @@ import {
     VoronoiEdge2D,
     VoronoiEdge3D,
     VoronoiEdge4D
-} from '@/Noise/Algorithms/VoronoiEdge.js'
+} from '@/Noise/Algorithms/VoronoiEdge'
 
 import type { DomainTransform } from './Shader'
-import Controller from './Controller.js'
+import Controller from './Controller'
 
 const algorithm = ref<string>('Simplex')
 const simplex_type = ref<'Gradient' | 'Value'>('Gradient')
@@ -52,7 +52,7 @@ watch(dimension, (new_dimension) => {
     if (new_dimension === '2D' && domain_transform.value === 'Rotate') {
         domain_transform.value = 'None'
     }
-    if (new_dimension === '4D' && domain_transform.value !== 'Warp') {
+    if (new_dimension === '4D' && domain_transform.value === 'Warp') {
         domain_transform.value = 'None'
     }
 })
@@ -145,12 +145,10 @@ watch(
         new_noise_shader_module,
         new_domain_transform
     ]) => {
-        if (canvasRef.value) {
-            controller.value.setNoiseFunction({
-                noise: new_noise_shader_module,
-                transform: new_domain_transform
-            })
-        }
+        controller.value.setNoiseFunction({
+            noise: new_noise_shader_module,
+            transform: new_domain_transform
+        })
     }
 )
 

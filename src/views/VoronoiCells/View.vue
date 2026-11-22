@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import SidePanelCanvas from '@/components/SidePanelCanvas.vue'
 import NumberSingleSelect from '@/components/NumberSingleSelect.vue'
@@ -16,9 +16,10 @@ import { Simplex2D, Simplex3D } from '@/Noise/Algorithms/Simplex'
 
 import Controller from './Controller'
 
-const voronoi_distance = ref<DistanceMeasure>('Euclidean')
 const noise_algorithm = ref<string>('Simplex')
 const noise_dimension = ref<'2D' | '3D'>('2D')
+const voronoi_distance = ref<DistanceMeasure>('Euclidean')
+
 const voronoi_n_columns = ref(16)
 const voronoi_colors = ref(colorPalette('Biomes'))
 const noise_scale = ref(1)
@@ -28,18 +29,30 @@ const noise_persistence = ref(0.5)
 const noise_z = ref(0)
 
 const active_tab = ref('Configuration')
-const scene = shallowRef(new Controller())
+const controller = shallowRef(new Controller())
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+const noise_shader_module = computed(() => {
+    switch (noise_algorithm.value) {
+        case 'Simplex':
+            return noise_dimension.value === '2D' ? Simplex2D() : Simplex3D()
+        case 'Perlin':
+            return noise_dimension.value === '2D' ? Perlin2D() : Perlin3D()
+        case 'Value':
+            return noise_dimension.value === '2D' ? Value2D() : Value3D()
+        default:
+            return noise_dimension.value === '2D' ? Worley2D() : Worley3D()
+    }
+})
 
 async function initScene(canvas: HTMLCanvasElement) {
     canvasRef.value = canvas
-    await scene.value.init(
+    await controller.value.init(
         {
-            distance_measure: voronoi_distance.value,
-            noise: createNoiseAlgorithm(
-                noise_algorithm.value,
-                noise_dimension.value
-            ),
+            noise: noise_shader_module.value,
+            distance_measure: voronoi_distance.value
+        },
+        {
             voronoi_n_columns: voronoi_n_columns.value,
             voronoi_colors: voronoi_colors.value,
             noise_scale: noise_scale.value,
@@ -52,44 +65,18 @@ async function initScene(canvas: HTMLCanvasElement) {
     )
 }
 
-function createNoiseAlgorithm(name: string, dimension: string) {
-    switch (name) {
-        case 'Simplex':
-            return dimension === '2D' ? Simplex2D() : Simplex3D()
-        case 'Perlin':
-            return dimension === '2D' ? Perlin2D() : Perlin3D()
-        case 'Value':
-            return dimension === '2D' ? Value2D() : Value3D()
-        default:
-            return dimension === '2D' ? Worley2D() : Worley3D()
-    }
-}
-
 watch(
-    [voronoi_distance, noise_algorithm, noise_dimension],
-    ([new_measure, new_algorithm, new_dimension]) => {
-        if (canvasRef.value) {
-            scene.value.cleanup()
-            scene.value.init(
-                {
-                    distance_measure: new_measure,
-                    noise: createNoiseAlgorithm(new_algorithm, new_dimension),
-                    voronoi_n_columns: voronoi_n_columns.value,
-                    voronoi_colors: voronoi_colors.value,
-                    noise_scale: noise_scale.value,
-                    noise_strength: noise_strength.value,
-                    noise_n_octaves: noise_n_octaves.value,
-                    noise_persistence: noise_persistence.value,
-                    noise_z: noise_z.value
-                },
-                canvasRef.value
-            )
-        }
+    [noise_shader_module, voronoi_distance],
+    ([new_noise_shader_module, new_voronoi_distance]) => {
+        controller.value.setNoiseFunctionAndDistanceMeasure({
+            noise: new_noise_shader_module,
+            distance_measure: new_voronoi_distance
+        })
     }
 )
 
 onBeforeUnmount(() => {
-    scene.value.cleanup()
+    controller.value.cleanup()
 })
 </script>
 
@@ -114,7 +101,9 @@ onBeforeUnmount(() => {
                         :max="5"
                         :step="0.01"
                         v-model="noise_strength"
-                        @animation="(value) => scene.setNoiseStrength(value)"
+                        @animation="
+                            (value) => controller.setNoiseStrength(value)
+                        "
                     />
 
                     <TextSingleSelect
@@ -136,7 +125,9 @@ onBeforeUnmount(() => {
                             :max="1"
                             :step="0.01"
                             v-model="noise_z"
-                            @animation="(value) => scene.setNoiseZCoord(value)"
+                            @animation="
+                                (value) => controller.setNoiseZCoord(value)
+                            "
                         />
                     </template>
 
@@ -145,7 +136,7 @@ onBeforeUnmount(() => {
                         :options="[1, 2, 3, 4, 5]"
                         v-model="noise_n_octaves"
                         @update:model-value="
-                            (value) => scene.setNoiseNOctaves(value)
+                            (value) => controller.setNoiseNOctaves(value)
                         "
                     />
 
@@ -157,7 +148,7 @@ onBeforeUnmount(() => {
                             :step="0.01"
                             v-model="noise_persistence"
                             @animation="
-                                (value) => scene.setNoisePersistence(value)
+                                (value) => controller.setNoisePersistence(value)
                             "
                         />
                     </template>
@@ -170,17 +161,17 @@ onBeforeUnmount(() => {
                         :max="5"
                         :step="0.01"
                         v-model="noise_scale"
-                        @animation="(value) => scene.setNoiseScale(value)"
+                        @animation="(value) => controller.setNoiseScale(value)"
                     />
                 </template>
                 <template v-else>
                     <ColorPalette
                         v-model="voronoi_colors"
                         @change-single-color="
-                            (index, value) => scene.setColor(index, value)
+                            (index, value) => controller.setColor(index, value)
                         "
                         @change-all-colors="
-                            (colors) => scene.setAllColors(colors)
+                            (colors) => controller.setAllColors(colors)
                         "
                     />
                 </template>
@@ -193,7 +184,7 @@ onBeforeUnmount(() => {
                     :options="[4, 8, 16, 32, 64]"
                     v-model="voronoi_n_columns"
                     @update:model-value="
-                        (value) => scene.setVoronoiNColumns(value)
+                        (value) => controller.setVoronoiNColumns(value)
                     "
                 />
             </VBox>

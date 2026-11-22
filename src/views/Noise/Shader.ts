@@ -7,7 +7,13 @@ import {
 import { WG_DIM } from '@/WebGPU/Scene'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/HelperFunctions'
-import { FBMNoiseModule, Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '@/Noise/Modules'
+import {
+    NoiseModule,
+    FBMNoiseModule,
+    Gradients2D,
+    Gradients3D,
+    Gradients4D
+} from '@/Noise/Modules'
 
 export type DomainTransform = 'None' | 'Rotate' | 'Warp'
 
@@ -31,7 +37,12 @@ export interface Parameters {
 
 export function createShader(setup: Setup, params?: Parameters): ComputeShader {
     const fbm_module = FBMNoiseModule(setup.noise)
-    const resources = [Gradients2D, Gradients3D, Gradients4D, ParametersUniform(params)]
+    const resources = [
+        Gradients2D,
+        Gradients3D,
+        Gradients4D,
+        ParametersUniform(params)
+    ]
     const imports = [
         constSeed('random_seed'),
         InterPolateColor(params),
