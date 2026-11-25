@@ -9,7 +9,7 @@ import {
     LinkedRenderShader,
     StaticResource
 } from './LinkedModules'
-import { PingPongBuffers, getName } from './Modules'
+import { PingPongBuffer } from './Modules'
 import {
     createComputeShaderCode,
     createRenderShaderCode,
@@ -25,7 +25,7 @@ export interface ComputeStage {
     staticLayout?: GPUBindGroupLayout
     staticGroup?: GPUBindGroup
 
-    pingPongResources?: PingPongBuffers[]
+    pingPongResources?: PingPongBuffer[]
     pingPongLayout?: GPUBindGroupLayout
     pingPongGroupAB?: GPUBindGroup
     pingPongGroupBA?: GPUBindGroup
@@ -51,7 +51,7 @@ export async function buildComputeStage(
     canvas_color_format: GPUTextureFormat,
     shader: LinkedComputeShader
 ): Promise<ComputeStage> {
-    const { staticResources, pingPongResources } = shader
+    const { staticResources, pingPongBuffers: pingPongResources } = shader
 
     const bindGroupLayouts: GPUBindGroupLayout[] = []
     let staticLayout, pingPongLayout, canvasLayout
@@ -103,7 +103,7 @@ export async function buildComputeStage(
         }),
         staticResources: shader.staticResources,
         staticLayout,
-        pingPongResources: shader.pingPongResources,
+        pingPongResources: shader.pingPongBuffers,
         pingPongLayout,
         canvasLayout
     }
@@ -126,7 +126,7 @@ export function bindComputeStage(
         const bind_group_entries = staticResources.map((r, i) => ({
             binding: i,
             resource: {
-                buffer: buffers.get(getName(r))!
+                buffer: buffers.get(r.name)!
             }
         }))
 
@@ -145,11 +145,11 @@ export function bindComputeStage(
                 return [
                     {
                         binding: 2 * i,
-                        resource: buffers.get(r.buffer_A.name)!
+                        resource: buffers.get(r.buffer_A_name)!
                     },
                     {
                         binding: 2 * i + 1,
-                        resource: buffers.get(r.buffer_B.name)!
+                        resource: buffers.get(r.buffer_B_name)!
                     }
                 ]
             })
@@ -162,11 +162,11 @@ export function bindComputeStage(
                 return [
                     {
                         binding: 2 * i,
-                        resource: buffers.get(r.buffer_B.name)!
+                        resource: buffers.get(r.buffer_B_name)!
                     },
                     {
                         binding: 2 * i + 1,
-                        resource: buffers.get(r.buffer_A.name)!
+                        resource: buffers.get(r.buffer_A_name)!
                     }
                 ]
             })
@@ -186,8 +186,7 @@ export async function buildRenderStage(
         bindLayout = device.createBindGroupLayout({
             label: 'resources',
             entries: shader.resources.map((r, i) => {
-                const name = getName(r)
-                const visibility = shader.visibility.get(name)!
+                const visibility = shader.resource_visibility.get(r.name)!
                 return createLayoutEntry(r, i, visibility)
             })
         })
@@ -242,7 +241,7 @@ export function bindRenderStage(
             entries: resources.map((r, i) => ({
                 binding: i,
                 resource: {
-                    buffer: buffers.get(getName(r))!
+                    buffer: buffers.get(r.name)!
                 }
             }))
         })

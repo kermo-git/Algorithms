@@ -69,39 +69,28 @@ export function createShader(
         name: 'main',
         resources: [
             {
-                kind: 'PingPongBuffers',
+                kind: 'ping_pong',
+                buffer_A_name: 'generation_A',
+                buffer_B_name: 'generation_B',
                 readName: 'prev_generation',
                 writeName: 'next_generation',
-                buffer_A: {
-                    kind: 'StorageBuffer',
-                    name: 'generation_A',
-                    dataType: 'array<f32>',
-                    data: canvas_data
-                },
-                buffer_B: {
-                    kind: 'StorageBuffer',
-                    name: 'generation_B',
-                    dataType: 'array<f32>',
-                    byteLength: 4 * n_pixels
-                }
+                dataType: 'array<f32>',
+                data: canvas_data,
+                byteLength: 4 * n_pixels
             },
             {
-                kind: 'StorageBufferView',
-                accessMode: 'read',
-                buffer: {
-                    kind: 'StorageBuffer',
-                    name: 'ck',
-                    dataType: 'ColorKernel',
-                    dataTypeCode: /* wgsl */ `
-                        struct ColorKernel {
-                            color_0: vec4f,
-                            color_1: vec4f,
-                            kernel_radius: u32,
-                            kernel: array<f32>
-                        };
-                    `,
-                    data: color_kernel_data
-                }
+                kind: 'storage_read',
+                name: 'ck',
+                dataType: 'ColorKernel',
+                code: /* wgsl */ `
+                    struct ColorKernel {
+                        color_0: vec4f,
+                        color_1: vec4f,
+                        kernel_radius: u32,
+                        kernel: array<f32>
+                    };
+                `,
+                data: color_kernel_data
             }
         ],
         canvas: 'canvas',

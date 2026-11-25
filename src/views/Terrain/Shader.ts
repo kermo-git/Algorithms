@@ -1,12 +1,10 @@
 import {
-    ComputeShader,
-    PingPongBuffers,
-    readView,
-    RenderShader,
+    BufferKind,
+    Buffer,
+    PingPongBuffer,
     ShaderModule,
-    StorageBuffer,
-    Uniform,
-    writeView
+    ComputeShader,
+    RenderShader
 } from '@/WebGPU/Modules'
 import { WG_DIM } from '@/WebGPU/Scene'
 import {
@@ -35,45 +33,61 @@ export interface Setup {
     render_3D: boolean
 }
 
-function VertexIndexBuffer(terrain_dims: Vec2): StorageBuffer {
+function VertexIndexBuffer<K extends BufferKind>(
+    terrain_dims: Vec2,
+    kind: K
+): Buffer<K> {
     const n_vertices = 6 * (terrain_dims.x - 1) * (terrain_dims.y - 1)
     return {
-        kind: 'StorageBuffer',
+        kind,
         name: 'vertex_index',
         dataType: 'array<u32>',
         byteLength: 4 * n_vertices
     }
 }
 
-function TerrainBuffer(name: string, terrain_dims: Vec2): StorageBuffer {
+const terrain_pixel_struct = /* wgsl */ `
+    struct TerrainPixel {
+        gradient: vec2f, velocity: vec2f,
+        water_outflow_flux: vec4f,
+        pos: vec2f, elevation: f32, water: f32,
+        color: vec3f, sediment: f32,
+    };
+`
+
+function TerrainBuffer(
+    name: string,
+    terrain_dims: Vec2
+): Buffer<'storage_read'> {
     const n_bytes = 64 * terrain_dims.x * terrain_dims.y
     return {
-        kind: 'StorageBuffer',
+        kind: 'storage_read',
         name: name,
         dataType: 'array<TerrainPixel>',
-        dataTypeCode: /* wgsl */ `
-            struct TerrainPixel {
-                gradient: vec2f, velocity: vec2f,
-                water_outflow_flux: vec4f,
-                pos: vec2f, elevation: f32, water: f32,
-                color: vec3f, sediment: f32,
-            };
-        `,
+        code: terrain_pixel_struct,
         byteLength: n_bytes
     }
 }
 
-function TerrainPingPong(terrain_dims: Vec2): PingPongBuffers {
+function TerrainPingPong(terrain_dims: Vec2): PingPongBuffer {
+    const n_bytes = 64 * terrain_dims.x * terrain_dims.y
+
     return {
-        kind: 'PingPongBuffers',
+        kind: 'ping_pong',
+        buffer_A_name: 'terrain_A',
+        buffer_B_name: 'terrain_B',
         readName: 'read_terrain',
         writeName: 'write_terrain',
-        buffer_A: TerrainBuffer('terrain_A', terrain_dims),
-        buffer_B: TerrainBuffer('terrain_B', terrain_dims)
+        dataType: 'array<TerrainPixel>',
+        code: terrain_pixel_struct,
+        byteLength: n_bytes
     }
 }
 
-function RenderSetup(setup: Setup, aspect_ratio: number = 1): Uniform {
+function RenderSetup(
+    setup: Setup,
+    aspect_ratio: number = 1
+): Buffer<'uniform'> {
     const projection = createProjection(aspect_ratio)
     const projection_view = projection.matmul(setup.camera_view_matrix)
 
@@ -86,10 +100,10 @@ function RenderSetup(setup: Setup, aspect_ratio: number = 1): Uniform {
     ]).buffer
 
     return {
-        kind: 'Uniform',
+        kind: 'uniform',
         name: 'render_setup',
         dataType: 'RenderSetup',
-        dataTypeCode: /* wgsl */ `
+        code: /* wgsl */ `
         struct RenderSetup {
             light_direction: vec3f,
             ambient_light_intensity: f32,
@@ -104,7 +118,7 @@ export function VertexIndexShader(terrain_dims: Vec2): ComputeShader {
     return {
         kind: 'ComputeShader',
         name: 'vertex_index',
-        resources: [writeView(VertexIndexBuffer(terrain_dims))],
+        resources: [VertexIndexBuffer(terrain_dims, 'storage_write')],
         code: /* wgsl */ `
             const terrain_dims = vec2u(${terrain_dims.x}, ${terrain_dims.y});
             
@@ -355,7 +369,7 @@ export function Display3DShader(
         vertexShader: {
             name: 'display_3D_vertex',
             resources: [
-                readView(TerrainBuffer('terrain_A', terrain_dims)),
+                TerrainBuffer('terrain_A', terrain_dims),
                 RenderSetup(setup, aspect_ratio)
             ],
             code: /* wgsl */ `
@@ -397,6 +411,6 @@ export function Display3DShader(
             `
         },
         primitiveTopology: 'triangle-list',
-        indexBuffer: VertexIndexBuffer(terrain_dims)
+        indexBuffer: VertexIndexBuffer(terrain_dims, 'index')
     }
 }

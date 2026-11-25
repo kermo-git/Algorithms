@@ -1,21 +1,15 @@
-import {
-    PingPongBuffers,
-    ReadOnlyResource,
-    StorageBuffer,
-    StorageBufferView,
-    Uniform
-} from './Modules'
+import { PingPongBuffer, ReadOnlyResource, Buffer } from './Modules'
 
 export type StaticResource =
-    | Uniform
-    | StorageBufferView<'read'>
-    | StorageBufferView<'read_write'>
+    | Buffer<'uniform'>
+    | Buffer<'storage_read'>
+    | Buffer<'storage_write'>
 
 export interface LinkedComputeShader {
     kind: 'LinkedComputeShader'
     name: string
     staticResources: StaticResource[]
-    pingPongResources: PingPongBuffers[]
+    pingPongBuffers: PingPongBuffer[]
     canvas?: string
     code: string
 }
@@ -24,9 +18,9 @@ export interface LinkedRenderShader {
     kind: 'LinkedRenderShader'
     name: string
     primitiveTopology: GPUPrimitiveTopology
-    visibility: Map<string, GPUFlagsConstant>
+    resource_visibility: Map<string, GPUFlagsConstant>
     resources: ReadOnlyResource[]
-    indexBuffer: StorageBuffer
+    indexBuffer: Buffer<'index'>
     code: string
 }
 
@@ -35,6 +29,7 @@ export interface LinkedBuffer {
     usage: GPUFlagsConstant
     byteLength: number
     data?: ArrayBuffer
+    code?: string
 }
 
 export interface LinkedScene {

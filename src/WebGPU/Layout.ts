@@ -11,29 +11,26 @@ export function createLayoutEntry(
     }
 
     switch (resource.kind) {
-        case 'Uniform':
+        case 'uniform':
             return {
                 ...common,
                 buffer: {
                     type: 'uniform'
                 }
             }
-        case 'StorageBufferView':
-            switch (resource.accessMode) {
-                case 'read':
-                    return {
-                        ...common,
-                        buffer: {
-                            type: 'read-only-storage'
-                        }
-                    }
-                case 'read_write':
-                    return {
-                        ...common,
-                        buffer: {
-                            type: 'storage'
-                        }
-                    }
+        case 'storage_read':
+            return {
+                ...common,
+                buffer: {
+                    type: 'read-only-storage'
+                }
+            }
+        case 'storage_write':
+            return {
+                ...common,
+                buffer: {
+                    type: 'storage'
+                }
             }
     }
 }

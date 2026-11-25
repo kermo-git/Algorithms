@@ -1,9 +1,4 @@
-import {
-    ComputeShader,
-    readView,
-    ShaderModule,
-    Uniform
-} from '@/WebGPU/Modules'
+import { Buffer, ShaderModule, ComputeShader } from '@/WebGPU/Modules'
 import { WG_DIM } from '@/WebGPU/Scene'
 import { parseHexColor } from '@/utils/Colors'
 import { importFn, constSeed } from '@/Noise/HelperFunctions'
@@ -119,7 +114,7 @@ export function createShader(setup: Setup, params?: Parameters): ComputeShader {
     }
 }
 
-function ParametersUniform(params?: Parameters): Uniform {
+function ParametersUniform(params?: Parameters): Buffer<'uniform'> {
     let data
 
     if (params) {
@@ -139,10 +134,10 @@ function ParametersUniform(params?: Parameters): Uniform {
     }
 
     return {
-        kind: 'Uniform',
+        kind: 'uniform',
         name: 'parameters',
         dataType: 'Parameters',
-        dataTypeCode: /* wgsl */ `
+        code: /* wgsl */ `
             struct Parameters {
                 n_main_octaves: u32,
                 n_warp_octaves: u32,
@@ -247,11 +242,11 @@ function InterPolateColor(params?: Parameters): ShaderModule {
     return {
         name: 'interpolate_color',
         resources: [
-            readView({
-                kind: 'StorageBuffer',
+            {
+                kind: 'storage_read',
                 name: 'color_points',
                 dataType: 'ColorPointArray',
-                dataTypeCode: /* wgsl */ `
+                code: /* wgsl */ `
                     struct ColorPoint {
                         color: vec3f,
                         value: f32,
@@ -264,7 +259,7 @@ function InterPolateColor(params?: Parameters): ShaderModule {
                 `,
                 byteLength: 16 * MAX_N_COLORS + 16,
                 data
-            })
+            }
         ],
         code: /* wgsl */ `
             fn interpolate_color(value: f32) -> vec4f {

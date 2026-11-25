@@ -6,62 +6,71 @@ import {
     StaticResource
 } from './LinkedModules'
 import {
+    Buffer,
+    BufferKind,
     ComputeShader,
-    PingPongBuffers,
+    PingPongBuffer,
     ReadOnlyResource,
     RenderShader,
     Resource,
     Shader,
     ShaderModule,
-    StorageBuffer,
-    getName,
-    getDataType,
-    getDataTypeCode
+    getName
 } from './Modules'
 
 export function link(shaders: Shader[]): LinkedScene {
     const buffers = new Map<string, LinkedBuffer>()
 
-    function addStorageBuffer(buffer: StorageBuffer) {
-        if (!buffers.get(buffer.name)) {
-            let usage = GPUBufferUsage.STORAGE
+    function addBuffer<T extends BufferKind>(buffer: Buffer<T>) {
+        let linked_buffer = buffers.get(buffer.name)
 
-            if (buffer.data) {
-                usage |= GPUBufferUsage.COPY_DST
-            }
-            buffers.set(buffer.name, {
+        if (!linked_buffer) {
+            linked_buffer = {
                 name: buffer.name,
-                usage: usage,
-                byteLength: buffer.byteLength || buffer.data?.byteLength || 0,
-                data: buffer.data
-            })
+                usage: 0,
+                byteLength: 0
+            }
         }
+
+        linked_buffer.byteLength = Math.max(
+            linked_buffer.byteLength,
+            buffer.byteLength || buffer.data?.byteLength || 0
+        )
+
+        if (buffer.data) {
+            linked_buffer.usage |= GPUBufferUsage.COPY_DST
+        }
+        switch (buffer.kind) {
+            case 'uniform':
+                linked_buffer.usage |=
+                    GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                break
+            case 'storage_read':
+            case 'storage_write':
+                linked_buffer.usage |= GPUBufferUsage.STORAGE
+                break
+            case 'index':
+                linked_buffer.usage |= GPUBufferUsage.INDEX
+                break
+        }
+        linked_buffer.data ||= buffer.data
+        linked_buffer.code ||= buffer.code
+
+        buffers.set(buffer.name, linked_buffer)
     }
 
-    function findBuffers(resources: Resource[]) {
-        for (const resource of resources) {
-            switch (resource.kind) {
-                case 'Uniform':
-                    if (!buffers.get(resource.name)) {
-                        buffers.set(resource.name, {
-                            name: resource.name,
-                            usage:
-                                GPUBufferUsage.UNIFORM |
-                                GPUBufferUsage.COPY_DST,
-                            byteLength: resource.data.byteLength,
-                            data: resource.data
-                        })
-                    }
-                    break
-                case 'StorageBufferView':
-                    addStorageBuffer(resource.buffer)
-                    break
-                case 'PingPongBuffers':
-                    addStorageBuffer(resource.buffer_A)
-                    addStorageBuffer(resource.buffer_B)
-                    break
-            }
+    function addPingPongBuffer(ping_pong: PingPongBuffer) {
+        const buffer: Buffer<'storage_read'> = {
+            kind: 'storage_read',
+            name: ping_pong.buffer_A_name,
+            dataType: ping_pong.dataType,
+            code: ping_pong.code,
+            byteLength: ping_pong.byteLength,
+            data: ping_pong.data
         }
+        addBuffer(buffer)
+        buffer.name = ping_pong.buffer_B_name
+        addBuffer(buffer)
     }
 
     let compute_shaders: LinkedComputeShader[] = []
@@ -71,20 +80,15 @@ export function link(shaders: Shader[]): LinkedScene {
         switch (shader.kind) {
             case 'ComputeShader': {
                 const resolved = linkComputeShader(shader)
-                findBuffers(resolved.staticResources)
-                findBuffers(resolved.pingPongResources)
+                resolved.staticResources.forEach(addBuffer)
+                resolved.pingPongBuffers.forEach(addPingPongBuffer)
                 compute_shaders.push(resolved)
                 break
             }
             case 'RenderShader': {
                 const resolved = linkRenderShader(shader)
-                findBuffers(resolved.resources)
-                addStorageBuffer(resolved.indexBuffer)
-
-                const buffer = buffers.get(resolved.indexBuffer.name)!
-                buffer.usage |= GPUBufferUsage.INDEX
-                buffers.set(resolved.indexBuffer.name, buffer)
-
+                resolved.resources.forEach(addBuffer)
+                addBuffer(resolved.indexBuffer)
                 render_shaders.push(resolved)
                 break
             }
@@ -124,14 +128,14 @@ function resolveImports<T extends ShaderModule>(shader: T): T {
                     resolved_resource_names.add(name)
                     resolved_resources.push(resource)
 
-                    const datatype = getDataType(resource)
-                    const datatype_code = getDataTypeCode(resource)
-
-                    if (datatype_code && !resolved_module_names.has(datatype)) {
-                        resolved_module_names.add(datatype)
+                    if (
+                        resource.code &&
+                        !resolved_module_names.has(resource.dataType)
+                    ) {
+                        resolved_module_names.add(resource.dataType)
                         resolved_modules.unshift({
-                            name: datatype,
-                            code: datatype_code
+                            name: resource.dataType,
+                            code: resource.code
                         })
                     }
                 }
@@ -160,16 +164,17 @@ export function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
     }
 
     const static_resources: StaticResource[] = []
-    const ping_pong_groups: PingPongBuffers[] = []
+    const ping_pong_resources: PingPongBuffer[] = []
 
     for (const resource of resolved.resources || []) {
         switch (resource.kind) {
-            case 'Uniform':
-            case 'StorageBufferView':
+            case 'uniform':
+            case 'storage_read':
+            case 'storage_write':
                 static_resources.push(resource)
                 break
-            case 'PingPongBuffers':
-                ping_pong_groups.push(resource)
+            case 'ping_pong':
+                ping_pong_resources.push(resource)
                 break
         }
     }
@@ -177,7 +182,7 @@ export function linkComputeShader(shader: ComputeShader): LinkedComputeShader {
         kind: 'LinkedComputeShader',
         name: shader.name,
         staticResources: static_resources,
-        pingPongResources: ping_pong_groups,
+        pingPongBuffers: ping_pong_resources,
         canvas: shader.canvas,
         code: code
     }
@@ -192,17 +197,16 @@ export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
 
     for (const r of resolved_vertex.resources || []) {
         resolved_resources.push(r)
-        visibility.set(getName(r), GPUShaderStage.VERTEX)
+        visibility.set(r.name, GPUShaderStage.VERTEX)
     }
 
     for (const r of resolved_fragment.resources || []) {
-        const name = getName(r)
-        const flags = visibility.get(name)
+        const flags = visibility.get(r.name)
 
         if (flags) {
-            visibility.set(name, flags | GPUShaderStage.FRAGMENT)
+            visibility.set(r.name, flags | GPUShaderStage.FRAGMENT)
         } else {
-            visibility.set(name, GPUShaderStage.FRAGMENT)
+            visibility.set(r.name, GPUShaderStage.FRAGMENT)
             resolved_resources.push(r)
         }
     }
@@ -225,7 +229,7 @@ export function linkRenderShader(shader: RenderShader): LinkedRenderShader {
         kind: 'LinkedRenderShader',
         name: shader.name,
         primitiveTopology: shader.primitiveTopology,
-        visibility: visibility,
+        resource_visibility: visibility,
         resources: resolved_resources,
         indexBuffer: shader.indexBuffer,
         code: resolved_code

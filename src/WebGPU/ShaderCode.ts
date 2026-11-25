@@ -1,5 +1,5 @@
 import { LinkedComputeShader, LinkedRenderShader } from './LinkedModules'
-import { Resource, getDataType } from './Modules'
+import { Resource } from './Modules'
 
 export function createComputeShaderCode(
     shader: LinkedComputeShader,
@@ -20,7 +20,7 @@ export function createComputeShaderCode(
         bind_index = 0
     }
 
-    for (const resource of shader.pingPongResources) {
+    for (const resource of shader.pingPongBuffers) {
         bind_declarations +=
             createResourceDeclaration(resource, group_index, bind_index) + '\n'
         bind_index += 2
@@ -59,19 +59,18 @@ function createResourceDeclaration(
     group_index: number,
     binding_index: number
 ) {
-    const data_type = getDataType(resource)
     const binding_declaration = `@group(${group_index}) @binding(${binding_index})`
 
     switch (resource.kind) {
-        case 'Uniform':
-            return `${binding_declaration} var<uniform> ${resource.name}: ${data_type};`
-
-        case 'StorageBufferView':
-            const buffer_name = resource.buffer.name
-            return `${binding_declaration} var<storage, ${resource.accessMode}> ${buffer_name}: ${data_type};`
-        case 'PingPongBuffers':
-            return `${binding_declaration} var<storage, read> ${resource.readName}: ${data_type};
-@group(${group_index}) @binding(${binding_index + 1}) var<storage, read_write> ${resource.writeName}: ${data_type};`
+        case 'uniform':
+            return `${binding_declaration} var<uniform> ${resource.name}: ${resource.dataType};`
+        case 'storage_read':
+            return `${binding_declaration} var<storage, read> ${resource.name}: ${resource.dataType};`
+        case 'storage_write':
+            return `${binding_declaration} var<storage, read_write> ${resource.name}: ${resource.dataType};`
+        case 'ping_pong':
+            return `${binding_declaration} var<storage, read> ${resource.readName}: ${resource.dataType};
+@group(${group_index}) @binding(${binding_index + 1}) var<storage, read_write> ${resource.writeName}: ${resource.dataType};`
     }
 }
 

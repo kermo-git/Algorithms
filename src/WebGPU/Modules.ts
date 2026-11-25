@@ -1,45 +1,40 @@
-export interface Uniform {
-    kind: 'Uniform'
-    name: string
-    dataType: string
-    dataTypeCode?: string
-    data?: ArrayBuffer
-}
+export type BufferKind = 'uniform' | 'storage_read' | 'storage_write' | 'index'
 
-export interface StorageBuffer {
-    kind: 'StorageBuffer'
+export interface Buffer<K extends BufferKind> {
+    kind: K
     name: string
     dataType: string
-    dataTypeCode?: string
+    code?: string
     byteLength?: number
     data?: ArrayBuffer
 }
 
-export interface StorageBufferView<Access extends 'read' | 'read_write'> {
-    kind: 'StorageBufferView'
-    accessMode: Access
-    buffer: StorageBuffer
-}
-
-export interface PingPongBuffers {
-    kind: 'PingPongBuffers'
+export interface PingPongBuffer {
+    kind: 'ping_pong'
+    buffer_A_name: string
+    buffer_B_name: string
     readName: string
     writeName: string
-    buffer_A: StorageBuffer
-    buffer_B: StorageBuffer
+    dataType: string
+    code?: string
+    byteLength?: number
+    data?: ArrayBuffer
 }
 
-export type ReadOnlyResource = Uniform | StorageBufferView<'read'>
+export type ReadOnlyResource = Buffer<'uniform'> | Buffer<'storage_read'>
+
 export type Resource =
     | ReadOnlyResource
-    | StorageBufferView<'read_write'>
-    | PingPongBuffers
+    | Buffer<'storage_write'>
+    | PingPongBuffer
 
-export interface ReadOnlyShaderModule {
-    name: string
-    resources?: ReadOnlyResource[]
-    imports?: ReadOnlyShaderModule[]
-    code: string
+export function getName(resource: Resource | Buffer<'index'>): string {
+    switch (resource.kind) {
+        case 'ping_pong':
+            return `${resource.readName}_${resource.writeName}`
+        default:
+            return resource.name
+    }
 }
 
 export interface ShaderModule {
@@ -54,66 +49,20 @@ export interface ComputeShader extends ShaderModule {
     canvas?: string
 }
 
+export interface ReadOnlyShaderModule {
+    name: string
+    resources?: ReadOnlyResource[]
+    imports?: ReadOnlyShaderModule[]
+    code: string
+}
+
 export interface RenderShader {
     kind: 'RenderShader'
     name: string
     primitiveTopology: GPUPrimitiveTopology
-    indexBuffer: StorageBuffer
+    indexBuffer: Buffer<'index'>
     vertexShader: ReadOnlyShaderModule
     fragmentShader: ReadOnlyShaderModule
 }
 
 export type Shader = ComputeShader | RenderShader
-
-export function getName(resource: Resource): string {
-    switch (resource.kind) {
-        case 'Uniform':
-            return resource.name
-        case 'StorageBufferView':
-            return resource.buffer.name
-        case 'PingPongBuffers':
-            return `${resource.readName}_${resource.writeName}`
-    }
-}
-
-export function getDataType(resource: Resource) {
-    switch (resource.kind) {
-        case 'Uniform':
-            return resource.dataType
-        case 'StorageBufferView':
-            return resource.buffer.dataType
-        case 'PingPongBuffers':
-            return resource.buffer_A.dataType
-    }
-}
-
-export function getDataTypeCode(resource: Resource) {
-    switch (resource.kind) {
-        case 'Uniform':
-            return resource.dataTypeCode
-        case 'StorageBufferView':
-            return resource.buffer.dataTypeCode
-        case 'PingPongBuffers':
-            return (
-                resource.buffer_A.dataTypeCode || resource.buffer_B.dataTypeCode
-            )
-    }
-}
-
-export function readView(buffer: StorageBuffer): StorageBufferView<'read'> {
-    return {
-        kind: 'StorageBufferView',
-        accessMode: 'read',
-        buffer: buffer
-    }
-}
-
-export function writeView(
-    buffer: StorageBuffer
-): StorageBufferView<'read_write'> {
-    return {
-        kind: 'StorageBufferView',
-        accessMode: 'read_write',
-        buffer: buffer
-    }
-}

@@ -2,11 +2,7 @@
 
 import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '../Modules'
 import { importFn } from '../HelperFunctions'
-import {
-    ReadOnlyResource,
-    ReadOnlyShaderModule,
-    readView
-} from '@/WebGPU/Modules'
+import { ReadOnlyResource, ReadOnlyShaderModule } from '@/WebGPU/Modules'
 
 function get_skew_constant(n_dimensions: number) {
     return (Math.sqrt(n_dimensions + 1) - 1) / n_dimensions

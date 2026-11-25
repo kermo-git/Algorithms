@@ -1,5 +1,3 @@
-import { readView } from '@/WebGPU/Modules'
-
 import { Gradients2D, Gradients3D, Gradients4D, NoiseModule } from '../Modules'
 import { importFn } from '../HelperFunctions'
 

@@ -7,13 +7,7 @@ import {
 import { DistanceMeasure } from '@/Noise/Algorithms/Worley'
 import { importFn } from '@/Noise/HelperFunctions'
 import { shaderColorArray } from '@/utils/Colors'
-import {
-    ComputeShader,
-    readView,
-    ShaderModule,
-    StorageBufferView,
-    Uniform
-} from '@/WebGPU/Modules'
+import { Buffer, ShaderModule, ComputeShader } from '@/WebGPU/Modules'
 
 export interface Setup {
     noise: NoiseModule
@@ -105,7 +99,7 @@ export function createShader(
     }
 }
 
-function ParametersUniform(params?: Parameters): Uniform {
+function ParametersUniform(params?: Parameters): Buffer<'uniform'> {
     let data
 
     if (params) {
@@ -122,10 +116,10 @@ function ParametersUniform(params?: Parameters): Uniform {
     }
 
     return {
-        kind: 'Uniform',
+        kind: 'uniform',
         name: 'parameters',
         dataType: 'Parameters',
-        dataTypeCode: /* wgsl */ `
+        code: /* wgsl */ `
             struct Parameters {
                 noise_n_octaves: u32,
                 noise_persistence: f32,
@@ -154,17 +148,17 @@ export function createColorData(hex_colors: string[]) {
 function ColorArray(
     hex_colors?: string[],
     n_max_colors?: number
-): StorageBufferView<'read'> {
+): Buffer<'storage_read'> {
     let data
 
     if (hex_colors) {
         data = createColorData(hex_colors)
     }
-    return readView({
-        kind: 'StorageBuffer',
+    return {
+        kind: 'storage_read',
         name: 'colors',
         dataType: 'Colors',
-        dataTypeCode: /* wgsl */ `
+        code: /* wgsl */ `
             struct Colors {
                 n_colors: u32,
                 values: array<vec4f>
@@ -172,7 +166,7 @@ function ColorArray(
         `,
         byteLength: 16 + 16 * (n_max_colors || 0),
         data
-    })
+    }
 }
 
 function VoronoiColor(distance_measure: DistanceMeasure): ShaderModule {

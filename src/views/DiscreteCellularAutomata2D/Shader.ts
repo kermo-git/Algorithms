@@ -1,5 +1,5 @@
 import { WG_DIM } from '@/WebGPU/Scene'
-import { ComputeShader, readView } from '@/WebGPU/Modules'
+import { ComputeShader } from '@/WebGPU/Modules'
 import { lerpColorArray } from '@/utils/Colors'
 
 export interface Setup {
@@ -42,11 +42,11 @@ export function createShader(
         name: 'main',
 
         resources: [
-            readView({
-                kind: 'StorageBuffer',
+            {
+                kind: 'storage_read',
                 name: 'states',
                 dataType: 'States',
-                dataTypeCode: /* wgsl */ `
+                code: /* wgsl */ `
                     struct States {
                         n: u32,
                         colors: array<vec4f>,
@@ -54,23 +54,16 @@ export function createShader(
                 `,
                 byteLength: vec4f_bytes + vec4f_bytes * (max_n_states || 1),
                 data: state_data
-            }),
+            },
             {
-                kind: 'PingPongBuffers',
+                kind: 'ping_pong',
+                buffer_A_name: 'generation_A',
+                buffer_B_name: 'generation_B',
                 readName: 'prev_generation',
                 writeName: 'next_generation',
-                buffer_A: {
-                    kind: 'StorageBuffer',
-                    name: 'generation_A',
-                    dataType: 'array<u32>',
-                    data: canvas_data
-                },
-                buffer_B: {
-                    kind: 'StorageBuffer',
-                    name: 'generation_B',
-                    dataType: 'array<u32>',
-                    byteLength: canvas_data?.byteLength
-                }
+                dataType: 'array<u32>',
+                byteLength: canvas_data?.byteLength,
+                data: canvas_data
             }
         ],
 
