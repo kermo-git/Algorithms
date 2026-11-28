@@ -31,8 +31,9 @@ function onBeforeInput(ev: InputEvent) {
     caret_offset = caret_info.offset
 
     if (ev.inputType === 'insertText' && ev.data) {
-        caret_offset += 1
+        caret_offset += 1 - selection.toString().length
         const closing_bracket = bracket_map.get(ev.data)
+
         if (closing_bracket) {
             ev.preventDefault()
 
@@ -55,7 +56,7 @@ function onBeforeInput(ev: InputEvent) {
         const measure_div = document.createElement('div')
         measure_div.innerHTML = ev.dataTransfer?.getData('text/html') || ''
         const paste_text = measure_div.innerText
-        caret_offset += paste_text.length
+        caret_offset += paste_text.length - selection.toString().length
     } else if (ev.inputType === 'deleteContentBackward') {
         caret_offset -= Math.max(1, selection.toString().length)
     } else if (ev.inputType === 'insertParagraph') {
